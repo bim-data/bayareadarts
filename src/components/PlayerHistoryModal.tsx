@@ -1,0 +1,294 @@
+import React, { useState } from 'react';
+import { X, Trophy, Target, ShieldCheck, Calendar, ArrowRight, Star, Award } from 'lucide-react';
+import { MemberProfile, CompletedRoundRecord, TeamEventRecord } from '../types';
+
+interface PlayerHistoryModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  member: MemberProfile | null;
+  rounds: CompletedRoundRecord[];
+  teamEvents?: TeamEventRecord[];
+  activeUserId?: string;
+  onOpenEditProfile?: () => void;
+}
+
+export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
+  isOpen,
+  onClose,
+  member,
+  rounds,
+  teamEvents = [],
+  activeUserId,
+  onOpenEditProfile,
+}) => {
+  const [activeTab, setActiveTab] = useState<'differentials' | 'rounds' | 'scrambles'>('differentials');
+
+  if (!isOpen || !member) return null;
+
+  // Filter player's completed individual rounds
+  const playerRounds = rounds.filter(
+    (r) => r.playerId === member.id || r.playerName.toLowerCase() === member.name.toLowerCase()
+  );
+
+  // Filter team events this player participated in
+  const playerTeamEvents = teamEvents.filter((ev) =>
+    ev.teamLeaderboard.some((t) =>
+      t.playerNames.some(
+        (pName) =>
+          pName.toLowerCase().includes(member.name.toLowerCase()) ||
+          (member.nickname && pName.toLowerCase().includes(member.nickname.toLowerCase()))
+      )
+    )
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+      <div className="card-elevated rounded-3xl max-w-2xl w-full p-6 space-y-6 shadow-2xl my-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 transition-colors">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3.5">
+            <div className="w-13 h-13 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-3xl shrink-0 shadow-sm">
+              {member.avatarEmoji}
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-heading font-extrabold text-xl text-slate-900 dark:text-slate-100">
+                  {member.name}
+                </h3>
+                {member.nickname && (
+                  <span className="text-xs font-bold px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 rounded-md border border-emerald-200 dark:border-emerald-800">
+                    "{member.nickname}"
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Official WHS Index: <strong className="text-emerald-600 dark:text-emerald-400 font-stats">{member.handicapIndex > 0 ? member.handicapIndex.toFixed(1) : `+${Math.abs(member.handicapIndex).toFixed(1)}`}</strong> · Badge: {member.badgeTitle}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {activeUserId === member.id ? (
+              <button
+                onClick={() => {
+                  onClose();
+                  if (onOpenEditProfile) onOpenEditProfile();
+                }}
+                className="btn-modern px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer"
+              >
+                <span>Edit My Profile</span>
+              </button>
+            ) : (
+              <span className="hidden sm:inline-flex text-[11px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                🔒 Read-Only
+              </span>
+            )}
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Player Stats Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Scoring Avg</span>
+            <span className="font-stats font-bold text-lg text-slate-900 dark:text-slate-100">{member.scoringAverage}</span>
+          </div>
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Avg Putts</span>
+            <span className="font-stats font-bold text-lg text-emerald-600 dark:text-emerald-400">{member.avgPutts}</span>
+          </div>
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Greens Hit (GIR)</span>
+            <span className="font-stats font-bold text-lg text-red-500">{member.girPercent}%</span>
+          </div>
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Career Low</span>
+            <span className="font-stats font-bold text-lg text-amber-500">{member.bestRound}</span>
+          </div>
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+          <button
+            onClick={() => setActiveTab('differentials')}
+            className={`btn-modern px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${
+              activeTab === 'differentials'
+                ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
+                : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+            }`}
+          >
+            WHS Differentials ({member.differentials.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('rounds')}
+            className={`btn-modern px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${
+              activeTab === 'rounds'
+                ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
+                : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+            }`}
+          >
+            Round Records ({playerRounds.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('scrambles')}
+            className={`btn-modern px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${
+              activeTab === 'scrambles'
+                ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
+                : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
+            }`}
+          >
+            Team Events ({playerTeamEvents.length})
+          </button>
+        </div>
+
+        {/* TAB 1: WHS Differentials List */}
+        {activeTab === 'differentials' && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                Formula: (113 / Slope) * (Gross - Rating).
+              </span>
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                <Star className="w-3 h-3 fill-current" />
+                ★ Lowest 8 count in Index
+              </span>
+            </div>
+
+            <div className="card-modern rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
+              {member.differentials.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-400">No differentials recorded yet.</div>
+              ) : (
+                member.differentials.map((diff, idx) => (
+                  <div
+                    key={diff.roundId || idx}
+                    className={`p-3.5 flex items-center justify-between text-xs transition-colors ${
+                      diff.usedInIndex
+                        ? 'bg-emerald-50/50 dark:bg-emerald-950/20 font-semibold text-slate-900 dark:text-slate-100'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      {diff.usedInIndex ? (
+                        <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] shrink-0 font-bold">
+                          ★
+                        </span>
+                      ) : (
+                        <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center text-[10px] shrink-0 font-stats">
+                          {idx + 1}
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        <span className="font-medium text-slate-900 dark:text-slate-100 truncate block">
+                          {diff.courseName}
+                        </span>
+                        <span className="text-[11px] text-slate-400 block">{diff.date}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-right shrink-0">
+                      <span className="font-stats text-slate-800 dark:text-slate-200">{diff.grossScore} Gross</span>
+                      <span className="font-stats font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                        {diff.differential} Diff
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: Full Round History */}
+        {activeTab === 'rounds' && (
+          <div className="space-y-3">
+            <div className="card-modern rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
+              {playerRounds.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-400">
+                  No individual round cards saved yet for this player.
+                </div>
+              ) : (
+                playerRounds.map((r) => (
+                  <div key={r.id} className="p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100">
+                        {r.courseName} ({r.teeName})
+                      </span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-stats font-bold text-sm text-slate-900 dark:text-slate-100">
+                          {r.grossScore} Gross
+                        </span>
+                        <span className="text-xs text-slate-400 font-stats">
+                          ({r.netScore} Net)
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      <span>{r.date} · {r.format.toUpperCase()}</span>
+                      <div className="flex items-center gap-2 font-stats">
+                        <span>Putts: {r.totalPutts}</span>
+                        <span>·</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Diff: {r.differential}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: Team Events / Scrambles */}
+        {activeTab === 'scrambles' && (
+          <div className="space-y-3">
+            <div className="card-modern rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
+              {playerTeamEvents.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-400">
+                  No scramble shootouts recorded for this player yet.
+                </div>
+              ) : (
+                playerTeamEvents.map((ev) => {
+                  const playerTeam = ev.teamLeaderboard.find((t) =>
+                    t.playerNames.some(
+                      (p) =>
+                        p.toLowerCase().includes(member.name.toLowerCase()) ||
+                        (member.nickname && p.toLowerCase().includes(member.nickname.toLowerCase()))
+                    )
+                  );
+                  return (
+                    <div key={ev.id} className="p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100">
+                          {ev.eventName}
+                        </span>
+                        <span className="font-stats font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                          {playerTeam?.grossScore} Gross
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        <span>Team: <strong>{playerTeam?.teamName}</strong> · {ev.date}</span>
+                        <span className="capitalize">{ev.format}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+          <button
+            onClick={onClose}
+            className="btn-modern px-5 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-semibold cursor-pointer shadow-sm"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

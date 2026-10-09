@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@variant dark (&:is(.dark, .dark *));
+
+@layer base {
+  :root {
+    --app-bg: #f8fafc;
+    --app-text: #0f172a;
+    --card-bg: #ffffff;
+    --card-border: #e2e8f0;
+    --card-hover: #f1f5f9;
+  }
+
+  .dark {
+    --app-bg: #0b0f17;
+    --app-text: #f8fafc;
+    --card-bg: #111827;
+    --card-border: #1e293b;
+    --card-hover: #1f2937;
+  }
+
+  html {
+    background-color: var(--app-bg);
+    color: var(--app-text);
+  }
+
+  body {
+    font-family: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--app-bg);
+    color: var(--app-text);
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, .font-heading {
+    font-family: 'Plus Jakarta Sans', 'Outfit', sans-serif;
+    letter-spacing: -0.025em;
+  }
+}
+
+/* Modern Clean Glass & Card Utilities */
+.card-modern {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+}
+
+.card-elevated {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+}
+
+.btn-modern {
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.btn-modern:active {
+  transform: scale(0.98);
+}
+
+.font-stats {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}

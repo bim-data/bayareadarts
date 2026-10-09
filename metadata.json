@@ -1,0 +1,6 @@
+{
+  "name": "Bay Area Darts — Golf & Handicap Tracker",
+  "description": "Comic-book styled golf tracker for Bay Area Darts with live multi-device scoring, WHS handicap index calculation, Stableford & Scramble modes, Bay Area courses, and AI scorecard digitizing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
