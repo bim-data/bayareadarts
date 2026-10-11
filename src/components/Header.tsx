@@ -176,27 +176,28 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onOpenOcr}
             title="Scan Paper Scorecard"
-            className="btn-modern px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer"
+            className="hidden md:flex btn-modern px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 items-center gap-1.5 cursor-pointer"
           >
             <Camera className="w-4 h-4 text-red-500" />
-            <span className="hidden md:inline">Scan Card</span>
+            <span>Scan Card</span>
           </button>
 
           <button
             onClick={onOpenJoinRoom}
-            className="btn-modern px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer"
+            title="Join Live Round with PIN"
+            className="hidden sm:flex btn-modern px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 items-center gap-1.5 cursor-pointer"
           >
             <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span className="hidden sm:inline">Join PIN</span>
-            <span className="sm:hidden">Join</span>
+            <span>Join PIN</span>
           </button>
 
           <button
             onClick={onOpenNewRound}
-            className="btn-modern px-3 sm:px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
+            className="btn-modern px-2.5 sm:px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0"
           >
             <Plus className="w-4 h-4" />
-            <span>New Round</span>
+            <span className="hidden xs:inline sm:inline">Start Round</span>
+            <span className="xs:hidden sm:hidden">Round</span>
           </button>
         </div>
       </div>

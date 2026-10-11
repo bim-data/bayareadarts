@@ -14,9 +14,10 @@ import {
   Edit3,
   Award,
   Flag,
-  Flame
+  Flame,
+  FileText
 } from 'lucide-react';
-import { MemberProfile, CompletedRoundRecord, TeamEventRecord, RoundSession, FutureRound, Course } from '../types';
+import { MemberProfile, CompletedRoundRecord, TeamEventRecord, RoundSession, FutureRound, Course, TeamGroup } from '../types';
 import { FutureRoundsSection } from './FutureRoundsSection';
 
 interface ClubhouseDashboardProps {
@@ -25,10 +26,13 @@ interface ClubhouseDashboardProps {
   teamEvents: TeamEventRecord[];
   futureRounds: FutureRound[];
   courses: Course[];
+  teams?: TeamGroup[];
   activeSession: RoundSession | null;
   activeUser?: MemberProfile;
   onOpenProfile: () => void;
   onStartRound: () => void;
+  onLogPastRound?: () => void;
+  onOpenTeamManager?: () => void;
   onJoinRoom: () => void;
   onScanScorecard: () => void;
   onViewRankings: () => void;
@@ -50,10 +54,13 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
   teamEvents,
   futureRounds,
   courses,
+  teams = [],
   activeSession,
   activeUser,
   onOpenProfile,
   onStartRound,
+  onLogPastRound,
+  onOpenTeamManager,
   onJoinRoom,
   onScanScorecard,
   onViewRankings,
@@ -77,29 +84,29 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-8">
       {/* 1. Modern Clubhouse Hero Card */}
       <div className="card-elevated rounded-3xl overflow-hidden relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-colors">
-        <div className="relative h-44 sm:h-52 w-full overflow-hidden">
+        <div className="relative min-h-[170px] sm:h-52 w-full overflow-hidden">
           <img
             src="/src/assets/images/comic_golf_fairway_banner_1791561332599.jpg"
             alt="Bay Area Golf Banner"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent flex items-end p-5 sm:p-7">
-            <div className="flex items-center gap-4 text-white">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-white/80 overflow-hidden shadow-xl bg-white shrink-0">
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent flex items-end p-4 sm:p-7">
+            <div className="flex items-center gap-3 sm:gap-4 text-white">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-white/80 overflow-hidden shadow-xl bg-white shrink-0">
                 <img
                   src="/src/assets/images/bay_area_darts_logo_1791561323731.jpg"
                   alt="Bay Area Darts Mascot"
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div>
-                <span className="text-[11px] font-bold tracking-wider text-emerald-400 uppercase block">
+              <div className="min-w-0">
+                <span className="text-[10px] sm:text-[11px] font-bold tracking-wider text-emerald-400 uppercase block">
                   Clubhouse & Tournament Hub
                 </span>
-                <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-white tracking-tight">
+                <h1 className="font-heading font-extrabold text-xl sm:text-3xl text-white tracking-tight truncate sm:whitespace-normal">
                   Bay Area Darts Golf Club
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-200 font-normal mt-0.5 max-w-xl">
+                <p className="text-xs sm:text-sm text-slate-200 font-normal mt-0.5 max-w-xl line-clamp-2 sm:line-clamp-none">
                   Live multi-device foursome scoring, official WHS handicaps, and upcoming tee time planning across Northern California munis.
                 </p>
               </div>
@@ -107,53 +114,64 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
           </div>
         </div>
 
-        {/* Quick Launch Action Strip */}
-        <div className="p-3.5 sm:p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 sm:grid-cols-5 gap-3">
+        {/* Streamlined Clubhouse Action Grid */}
+        <div className="p-3.5 sm:p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <button
             onClick={onStartRound}
-            className="btn-modern p-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white flex flex-col items-center justify-center text-center shadow-xs cursor-pointer"
+            className="btn-modern p-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-3.5 shadow-xs cursor-pointer text-left transition-all group"
           >
-            <Play className="w-5 h-5 mb-1 fill-current" />
-            <span className="font-semibold text-xs uppercase tracking-wide">Start Live Round</span>
-            <span className="text-[11px] text-emerald-100">Host room code</span>
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+              <Play className="w-5 h-5 fill-current" />
+            </div>
+            <div className="min-w-0">
+              <span className="font-heading font-extrabold text-sm block leading-tight">Start / Enter Round</span>
+              <span className="text-[11px] text-emerald-100 truncate block mt-0.5">Live room · PIN · Past scores</span>
+            </div>
           </button>
 
           <button
             onClick={onOpenProfile}
-            className="btn-modern p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700/80 flex flex-col items-center justify-center text-center cursor-pointer"
+            className="btn-modern p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700/80 flex items-center gap-3.5 cursor-pointer text-left transition-all group"
           >
-            <span className="text-xl mb-0.5">{activeUser?.avatarEmoji || '🎯'}</span>
-            <span className="font-semibold text-xs uppercase tracking-wide">My Golfer Profile</span>
-            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold truncate max-w-[120px]">
-              {activeUser?.nickname || 'Manage Profile'}
-            </span>
-          </button>
-
-          <button
-            onClick={onJoinRoom}
-            className="btn-modern p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700/80 flex flex-col items-center justify-center text-center cursor-pointer"
-          >
-            <Users className="w-5 h-5 mb-1 text-emerald-600 dark:text-emerald-400" />
-            <span className="font-semibold text-xs uppercase tracking-wide">Join With PIN</span>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">Connect to friend</span>
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl shrink-0">
+              {activeUser?.avatarEmoji || '🎯'}
+            </div>
+            <div className="min-w-0">
+              <span className="font-heading font-bold text-sm block leading-tight">Roster & Scramble Teams</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate block mt-0.5">
+                {members.length} Golfers · {teams.length} Squads
+              </span>
+            </div>
           </button>
 
           <button
             onClick={onOpenCreateFutureRound}
-            className="btn-modern p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700/80 flex flex-col items-center justify-center text-center cursor-pointer"
+            className="btn-modern p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700/80 flex items-center gap-3.5 cursor-pointer text-left transition-all group"
           >
-            <Calendar className="w-5 h-5 mb-1 text-amber-500" />
-            <span className="font-semibold text-xs uppercase tracking-wide">Future Round</span>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">7-day placeholder</span>
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="font-heading font-bold text-sm block leading-tight">Plan Future Round</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate block mt-0.5">
+                7-day Muni Alert & RSVPs
+              </span>
+            </div>
           </button>
 
           <button
             onClick={onScanScorecard}
-            className="btn-modern p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700/80 flex flex-col items-center justify-center text-center cursor-pointer"
+            className="btn-modern p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700/80 flex items-center gap-3.5 cursor-pointer text-left transition-all group"
           >
-            <Camera className="w-5 h-5 mb-1 text-red-500" />
-            <span className="font-semibold text-xs uppercase tracking-wide">Scan Paper Card</span>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">Gemini AI OCR</span>
+            <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
+              <Camera className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="font-heading font-bold text-sm block leading-tight">Scan Scorecard</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate block mt-0.5">
+                Instant AI OCR digitize
+              </span>
+            </div>
           </button>
         </div>
       </div>

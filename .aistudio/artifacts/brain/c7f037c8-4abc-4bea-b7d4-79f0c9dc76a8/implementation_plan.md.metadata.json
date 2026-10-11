@@ -1,6 +1,6 @@
 {
-  "summary":  "Revised implementation plan incorporating advanced AI scorecard photo digitizing with game format selection (Individual Stroke, Scramble, Best Ball, etc.), multi-player row detection, player selection/mapping to group members, and format-specific data routing.",
-  "updatedAt":  "2026-10-09T15:54:33.454256489Z",
+  "summary":  "Architecture and design plan to unify Golfer Profiles and Scramble Teams into a single Clubhouse Management Hub, integrate Join with PIN into the Start Round workflow, and fix mobile responsiveness with full-screen mobile dialogs and sticky controls.",
+  "updatedAt":  "2026-10-11T21:41:29.979369825Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -11,10 +11,13 @@ import {
   ArrowLeft,
   Flame,
   CheckCircle2,
-  Clock
+  Clock,
+  Sparkles,
+  Shield,
+  Award
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { Course, GameFormat, HoleScore, PlayerRoundData, RoundSession } from '../types';
+import { Course, GameFormat, HoleScore, PlayerRoundData, RoundSession, TeamGroup } from '../types';
 import { 
   calculateStablefordPoints, 
   getHoleHandicapStrokes
@@ -40,13 +43,39 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
   onExitRound,
 }) => {
   const [currentHoleNum, setCurrentHoleNum] = useState<number>(1);
-  const [activePlayerId, setActivePlayerId] = useState<string>(
-    session.players[0]?.playerId || ''
-  );
   const [copiedPin, setCopiedPin] = useState(false);
+
+  const hasTeams = Boolean(session.teams && session.teams.length > 0);
+
+  // Active Team ID (if team round)
+  const [activeTeamId, setActiveTeamId] = useState<string>(() => {
+    if (session.teams && session.teams.length > 0) return session.teams[0].id;
+    return '';
+  });
+
+  const activeTeam = session.teams?.find((t) => t.id === activeTeamId) || session.teams?.[0];
+
+  // Map active team to lead player or individual active player
+  const [activePlayerId, setActivePlayerId] = useState<string>(() => {
+    if (hasTeams && activeTeam) {
+      const p = session.players.find((pl) => activeTeam.playerIds.includes(pl.playerId));
+      return p ? p.playerId : session.players[0]?.playerId || '';
+    }
+    return session.players[0]?.playerId || '';
+  });
+
+  // Switch team handler
+  const handleSelectTeam = (team: TeamGroup) => {
+    setActiveTeamId(team.id);
+    const p = session.players.find((pl) => team.playerIds.includes(pl.playerId)) || session.players[0];
+    if (p) {
+      setActivePlayerId(p.playerId);
+    }
+  };
 
   const currentHole = course.holes.find((h) => h.number === currentHoleNum) || course.holes[0];
   const activePlayer = session.players.find((p) => p.playerId === activePlayerId) || session.players[0];
+  
   const currentScore: HoleScore = activePlayer?.scores[currentHoleNum] || {
     strokes: 0,
     putts: 0,
@@ -54,6 +83,13 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
     gir: false,
   };
 
+  // Players belonging to the currently active team (up to 4 members!)
+  const currentTeamPlayers = useMemo(() => {
+    if (!hasTeams || !activeTeam) return session.players;
+    return session.players.filter((p) => activeTeam.playerIds.includes(p.playerId));
+  }, [hasTeams, activeTeam, session.players]);
+
+  // Update hole score
   const updateHoleScore = (partial: Partial<HoleScore>) => {
     if (!activePlayer) return;
     const newStrokes = partial.strokes !== undefined ? partial.strokes : currentScore.strokes;
@@ -79,13 +115,22 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
 
     onUpdateScore(activePlayer.playerId, currentHoleNum, updated);
 
-    // Trigger birdie/eagle celebratory confetti
+    // If team round, also sync score across all players on the same team so the whole squad shares the hole score!
+    if (hasTeams && activeTeam) {
+      currentTeamPlayers.forEach((tp) => {
+        if (tp.playerId !== activePlayer.playerId) {
+          onUpdateScore(tp.playerId, currentHoleNum, updated);
+        }
+      });
+    }
+
+    // Celebratory confetti for birdies or better
     if (partial.strokes !== undefined && partial.strokes > 0) {
       const diff = partial.strokes - currentHole.par;
       if (diff === -1) {
-        confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 } });
+        confetti({ particleCount: 35, spread: 65, origin: { y: 0.7 } });
       } else if (diff <= -2) {
-        confetti({ particleCount: 70, spread: 100, origin: { y: 0.6 } });
+        confetti({ particleCount: 80, spread: 100, origin: { y: 0.6 } });
       }
     }
   };
@@ -101,7 +146,7 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
     if (strokes === 1) return { text: '⚡ Hole in One! 🎉', color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800' };
     const diff = strokes - par;
     if (diff <= -2) return { text: '🦅 Eagle!', color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800' };
-    if (diff === -1) return { text: '🎯 Birdie! Pure dart!', color: 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800' };
+    if (diff === -1) return { text: '🎯 Birdie! Dart on target!', color: 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800' };
     if (diff === 0) return { text: '⛳ Par', color: 'text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700' };
     if (diff === 1) return { text: '⚠️ Bogey', color: 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800' };
     return { text: 'Double Bogey+', color: 'text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700' };
@@ -112,6 +157,63 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
   const hcpStrokesOnHole = getHoleHandicapStrokes(activePlayer?.courseHandicap || 0, currentHole.handicapIndex);
   const netScore = currentScore.strokes > 0 ? Math.max(1, currentScore.strokes - hcpStrokesOnHole) : 0;
   const stablefordPts = currentScore.strokes > 0 ? calculateStablefordPoints(netScore, currentHole.par) : 0;
+
+  // Real-Time 2-Team Match Play Status Calculation
+  const matchPlayStatus = useMemo(() => {
+    if (session.format !== 'match_play') return null;
+    const teams = session.teams;
+    if (!teams || teams.length !== 2) return null;
+
+    const teamA = teams[0];
+    const teamB = teams[1];
+    const playerA = session.players.find((p) => teamA.playerIds.includes(p.playerId)) || session.players[0];
+    const playerB = session.players.find((p) => teamB.playerIds.includes(p.playerId)) || session.players[1];
+
+    if (!playerA || !playerB) return null;
+
+    let winsA = 0;
+    let winsB = 0;
+    let completedHoles = 0;
+
+    for (let h = 1; h <= 18; h++) {
+      const sA = playerA.scores[h]?.strokes || 0;
+      const sB = playerB.scores[h]?.strokes || 0;
+      if (sA > 0 && sB > 0) {
+        completedHoles++;
+        if (sA < sB) winsA++;
+        else if (sB < sA) winsB++;
+      }
+    }
+
+    const diff = winsA - winsB;
+    const remainingHoles = 18 - completedHoles;
+
+    let leadText = 'All Square';
+    let leadTeam = null;
+
+    if (diff > 0) {
+      leadText = `${teamA.name} ${diff} UP`;
+      leadTeam = teamA;
+    } else if (diff < 0) {
+      leadText = `${teamB.name} ${Math.abs(diff)} UP`;
+      leadTeam = teamB;
+    }
+
+    if (Math.abs(diff) > remainingHoles && completedHoles > 0) {
+      leadText = `${leadTeam?.name} WINS (${Math.abs(diff)} & ${remainingHoles})`;
+    } else if (Math.abs(diff) === remainingHoles && remainingHoles > 0) {
+      leadText = `Dormie ${remainingHoles} (${leadTeam?.name})`;
+    }
+
+    return {
+      leadText,
+      winsA,
+      winsB,
+      completedHoles,
+      teamAName: teamA.name,
+      teamBName: teamB.name,
+    };
+  }, [session, currentHoleNum]);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 space-y-4">
@@ -130,6 +232,13 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
               <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded">
                 {session.format.toUpperCase()}
               </span>
+              {hasTeams && session.teams && session.teams.length > 0 && (
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 rounded">
+                  {session.teams.length === 1
+                    ? `${session.teams[0].playerIds.length}-PERSON SCRAMBLE`
+                    : 'TEAM DUEL'}
+                </span>
+              )}
               <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
                 {session.teeName}
               </span>
@@ -153,7 +262,22 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
         </div>
       </div>
 
-      {/* 2. Hole Selector Pill Strip (1 - 18) */}
+      {/* Real-time Match Play Status Banner (if 2v2 Match Play) */}
+      {matchPlayStatus && (
+        <div className="p-3 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-amber-500/10 dark:from-amber-950/40 dark:to-emerald-950/40 border border-amber-300 dark:border-amber-700/60 rounded-2xl flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-amber-500 shrink-0" />
+            <span className="font-heading font-extrabold text-slate-900 dark:text-slate-100">
+              Match Status: <span className="text-emerald-700 dark:text-emerald-300">{matchPlayStatus.leadText}</span>
+            </span>
+          </div>
+          <span className="text-slate-500 dark:text-slate-400 font-stats font-semibold">
+            Thru Hole {matchPlayStatus.completedHoles} of 18
+          </span>
+        </div>
+      )}
+
+      {/* 2. Hole Selector Strip (1 - 18) */}
       <div className="overflow-x-auto pb-1">
         <div className="flex items-center gap-1.5 min-w-max p-0.5">
           {course.holes.map((h) => {
@@ -194,31 +318,79 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
         </div>
       </div>
 
-      {/* 3. Player Switcher Tab */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        {session.players.map((p) => {
-          const isActive = p.playerId === activePlayerId;
-          const totalScore = Object.values(p.scores).reduce((acc, s) => acc + (s.strokes || 0), 0);
-          return (
-            <button
-              key={p.playerId}
-              onClick={() => setActivePlayerId(p.playerId)}
-              className={`btn-modern px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-all ${
-                isActive
-                  ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
-                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
-              }`}
-            >
-              <span>{p.name}</span>
-              {totalScore > 0 && (
-                <span className={`font-stats px-1.5 py-0.5 rounded text-[10px] font-bold ${isActive ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}>
-                  {totalScore}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* 3. Entity Switcher: Teams OR Players */}
+      {hasTeams && session.teams ? (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs text-slate-500 px-1">
+            <span className="font-bold uppercase tracking-wider text-[10px]">
+              Scoring Active Team
+            </span>
+            <span>
+              Attributing score to <strong>{activeTeam?.name}</strong>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {session.teams.map((t) => {
+              const isActive = t.id === activeTeamId;
+              const samplePlayer = session.players.find((p) => t.playerIds.includes(p.playerId)) || session.players[0];
+              const totalScore = Object.values(samplePlayer?.scores || {}).reduce((acc, s) => acc + (s.strokes || 0), 0);
+              const isFullFoursome = t.playerIds.length >= 4;
+
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => handleSelectTeam(t)}
+                  className={`btn-modern px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-all ${
+                    isActive
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm ring-2 ring-emerald-500'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="text-base">{t.avatarEmoji || '🎯'}</span>
+                  <span>{t.name}</span>
+                  <span className="text-[10px] opacity-70">
+                    ({t.playerIds.length}P)
+                  </span>
+                  {totalScore > 0 && (
+                    <span className={`font-stats px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                      isActive ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                    }`}>
+                      {totalScore}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        /* Individual Player Switcher */
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          {session.players.map((p) => {
+            const isActive = p.playerId === activePlayerId;
+            const totalScore = Object.values(p.scores).reduce((acc, s) => acc + (s.strokes || 0), 0);
+            return (
+              <button
+                key={p.playerId}
+                onClick={() => setActivePlayerId(p.playerId)}
+                className={`btn-modern px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 whitespace-nowrap cursor-pointer transition-all ${
+                  isActive
+                    ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
+                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                <span>{p.name}</span>
+                {totalScore > 0 && (
+                  <span className={`font-stats px-1.5 py-0.5 rounded text-[10px] font-bold ${isActive ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}>
+                    {totalScore}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* 4. Main Scoring Panel */}
       <div className="card-modern p-5 sm:p-6 rounded-3xl space-y-6">
@@ -237,165 +409,120 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
               <span>{currentHole.yardage} yds</span>
               <span>·</span>
               <span>Index #{currentHole.handicapIndex}</span>
-              {hcpStrokesOnHole > 0 && (
+              {hasTeams && activeTeam && (
                 <>
                   <span>·</span>
                   <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                    +{hcpStrokesOnHole} stroke
+                    {activeTeam.name}
                   </span>
                 </>
               )}
             </div>
           </div>
 
-          {/* Quick Net / Points preview */}
-          <div className="text-right">
-            {session.format === 'stableford' && (
-              <div className="px-3 py-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-center">
-                <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase block">Points</span>
-                <span className="font-stats font-bold text-lg text-amber-800 dark:text-amber-300 leading-none">
-                  {stablefordPts}
-                </span>
-              </div>
-            )}
-            {session.format === 'stroke' && currentScore.strokes > 0 && (
-              <div className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-center">
-                <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase block">Net</span>
-                <span className="font-stats font-bold text-lg text-emerald-800 dark:text-emerald-300 leading-none">
-                  {netScore}
-                </span>
-              </div>
-            )}
-          </div>
+          {reaction && (
+            <span className={`px-3 py-1 rounded-xl text-xs font-bold border ${reaction.color}`}>
+              {reaction.text}
+            </span>
+          )}
         </div>
 
-        {/* Reaction Callout Badge */}
-        {reaction && (
-          <div className={`p-2.5 rounded-xl border text-xs font-semibold text-center transition-all ${reaction.color}`}>
-            {reaction.text}
-          </div>
-        )}
-
-        {/* Total Strokes Control */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
-            <span>Total Strokes</span>
-            <span className="text-slate-400 font-normal">
-              {currentScore.strokes > 0 ? `${currentScore.strokes} Total` : 'Tap to enter'}
+        {/* Strokes Counter Stepper */}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+              {hasTeams ? 'Team Gross Strokes' : 'Gross Strokes'}
+            </span>
+            <span className="font-stats font-extrabold text-4xl sm:text-5xl text-slate-900 dark:text-slate-100">
+              {currentScore.strokes > 0 ? currentScore.strokes : '—'}
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => updateHoleScore({ strokes: Math.max(0, currentScore.strokes - 1) })}
-              className="btn-modern w-14 h-13 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-2xl font-bold text-xl flex items-center justify-center cursor-pointer"
+              onClick={() => updateHoleScore({ strokes: Math.max(1, (currentScore.strokes || currentHole.par) - 1) })}
+              className="w-12 h-12 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 text-xl font-bold flex items-center justify-center cursor-pointer transition-colors"
             >
               -
             </button>
-            <div className="flex-1 h-13 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-center">
-              <span className="font-stats font-extrabold text-3xl text-slate-900 dark:text-slate-100">
-                {currentScore.strokes > 0 ? currentScore.strokes : '—'}
-              </span>
-            </div>
             <button
               onClick={() => updateHoleScore({ strokes: (currentScore.strokes || currentHole.par) + 1 })}
-              className="btn-modern w-14 h-13 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold text-xl flex items-center justify-center cursor-pointer shadow-sm"
+              className="w-12 h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xl font-bold flex items-center justify-center cursor-pointer shadow-sm transition-colors"
             >
               +
             </button>
           </div>
-
-          {/* Quick Score Presets */}
-          <div className="grid grid-cols-5 gap-2 pt-1">
-            {[currentHole.par - 1, currentHole.par, currentHole.par + 1, currentHole.par + 2, currentHole.par + 3].map((val) => {
-              if (val < 1) return null;
-              const isCurrent = currentScore.strokes === val;
-              return (
-                <button
-                  key={val}
-                  onClick={() => updateHoleScore({ strokes: val })}
-                  className={`btn-modern py-2 rounded-xl font-stats font-bold text-xs cursor-pointer ${
-                    isCurrent
-                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                      : 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  {val}
-                </button>
-              );
-            })}
-          </div>
         </div>
 
-        {/* Putts Control */}
-        <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-          <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
-            <span>Putts on Green</span>
-            <span className="text-slate-400 font-normal">
-              {currentScore.putts} Putts
-            </span>
-          </div>
-
-          <div className="grid grid-cols-5 gap-2">
-            {[0, 1, 2, 3, 4].map((pVal) => {
-              const isSelected = currentScore.putts === pVal;
-              return (
-                <button
-                  key={pVal}
-                  onClick={() => updateHoleScore({ putts: pVal })}
-                  className={`btn-modern py-2.5 rounded-xl font-stats font-bold text-sm cursor-pointer ${
-                    isSelected
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  {pVal}
-                </button>
-              );
-            })}
-          </div>
+        {/* Quick Par, Birdie, Bogey Buttons */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+          {[
+            { label: 'Eagle (-2)', strokes: Math.max(1, currentHole.par - 2), cls: 'hover:border-red-400 text-red-600' },
+            { label: 'Birdie (-1)', strokes: Math.max(1, currentHole.par - 1), cls: 'hover:border-emerald-500 text-emerald-600' },
+            { label: 'Par (E)', strokes: currentHole.par, cls: 'hover:border-slate-500 text-slate-700 dark:text-slate-300' },
+            { label: 'Bogey (+1)', strokes: currentHole.par + 1, cls: 'hover:border-amber-500 text-amber-600' },
+          ].map((btn) => (
+            <button
+              key={btn.label}
+              onClick={() => updateHoleScore({ strokes: btn.strokes })}
+              className={`btn-modern py-2.5 px-2 text-center rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 cursor-pointer transition-all ${btn.cls}`}
+            >
+              {btn.label}
+            </button>
+          ))}
         </div>
 
-        {/* FIR & GIR Controls */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100 dark:border-slate-800">
-          {/* FIR */}
-          <div className="space-y-1.5">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
-              Fairway in Regulation {currentHole.par === 3 && '(Par 3 N/A)'}
+        {/* Putts, FIR, GIR Details */}
+        <div className="space-y-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+          {/* Putts */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              Putts on Hole
             </span>
-            {currentHole.par === 3 ? (
-              <div className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-center text-xs text-slate-400">
-                Par 3 — No Fairway Hit Required
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-1.5">
+            <div className="flex items-center gap-1.5">
+              {[0, 1, 2, 3, 4].map((p) => (
                 <button
-                  onClick={() => updateHoleScore({ fir: 'left' })}
-                  className={`btn-modern py-2 rounded-xl text-xs font-medium cursor-pointer ${
-                    currentScore.fir === 'left' ? 'bg-red-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  key={p}
+                  onClick={() => updateHoleScore({ putts: p })}
+                  className={`w-8 h-8 rounded-lg text-xs font-bold border cursor-pointer transition-colors ${
+                    currentScore.putts === p
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900'
+                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                   }`}
                 >
-                  ⬅️ Miss Left
+                  {p}
                 </button>
-                <button
-                  onClick={() => updateHoleScore({ fir: 'hit' })}
-                  className={`btn-modern py-2 rounded-xl text-xs font-semibold cursor-pointer ${
-                    currentScore.fir === 'hit' ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                  }`}
-                >
-                  🎯 Bullseye
-                </button>
-                <button
-                  onClick={() => updateHoleScore({ fir: 'right' })}
-                  className={`btn-modern py-2 rounded-xl text-xs font-medium cursor-pointer ${
-                    currentScore.fir === 'right' ? 'bg-red-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                  }`}
-                >
-                  Miss Right ➡️
-                </button>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
+
+          {/* FIR (for Par 4 and 5) */}
+          {currentHole.par > 3 && (
+            <div className="space-y-1.5">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                Fairway in Regulation (FIR)
+              </span>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'left', label: '⬅️ Left Rough' },
+                  { id: 'hit', label: '🎯 Fairway Hit' },
+                  { id: 'right', label: '➡️ Right Rough' },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => updateHoleScore({ fir: f.id as any })}
+                    className={`btn-modern py-2 rounded-xl text-xs font-medium cursor-pointer ${
+                      currentScore.fir === f.id
+                        ? 'bg-emerald-600 text-white font-semibold'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* GIR */}
           <div className="space-y-1.5">
@@ -423,27 +550,71 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
           </div>
         </div>
 
-        {/* Scramble Driver Selection */}
-        {session.format === 'scramble' && (
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
-              🏌️ Whose Drive was Chosen?
-            </span>
-            <div className="flex items-center gap-2 flex-wrap">
-              {session.players.map((p) => {
-                const isSelected = currentScore.driverPlayerId === p.playerId;
-                return (
-                  <button
-                    key={p.playerId}
-                    onClick={() => updateHoleScore({ driverPlayerId: p.playerId })}
-                    className={`btn-modern px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer ${
-                      isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                    }`}
-                  >
-                    {p.name}'s Drive
-                  </button>
-                );
-              })}
+        {/* Scramble Contributor Credit (Whose Drive was Chosen? + Key Approach/Putt) */}
+        {(session.format === 'scramble' || hasTeams) && currentTeamPlayers.length > 1 && (
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3.5">
+            {/* Drive Selection */}
+            <div className="space-y-1.5">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span>🏌️ Whose Drive was Chosen?</span>
+                <span className="text-[11px] text-slate-400 font-normal">Scramble rule requirement</span>
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                {currentTeamPlayers.map((p) => {
+                  const isSelected = currentScore.driverPlayerId === p.playerId;
+                  return (
+                    <button
+                      key={p.playerId}
+                      onClick={() => updateHoleScore({ driverPlayerId: p.playerId })}
+                      className={`btn-modern px-2 py-2 rounded-xl text-xs font-medium text-center truncate cursor-pointer transition-all ${
+                        isSelected
+                          ? 'bg-emerald-600 text-white font-bold shadow-xs ring-1 ring-emerald-500'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                      }`}
+                      title={p.name}
+                    >
+                      {p.name.split(' ')[0]}'s Drive
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Approach / Dart / Putt Contributor */}
+            <div className="space-y-1.5">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span>🎯 Key Approach or Clutch Putt Contributor</span>
+                <span className="text-[11px] text-slate-400 font-normal">Attribution bragging rights</span>
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                {currentTeamPlayers.map((p) => {
+                  const isSelected = currentScore.shotContributorId === p.playerId;
+                  return (
+                    <button
+                      key={p.playerId}
+                      onClick={() => updateHoleScore({ shotContributorId: p.playerId, shotContributorName: p.name })}
+                      className={`btn-modern px-2 py-2 rounded-xl text-xs font-medium text-center truncate cursor-pointer transition-all ${
+                        isSelected
+                          ? 'bg-blue-600 text-white font-bold shadow-xs ring-1 ring-blue-500'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                      }`}
+                      title={p.name}
+                    >
+                      {p.name.split(' ')[0]}'s Shot
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => updateHoleScore({ shotContributorId: 'team', shotContributorName: 'Full Team Effort' })}
+                  className={`btn-modern col-span-2 sm:col-span-4 px-2 py-2 rounded-xl text-xs font-medium cursor-pointer ${
+                    currentScore.shotContributorId === 'team'
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  🤝 Shared Squad Effort
+                </button>
+              </div>
             </div>
           </div>
         )}

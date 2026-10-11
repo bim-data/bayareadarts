@@ -16,6 +16,8 @@ import { EditNicknameModal } from './components/EditNicknameModal';
 import { PlayerHistoryModal } from './components/PlayerHistoryModal';
 import { TeamHistoryModal } from './components/TeamHistoryModal';
 import { UserProfileModal } from './components/UserProfileModal';
+import { ScrambleTeamManagerModal } from './components/ScrambleTeamManagerModal';
+import { ClubhouseHubModal } from './components/ClubhouseHubModal';
 import { 
   Course, 
   MemberProfile, 
@@ -23,10 +25,11 @@ import {
   TeamEventRecord, 
   RoundSession, 
   HoleScore,
-  FutureRound 
+  FutureRound,
+  TeamGroup
 } from './types';
 import { INITIAL_BAY_AREA_COURSES } from './data/courses';
-import { INITIAL_GROUP_MEMBERS, INITIAL_COMPLETED_ROUNDS, INITIAL_TEAM_EVENTS, INITIAL_FUTURE_ROUNDS } from './data/members';
+import { INITIAL_GROUP_MEMBERS, INITIAL_COMPLETED_ROUNDS, INITIAL_TEAM_EVENTS, INITIAL_FUTURE_ROUNDS, INITIAL_SCRAMBLE_TEAMS } from './data/members';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<'clubhouse' | 'live' | 'rankings' | 'courses' | 'events' | 'future'>('clubhouse');
@@ -53,6 +56,7 @@ export default function App() {
   const [completedRounds, setCompletedRounds] = useState<CompletedRoundRecord[]>(INITIAL_COMPLETED_ROUNDS);
   const [teamEvents, setTeamEvents] = useState<TeamEventRecord[]>(INITIAL_TEAM_EVENTS);
   const [futureRounds, setFutureRounds] = useState<FutureRound[]>(INITIAL_FUTURE_ROUNDS);
+  const [teams, setTeams] = useState<TeamGroup[]>(INITIAL_SCRAMBLE_TEAMS);
   const [activeSession, setActiveSession] = useState<RoundSession | null>(null);
 
   // Active Logged-in Golfer Profile (Persisted to localStorage)
@@ -64,8 +68,16 @@ export default function App() {
   const activeUser = members.find((m) => m.id === activeUserId) || members[0];
 
   // Modals state
+  const [isClubhouseHubOpen, setIsClubhouseHubOpen] = useState(false);
+  const [clubhouseHubInitialTab, setClubhouseHubInitialTab] = useState<'profiles' | 'teams'>('profiles');
   const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
   const [isNewRoundOpen, setIsNewRoundOpen] = useState(false);
+  const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
+
+  const handleOpenClubhouseHub = (tab: 'profiles' | 'teams' = 'profiles') => {
+    setClubhouseHubInitialTab(tab);
+    setIsClubhouseHubOpen(true);
+  };
   const [isJoinRoomOpen, setIsJoinRoomOpen] = useState(false);
   const [isOcrOpen, setIsOcrOpen] = useState(false);
   const [isScorecardMatrixOpen, setIsScorecardMatrixOpen] = useState(false);
@@ -98,6 +110,42 @@ export default function App() {
       });
     } catch {}
     setMembers((prev) => [...prev, newMember]);
+  };
+
+  // Team Management Handlers
+  const handleTeamCreated = (newTeam: TeamGroup) => {
+    setTeams((prev) => [...prev, newTeam]);
+  };
+
+  const handleTeamUpdated = (updatedTeam: TeamGroup) => {
+    setTeams((prev) => prev.map((t) => (t.id === updatedTeam.id ? updatedTeam : t)));
+  };
+
+  const handleTeamDeleted = (teamId: string) => {
+    setTeams((prev) => prev.filter((t) => t.id !== teamId));
+  };
+
+  // Refresh handler when a past round is logged manually
+  const handleManualRoundLogged = () => {
+    fetch('/api/rounds')
+      .then((res) => res.json())
+      .then((data) => data.rounds && setCompletedRounds(data.rounds))
+      .catch(() => {});
+
+    fetch('/api/events')
+      .then((res) => res.json())
+      .then((data) => data.events && setTeamEvents(data.events))
+      .catch(() => {});
+
+    fetch('/api/members')
+      .then((res) => res.json())
+      .then((data) => data.members && setMembers(data.members))
+      .catch(() => {});
+
+    fetch('/api/teams')
+      .then((res) => res.json())
+      .then((data) => data.teams && setTeams(data.teams))
+      .catch(() => {});
   };
 
   // SSE EventSource reference
@@ -137,6 +185,13 @@ export default function App() {
       .then((res) => res.json())
       .then((data) => {
         if (data.futureRounds && data.futureRounds.length > 0) setFutureRounds(data.futureRounds);
+      })
+      .catch(() => {});
+
+    fetch('/api/teams')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.teams && data.teams.length > 0) setTeams(data.teams);
       })
       .catch(() => {});
 
@@ -539,10 +594,10 @@ export default function App() {
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode(!darkMode)}
         onOpenNewRound={() => setIsNewRoundOpen(true)}
-        onOpenJoinRoom={() => setIsJoinRoomOpen(true)}
+        onOpenJoinRoom={() => setIsNewRoundOpen(true)}
         onOpenOcr={() => setIsOcrOpen(true)}
         onOpenEditNickname={() => setIsEditNicknameOpen(true)}
-        onOpenProfile={() => setIsUserProfileOpen(true)}
+        onOpenProfile={() => handleOpenClubhouseHub('profiles')}
       />
 
       {/* Main Content Area */}
@@ -554,11 +609,14 @@ export default function App() {
             teamEvents={teamEvents}
             futureRounds={futureRounds}
             courses={courses}
+            teams={teams}
             activeSession={activeSession}
             activeUser={activeUser}
-            onOpenProfile={() => setIsUserProfileOpen(true)}
+            onOpenProfile={() => handleOpenClubhouseHub('profiles')}
             onStartRound={() => setIsNewRoundOpen(true)}
-            onJoinRoom={() => setIsJoinRoomOpen(true)}
+            onLogPastRound={() => setIsNewRoundOpen(true)}
+            onOpenTeamManager={() => handleOpenClubhouseHub('teams')}
+            onJoinRoom={() => setIsNewRoundOpen(true)}
             onScanScorecard={() => setIsOcrOpen(true)}
             onViewRankings={() => setIsHandicapOpen(true)}
             onViewCourses={() => setIsCourseLibraryOpen(true)}
@@ -588,14 +646,50 @@ export default function App() {
       </main>
 
       {/* MODALS */}
+      <ClubhouseHubModal
+        isOpen={isClubhouseHubOpen}
+        onClose={() => setIsClubhouseHubOpen(false)}
+        initialTab={clubhouseHubInitialTab}
+        members={members}
+        activeUserId={activeUserId}
+        onSelectActiveUser={setActiveUserId}
+        onUpdateProfile={handleUpdateProfile}
+        onAddNewMember={handleAddNewMember}
+        completedRounds={completedRounds}
+        teams={teams}
+        onTeamCreated={handleTeamCreated}
+        onTeamUpdated={handleTeamUpdated}
+        onTeamDeleted={handleTeamDeleted}
+        onSelectTeamForRound={(_team) => {
+          setIsNewRoundOpen(true);
+        }}
+      />
+
       <NewRoundModal
         isOpen={isNewRoundOpen}
         onClose={() => setIsNewRoundOpen(false)}
         courses={courses}
         members={members}
+        teams={teams}
         activeUserId={activeUserId}
         onCourseAdded={handleAddCourse}
         onCreateSession={handleCreateSession}
+        onOpenTeamManager={() => handleOpenClubhouseHub('teams')}
+        onManualRoundLogged={handleManualRoundLogged}
+        onJoinRoom={handleJoinRoom}
+      />
+
+      <ScrambleTeamManagerModal
+        isOpen={isTeamManagerOpen}
+        onClose={() => setIsTeamManagerOpen(false)}
+        teams={teams}
+        members={members}
+        onTeamCreated={handleTeamCreated}
+        onTeamUpdated={handleTeamUpdated}
+        onTeamDeleted={handleTeamDeleted}
+        onSelectTeamForRound={(_team) => {
+          setIsNewRoundOpen(true);
+        }}
       />
 
       <JoinRoomModal
@@ -660,7 +754,7 @@ export default function App() {
         rounds={completedRounds}
         teamEvents={teamEvents}
         activeUserId={activeUserId}
-        onOpenEditProfile={() => setIsUserProfileOpen(true)}
+        onOpenEditProfile={() => handleOpenClubhouseHub('profiles')}
       />
 
       <TeamHistoryModal

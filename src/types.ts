@@ -34,6 +34,8 @@ export interface HoleScore {
   fir: FirDirection; // Fairways in regulation (none for par 3)
   gir: boolean;      // Green in regulation
   driverPlayerId?: string; // For Scramble format: whose drive was chosen
+  shotContributorId?: string; // For Scramble format: who contributed the key approach/putt
+  shotContributorName?: string;
 }
 
 export interface PlayerRoundData {
@@ -42,13 +44,47 @@ export interface PlayerRoundData {
   handicapIndex: number;
   courseHandicap: number;
   scores: Record<number, HoleScore>; // 1 to 18
+  teamId?: string; // If player belongs to a specific scramble team
 }
 
 export interface TeamGroup {
   id: string;
   name: string;
-  playerIds: string[];
-  color: string;
+  playerIds: string[]; // 2 to 4 player IDs for full group or duo scrambles
+  color?: string;
+  colorTag?: string;
+  avatarEmoji?: string;
+  notes?: string;
+  stats?: {
+    roundsCount: number;
+    bestScore?: number;
+    wins?: number;
+  };
+}
+
+export interface ManualPastRoundPayload {
+  courseId: string;
+  courseName: string;
+  teeId: string;
+  teeName: string;
+  rating: number;
+  slope: number;
+  date: string;
+  format: GameFormat;
+  isTeamRound: boolean;
+  entryMode: 'hole_by_hole' | 'quick_total';
+  playerId?: string;
+  playerName?: string;
+  teamId?: string;
+  teamName?: string;
+  playerIds?: string[];
+  grossScore: number;
+  front9Score?: number;
+  back9Score?: number;
+  putts?: number;
+  firCount?: number;
+  girCount?: number;
+  scores?: Record<number, HoleScore>;
 }
 
 export interface RoundSession {

@@ -3,9 +3,9 @@ import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
 import path from 'path';
 import dotenv from 'dotenv';
-import { Course, GameFormat, RoundSession, HoleScore, CompletedRoundRecord, TeamEventRecord, MemberProfile, FutureRound, PlayerRoundData } from './src/types';
+import { Course, GameFormat, RoundSession, HoleScore, CompletedRoundRecord, TeamEventRecord, MemberProfile, FutureRound, PlayerRoundData, TeamGroup, ManualPastRoundPayload } from './src/types';
 import { INITIAL_BAY_AREA_COURSES } from './src/data/courses';
-import { INITIAL_GROUP_MEMBERS, INITIAL_COMPLETED_ROUNDS, INITIAL_TEAM_EVENTS, INITIAL_FUTURE_ROUNDS } from './src/data/members';
+import { INITIAL_GROUP_MEMBERS, INITIAL_COMPLETED_ROUNDS, INITIAL_TEAM_EVENTS, INITIAL_FUTURE_ROUNDS, INITIAL_SCRAMBLE_TEAMS } from './src/data/members';
 
 dotenv.config();
 
@@ -21,6 +21,7 @@ let members: MemberProfile[] = [...INITIAL_GROUP_MEMBERS];
 let completedRounds: CompletedRoundRecord[] = [...INITIAL_COMPLETED_ROUNDS];
 let teamEvents: TeamEventRecord[] = [...INITIAL_TEAM_EVENTS];
 let futureRounds: FutureRound[] = [...INITIAL_FUTURE_ROUNDS];
+let scrambleTeams: TeamGroup[] = [...INITIAL_SCRAMBLE_TEAMS];
 const activeRooms = new Map<string, RoundSession>();
 const sseClients = new Map<string, Set<Response>>();
 
@@ -208,12 +209,153 @@ app.put('/api/members/:id', (req: Request, res: Response) => {
     res.status(404).json({ error: 'Member not found' });
     return;
   }
-  const { nickname, avatarEmoji, badgeTitle, name } = req.body;
+  const { nickname, avatarEmoji, badgeTitle, name, email, phone, handicapGoal } = req.body;
   if (nickname !== undefined) member.nickname = nickname;
   if (avatarEmoji !== undefined) member.avatarEmoji = avatarEmoji;
   if (badgeTitle !== undefined) member.badgeTitle = badgeTitle;
   if (name !== undefined) member.name = name;
+  if (email !== undefined) member.email = email;
+  if (phone !== undefined) member.phone = phone;
+  if (handicapGoal !== undefined) member.handicapGoal = handicapGoal;
   res.json({ success: true, member });
+});
+
+// 5. Scramble Teams (Duos, Trios, 4-Man Squads)
+app.get('/api/teams', (_req: Request, res: Response) => {
+  res.json({ teams: scrambleTeams });
+});
+
+app.post('/api/teams', (req: Request, res: Response) => {
+  const newTeam: TeamGroup = req.body;
+  if (!newTeam.name || !newTeam.playerIds || newTeam.playerIds.length === 0) {
+    res.status(400).json({ error: 'Team name and player roster are required' });
+    return;
+  }
+  newTeam.id = newTeam.id || `team-${Date.now()}`;
+  newTeam.stats = newTeam.stats || { roundsCount: 0, bestScore: 0, wins: 0 };
+  scrambleTeams.push(newTeam);
+  res.json({ success: true, team: newTeam });
+});
+
+app.put('/api/teams/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const idx = scrambleTeams.findIndex((t) => t.id === id);
+  if (idx === -1) {
+    res.status(404).json({ error: 'Team not found' });
+    return;
+  }
+  scrambleTeams[idx] = { ...scrambleTeams[idx], ...req.body, id };
+  res.json({ success: true, team: scrambleTeams[idx] });
+});
+
+app.delete('/api/teams/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  scrambleTeams = scrambleTeams.filter((t) => t.id !== id);
+  res.json({ success: true });
+});
+
+// 6. Manual Past Round Entry with Historical Dates
+app.post('/api/rounds/manual', (req: Request, res: Response) => {
+  const payload: ManualPastRoundPayload = req.body;
+  if (!payload.courseName || !payload.date || !payload.grossScore) {
+    res.status(400).json({ error: 'Course, date, and gross score are required' });
+    return;
+  }
+
+  if (payload.isTeamRound) {
+    // Save as TeamEventRecord so individual WHS is kept clean and unskewed
+    const team = scrambleTeams.find((t) => t.id === payload.teamId);
+    const teamName = payload.teamName || team?.name || 'Scramble Team';
+    const playerNames = (payload.playerIds && payload.playerIds.length > 0)
+      ? payload.playerIds.map((pid) => members.find((m) => m.id === pid)?.name || 'Golfer')
+      : (team ? team.playerIds.map((pid) => members.find((m) => m.id === pid)?.name || 'Golfer') : ['Scramble Foursome']);
+
+    const newEvent: TeamEventRecord = {
+      id: `event-${Date.now()}`,
+      date: payload.date,
+      eventName: `${payload.courseName} ${payload.format.toUpperCase()} (Manual)`,
+      courseName: payload.courseName,
+      format: (payload.format === 'scramble' || payload.format === 'best_ball' || payload.format === 'match_play') ? payload.format : 'scramble',
+      winningTeamName: teamName,
+      teamLeaderboard: [
+        {
+          teamName,
+          grossScore: payload.grossScore,
+          playerNames,
+        },
+      ],
+      notes: `Recorded past round from ${payload.date} (${payload.teeName || 'White Tees'}).`,
+    };
+
+    teamEvents.unshift(newEvent);
+    teamEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    // Update team stats if pre-built team
+    if (team) {
+      if (!team.stats) team.stats = { roundsCount: 0, bestScore: 0, wins: 0 };
+      team.stats.roundsCount += 1;
+      if (!team.stats.bestScore || payload.grossScore < team.stats.bestScore) {
+        team.stats.bestScore = payload.grossScore;
+      }
+    }
+
+    res.json({ success: true, event: newEvent, isTeam: true });
+  } else {
+    // Individual round
+    const member = members.find((m) => m.id === payload.playerId || m.name.toLowerCase() === (payload.playerName || '').toLowerCase()) || members[0];
+    const slope = payload.slope || 113;
+    const rating = payload.rating || 72;
+    const diff = Math.round(((113 / slope) * (payload.grossScore - rating)) * 10) / 10;
+    const courseHcp = Math.round(member.handicapIndex * (slope / 113) + (rating - 72));
+
+    const roundRecord: CompletedRoundRecord = {
+      id: `cr-manual-${Date.now()}`,
+      date: payload.date,
+      courseId: payload.courseId || 'custom',
+      courseName: payload.courseName,
+      teeName: payload.teeName || 'White',
+      format: payload.format,
+      isTeamRound: false,
+      playerId: member.id,
+      playerName: member.name,
+      grossScore: payload.grossScore,
+      netScore: payload.grossScore - courseHcp,
+      differential: diff,
+      courseRating: rating,
+      slopeRating: slope,
+      totalPutts: payload.putts || 32,
+      firCount: payload.firCount || 9,
+      girCount: payload.girCount || 8,
+      scores: payload.scores || {},
+    };
+
+    completedRounds.unshift(roundRecord);
+    // Sort chronologically by date descending so past round gets slotted properly!
+    completedRounds.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    // Update member stats and differentials
+    member.roundsCount += 1;
+    member.differentials.unshift({
+      roundId: roundRecord.id,
+      date: payload.date,
+      courseName: payload.courseName,
+      grossScore: payload.grossScore,
+      differential: diff,
+      usedInIndex: false,
+    });
+    member.differentials.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const userRounds = completedRounds.filter((r) => r.playerId === member.id && !r.isTeamRound);
+    if (userRounds.length > 0) {
+      const avgScore = userRounds.reduce((acc, r) => acc + r.grossScore, 0) / userRounds.length;
+      member.scoringAverage = Math.round(avgScore * 10) / 10;
+      if (payload.grossScore < (member.bestRound || 999)) {
+        member.bestRound = payload.grossScore;
+      }
+    }
+
+    res.json({ success: true, round: roundRecord, isTeam: false });
+  }
 });
 
 // 4. Future Rounds & Tee Time Placeholders
@@ -454,6 +596,8 @@ app.put('/api/rooms/:code/score', (req: Request, res: Response) => {
     fir: score.fir || 'none',
     gir: score.gir || false,
     driverPlayerId: score.driverPlayerId,
+    shotContributorId: score.shotContributorId,
+    shotContributorName: score.shotContributorName,
   };
 
   session.updatedAt = Date.now();
