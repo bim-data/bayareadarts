@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { X, Search, Plus, MapPin, Flag, ChevronDown, ChevronUp, History, Sparkles, Check, Globe } from 'lucide-react';
-import { Course, HoleInfo, TeeBox } from '../types';
+import { Course, TeeBox, HoleInfo } from '../types';
+import { Search, Plus, MapPin, Flag, Check, X, Globe, Download, Loader2 } from 'lucide-react';
+import { searchExternalCourses, fetchExternalCourseDetails, ApiSearchResult } from '../services/golfCourseApi';
 
 interface CourseLibraryModalProps {
   isOpen: boolean;
   onClose: () => void;
   courses: Course[];
-  onAddCourse: (course: Course) => void;
+  onAddCourse: (course: Course) => Promise<void>;
 }
 
 export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
@@ -15,401 +16,439 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
   courses,
   onAddCourse,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedRegion, setSelectedRegion] = useState<string>('All');
-  const [expandedCourseId, setExpandedCourseId] = useState<string | null>(courses[0]?.id || null);
-  const [showAddCourseForm, setShowAddCourseForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<'local' | 'api' | 'manual'>('local');
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // API State
+  const [apiQuery, setApiQuery] = useState('');
+  const [apiResults, setApiResults] = useState<ApiSearchResult[]>([]);
+  const [searchingApi, setSearchingApi] = useState(false);
+  const [importingId, setImportingId] = useState<string | null>(null);
+  const [apiError, setApiError] = useState('');
 
-  // New course form state
-  const [newCourseName, setNewCourseName] = useState('');
-  const [newCity, setNewCity] = useState('');
-  const [newRegion, setNewRegion] = useState<'SF' | 'East Bay' | 'Peninsula' | 'North Bay' | 'Other'>('SF');
-  const [newPar, setNewPar] = useState('72');
-  const [newRating, setNewRating] = useState('71.5');
-  const [newSlope, setNewSlope] = useState('125');
+  // Manual Add State
+  const [saving, setSaving] = useState(false);
+  const [name, setName] = useState('');
+  const [city, setCity] = useState('');
+  const [region, setRegion] = useState<'SF' | 'East Bay' | 'Peninsula' | 'North Bay' | 'South Bay' | 'Other'>('South Bay');
+  const [notes, setNotes] = useState('');
+  const [teeName, setTeeName] = useState('Blue');
+  const [teeColor, setTeeColor] = useState('#2563EB');
+  const [rating, setRating] = useState(72.0);
+  const [slope, setSlope] = useState(113);
 
   if (!isOpen) return null;
 
-  // Recent courses played (first 5 popular Bay Area tracks)
-  const recentCourses = courses.slice(0, 5);
+  // Filter existing courses already in Firestore
+  const filteredLocalCourses = courses.filter((c) =>
+    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.region.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const filteredCourses = courses.filter((c) => {
-    const matchesSearch =
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.city.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRegion = selectedRegion === 'All' || c.region === selectedRegion;
-    return matchesSearch && matchesRegion;
-  });
-
-  const handleCreateCourse = (e: React.FormEvent) => {
+  // Trigger API search
+  const handleApiSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCourseName.trim()) return;
+    if (!apiQuery.trim()) return;
 
-    const basePar = parseInt(newPar, 10) || 72;
-    // Generate 18 default holes
-    const holes: HoleInfo[] = Array.from({ length: 18 }, (_, i) => ({
-      number: i + 1,
-      par: i === 2 || i === 7 || i === 10 || i === 16 ? 3 : i === 4 || i === 8 || i === 13 || i === 17 ? 5 : 4,
-      yardage: 380,
-      handicapIndex: i + 1,
-    }));
+    setSearchingApi(true);
+    setApiError('');
+    try {
+      const results = await searchExternalCourses(apiQuery);
+      setApiResults(results);
+      if (results.length === 0) setApiError('No matching courses found in GolfCourseAPI directory.');
+    } catch (err: any) {
+      setApiError(err.message || 'Failed to search GolfCourseAPI.');
+    } finally {
+      setSearchingApi(false);
+    }
+  };
 
-    const tees: TeeBox[] = [
-      {
-        id: `tee-white-${Date.now()}`,
-        name: 'White Tees',
-        color: '#E5E7EB',
-        rating: parseFloat(newRating) || 70.4,
-        slope: parseInt(newSlope, 10) || 124,
-        totalYardage: 6150,
-      },
-      {
-        id: `tee-blue-${Date.now()}`,
-        name: 'Blue Tees',
-        color: '#2563EB',
-        rating: (parseFloat(newRating) || 70.4) + 1.8,
-        slope: (parseInt(newSlope, 10) || 124) + 5,
-        totalYardage: 6580,
-      },
-    ];
+  // Import course from API directly into Firestore
+  const handleImportApiCourse = async (apiCourseId: string) => {
+    setImportingId(apiCourseId);
+    setApiError('');
+    try {
+      const fullCourseData = await fetchExternalCourseDetails(apiCourseId);
+      await onAddCourse(fullCourseData);
+      
+      // Reset view to local list so user sees their new course
+      setActiveTab('local');
+      setSearchTerm(fullCourseData.name);
+    } catch (err: any) {
+      setApiError(err.message || 'Error importing course details.');
+    } finally {
+      setImportingId(null);
+    }
+  };
 
-    const course: Course = {
-      id: `custom-${Date.now()}`,
-      name: newCourseName.trim(),
-      city: newCity.trim() || 'Bay Area, CA',
-      region: newRegion,
-      holes,
-      tees,
+  const handleCreateManualCourse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !city) return;
+
+    setSaving(true);
+    const courseId = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+
+    const defaultHoles: HoleInfo[] = Array.from({ length: 18 }, (_, i) => {
+      const num = i + 1;
+      const par = [3, 7, 12, 16].includes(num) ? 3 : [5, 9, 14, 18].includes(num) ? 5 : 4;
+      return {
+        number: num,
+        par,
+        yardage: par === 3 ? 165 : par === 5 ? 510 : 380,
+        handicapIndex: num,
+      };
+    });
+
+    const defaultTee: TeeBox = {
+      id: `${courseId}-default`,
+      name: teeName,
+      color: teeColor,
+      rating: Number(rating),
+      slope: Number(slope),
+      totalYardage: defaultHoles.reduce((acc, h) => acc + h.yardage, 0),
     };
 
-    onAddCourse(course);
-    setShowAddCourseForm(false);
-    setNewCourseName('');
-    setExpandedCourseId(course.id);
+    const newCourse: Course = {
+      id: courseId,
+      name,
+      city,
+      region,
+      notes: notes || 'Custom user course.',
+      tees: [defaultTee],
+      holes: defaultHoles,
+    };
+
+    try {
+      await onAddCourse(newCourse);
+      setActiveTab('local');
+      setSearchTerm(name);
+      setName('');
+      setCity('');
+      setNotes('');
+    } catch (err) {
+      console.error('Failed to add course manually', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
-      <div className="w-full sm:max-w-4xl h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:rounded-3xl bg-white dark:bg-slate-900 border-0 sm:border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden text-slate-900 dark:text-slate-100 transition-colors">
-        {/* Sticky Header */}
-        <div className="shrink-0 p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
-              <Flag className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="font-heading font-extrabold text-lg sm:text-xl text-slate-900 dark:text-slate-100 truncate">
-                Course Scorecard Library
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                Preloaded scorecards with 18-hole pars, tee ratings, slopes, and handicap stroke indexes
-              </p>
-            </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+      <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl relative my-8">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-4">
+          <div>
+            <h2 className="font-heading font-extrabold text-xl text-slate-900 dark:text-white flex items-center gap-2">
+              <Flag className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <span>Course Directory & API Importer</span>
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Browse saved courses or fetch new ones via GolfCourseAPI
+            </p>
           </div>
           <button
             onClick={onClose}
-            aria-label="Close"
-            className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-pointer shrink-0"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5">
-          {/* Quick chips: Recent Courses Played */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
-              <History className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Recent Courses Played</span>
-            </div>
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              {recentCourses.map((rc) => (
-                <button
-                  key={rc.id}
-                  onClick={() => {
-                    setExpandedCourseId(rc.id);
-                    setSearchQuery('');
-                  }}
-                  className={`btn-modern px-3 py-1.5 rounded-xl border text-xs font-semibold whitespace-nowrap cursor-pointer transition-colors ${
-                    expandedCourseId === rc.id
-                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-transparent'
-                      : 'bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
-                  }`}
-                >
-                  ⛳ {rc.name}
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* Tab Switcher */}
+        <div className="flex bg-slate-100 dark:bg-slate-800/60 p-1 rounded-2xl mb-6">
+          <button
+            onClick={() => setActiveTab('local')}
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+              activeTab === 'local'
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            Saved Courses ({courses.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('api')}
+            className={`flex-1 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+              activeTab === 'api'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30'
+            }`}
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span>Search GolfCourseAPI</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('manual')}
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+              activeTab === 'manual'
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            + Manual Add
+          </button>
+        </div>
 
-          {/* Search Bar & Region Filter Strip */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+        {/* TAB 1: LOCAL FIRESTORE COURSES */}
+        {activeTab === 'local' && (
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               <input
                 type="text"
-                placeholder="Search by course name, city, or region (e.g. Harding, Presidio, Pacifica)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-800 outline-none"
+                placeholder="Filter saved courses..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white"
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <select
-                value={selectedRegion}
-                onChange={(e) => setSelectedRegion(e.target.value)}
-                className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 outline-none cursor-pointer"
-              >
-                <option value="All">All Regions</option>
-                <option value="SF">San Francisco</option>
-                <option value="East Bay">East Bay</option>
-                <option value="Peninsula">Peninsula</option>
-                <option value="North Bay">North Bay</option>
-                <option value="Other">South Bay & Monterey</option>
-              </select>
-
-              <button
-                onClick={() => setShowAddCourseForm(!showAddCourseForm)}
-                className="btn-modern px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-2xs whitespace-nowrap cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Custom</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Add Course Form Collapsible */}
-          {showAddCourseForm && (
-            <form onSubmit={handleCreateCourse} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100">
-                  Add New Golf Course
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => setShowAddCourseForm(false)}
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div>
-                  <label className="text-slate-600 dark:text-slate-400 font-semibold block mb-1">Course Name</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Pasatiempo Golf Club"
-                    value={newCourseName}
-                    onChange={(e) => setNewCourseName(e.target.value)}
-                    required
-                    className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label className="text-slate-600 dark:text-slate-400 font-semibold block mb-1">City / Location</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Santa Cruz, CA"
-                    value={newCity}
-                    onChange={(e) => setNewCity(e.target.value)}
-                    className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label className="text-slate-600 dark:text-slate-400 font-semibold block mb-1">Region</label>
-                  <select
-                    value={newRegion}
-                    onChange={(e) => setNewRegion(e.target.value as any)}
-                    className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100"
+            <div className="max-h-96 overflow-y-auto space-y-3 pr-1">
+              {filteredLocalCourses.length === 0 ? (
+                <div className="text-center py-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                    No saved courses match "{searchTerm}"
+                  </p>
+                  <button
+                    onClick={() => {
+                      setApiQuery(searchTerm);
+                      setActiveTab('api');
+                    }}
+                    className="mt-3 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 mx-auto"
                   >
-                    <option value="SF">San Francisco</option>
-                    <option value="East Bay">East Bay</option>
-                    <option value="Peninsula">Peninsula</option>
-                    <option value="North Bay">North Bay</option>
-                    <option value="Other">Other / Monterey</option>
-                  </select>
+                    <Globe className="w-3.5 h-3.5" />
+                    <span>Search GolfCourseAPI for "{searchTerm}"</span>
+                  </button>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 text-xs">
-                <div>
-                  <label className="text-slate-600 dark:text-slate-400 font-semibold block mb-1">Course Par</label>
-                  <input
-                    type="number"
-                    value={newPar}
-                    onChange={(e) => setNewPar(e.target.value)}
-                    className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label className="text-slate-600 dark:text-slate-400 font-semibold block mb-1">USGA Rating</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={newRating}
-                    onChange={(e) => setNewRating(e.target.value)}
-                    className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label className="text-slate-600 dark:text-slate-400 font-semibold block mb-1">Slope (55-155)</label>
-                  <input
-                    type="number"
-                    value={newSlope}
-                    onChange={(e) => setNewSlope(e.target.value)}
-                    className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="btn-modern w-full py-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-semibold cursor-pointer"
-              >
-                Save Course to Library
-              </button>
-            </form>
-          )}
-
-          {/* Courses List */}
-          <div className="space-y-3">
-            <span className="text-xs text-slate-500 dark:text-slate-400 block font-medium">
-              Showing {filteredCourses.length} courses with full 18-hole scorecards
-            </span>
-
-            {filteredCourses.map((c) => {
-              const isExpanded = expandedCourseId === c.id;
-              const totalPar = c.holes.reduce((acc, h) => acc + h.par, 0);
-
-              return (
-                <div
-                  key={c.id}
-                  className="card-modern rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-all"
-                >
+              ) : (
+                filteredLocalCourses.map((c) => (
                   <div
-                    onClick={() => setExpandedCourseId(isExpanded ? null : c.id)}
-                    className="p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                    key={c.id}
+                    className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-between gap-4"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/80 flex items-center justify-center font-bold text-xs shrink-0 font-stats">
-                        P{totalPar}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100">
-                            {c.name}
-                          </h4>
-                          <span className="text-[10px] font-semibold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded">
-                            {c.region}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{c.city}</span>
-                          <span>·</span>
-                          <span>{c.tees.length} Tee Boxes</span>
-                        </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                        {c.name}
+                      </h4>
+                      <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-slate-400" />
+                          {c.city}
+                        </span>
+                        <span>·</span>
+                        <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-semibold text-[10px]">
+                          {c.region}
+                        </span>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold hidden sm:inline">
-                        {isExpanded ? 'Hide Card' : 'View Card'}
+                    <div className="text-right shrink-0">
+                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 block">
+                        {c.tees.length} Tees
                       </span>
-                      {isExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-slate-400" />
+                      <span className="text-[10px] text-slate-400">
+                        {c.holes.length} Holes
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: GOLFCOURSEAPI SEARCH & IMPORT */}
+        {activeTab === 'api' && (
+          <div className="space-y-4">
+            <form onSubmit={handleApiSearch} className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  placeholder="Search 30,000+ courses (e.g., TPC Harding Park)..."
+                  value={apiQuery}
+                  onChange={(e) => setApiQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={searchingApi}
+                className="py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50 shrink-0"
+              >
+                {searchingApi ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                <span>Search API</span>
+              </button>
+            </form>
+
+            {apiError && (
+              <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs rounded-xl">
+                {apiError}
+              </div>
+            )}
+
+            <div className="max-h-96 overflow-y-auto space-y-3 pr-1">
+              {apiResults.length === 0 && !searchingApi && (
+                <div className="text-center py-10 text-xs text-slate-400 border border-slate-100 dark:border-slate-800 rounded-2xl">
+                  Search GolfCourseAPI to import official layouts directly into your database.
+                </div>
+              )}
+
+              {apiResults.map((item) => {
+                const isAlreadySaved = courses.some((c) => c.id === item.id);
+                const isImporting = importingId === item.id;
+
+                return (
+                  <div
+                    key={item.id}
+                    className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-between gap-4"
+                  >
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                        {item.course_name || item.club_name}
+                      </h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {item.location?.address || `${item.location?.city || ''}, ${item.location?.state || ''}`}
+                      </p>
+                    </div>
+
+                    <div>
+                      {isAlreadySaved ? (
+                        <span className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-xl flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" /> Saved
+                        </span>
                       ) : (
-                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                        <button
+                          onClick={() => handleImportApiCourse(item.id)}
+                          disabled={isImporting}
+                          className="py-1.5 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                        >
+                          {isImporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                          <span>{isImporting ? 'Importing...' : 'Import'}</span>
+                        </button>
                       )}
                     </div>
                   </div>
-
-                  {/* Expanded Scorecard Table */}
-                  {isExpanded && (
-                    <div className="p-4 pt-1 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 space-y-4">
-                      {c.notes && (
-                        <p className="text-xs text-slate-600 dark:text-slate-400 italic">
-                          "{c.notes}"
-                        </p>
-                      )}
-
-                      {/* Tee Boxes Available */}
-                      <div className="space-y-1.5">
-                        <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-                          Tee Boxes, Ratings & Slope
-                        </label>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {c.tees.map((t) => (
-                            <div
-                              key={t.id}
-                              className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs"
-                            >
-                              <div className="font-heading font-semibold text-slate-900 dark:text-slate-100 truncate">
-                                {t.name}
-                              </div>
-                              <div className="text-[11px] text-slate-500 dark:text-slate-400 font-stats mt-0.5">
-                                Rating: <strong className="text-slate-700 dark:text-slate-300">{t.rating}</strong> / Slope: <strong className="text-slate-700 dark:text-slate-300">{t.slope}</strong>
-                              </div>
-                              <div className="text-[10px] text-slate-400 font-stats">
-                                {t.totalYardage} Yards
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* 18-Hole Matrix */}
-                      <div className="overflow-x-auto pb-1">
-                        <table className="w-full text-xs text-center border-collapse font-stats">
-                          <thead>
-                            <tr className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-heading font-bold text-[11px]">
-                              <th className="p-1.5 text-left border-r border-slate-300 dark:border-slate-700 min-w-[70px]">Hole</th>
-                              {c.holes.map((h) => (
-                                <th key={h.number} className="p-1 min-w-[28px]">{h.number}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 font-semibold text-slate-900 dark:text-slate-100">
-                              <td className="p-1.5 text-left border-r border-slate-200 dark:border-slate-800">Par</td>
-                              {c.holes.map((h) => (
-                                <td key={h.number} className="p-1">{h.par}</td>
-                              ))}
-                            </tr>
-                            <tr className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 text-slate-500 dark:text-slate-400">
-                              <td className="p-1.5 text-left border-r border-slate-200 dark:border-slate-800">Yards</td>
-                              {c.holes.map((h) => (
-                                <td key={h.number} className="p-1">{h.yardage}</td>
-                              ))}
-                            </tr>
-                            <tr className="bg-white dark:bg-slate-900/60 text-slate-400">
-                              <td className="p-1.5 text-left border-r border-slate-200 dark:border-slate-800">Handicap</td>
-                              {c.holes.map((h) => (
-                                <td key={h.number} className="p-1">{h.handicapIndex}</td>
-                              ))}
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Sticky Footer */}
-        <div className="shrink-0 p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex justify-end">
-          <button
-            onClick={onClose}
-            className="btn-modern px-5 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-semibold cursor-pointer shadow-xs"
-          >
-            Close
-          </button>
-        </div>
+        {/* TAB 3: MANUAL FORM */}
+        {activeTab === 'manual' && (
+          <form onSubmit={handleCreateManualCourse} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Course Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Lincoln Park Golf Course"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  City, State *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. San Francisco, CA"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Region
+                </label>
+                <select
+                  value={region}
+                  onChange={(e) => setRegion(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
+                >
+                  <option value="SF">SF</option>
+                  <option value="East Bay">East Bay</option>
+                  <option value="Peninsula">Peninsula</option>
+                  <option value="North Bay">North Bay</option>
+                  <option value="South Bay">South Bay</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Default Tee Name & Color
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={teeName}
+                    onChange={(e) => setTeeName(e.target.value)}
+                    placeholder="Blue"
+                    className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
+                  />
+                  <input
+                    type="color"
+                    value={teeColor}
+                    onChange={(e) => setTeeColor(e.target.value)}
+                    className="w-10 h-9 p-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Course Rating
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={rating}
+                  onChange={(e) => setRating(parseFloat(e.target.value))}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Slope Rating
+                </label>
+                <input
+                  type="number"
+                  value={slope}
+                  onChange={(e) => setSlope(parseInt(e.target.value))}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="submit"
+                disabled={saving}
+                className="py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 disabled:opacity-50"
+              >
+                <Check className="w-4 h-4" />
+                <span>{saving ? 'Saving...' : 'Save Manual Course'}</span>
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
