@@ -289,6 +289,7 @@ export default function App() {
 
       <main className="flex-1 pb-16">
         {currentTab === 'clubhouse' && (
+      <>
           <MigrateCourses /> 
           <ClubhouseDashboard
             members={members}
@@ -317,6 +318,7 @@ export default function App() {
             onSelectMemberForHistory={handleOpenMemberHistory}
             onSelectTeamForHistory={handleOpenTeamHistory}
           />
+        </>
         )}
 
         {currentTab === 'live' && activeSession && (
