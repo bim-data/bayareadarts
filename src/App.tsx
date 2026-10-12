@@ -18,6 +18,8 @@ import { TeamHistoryModal } from './components/TeamHistoryModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { ScrambleTeamManagerModal } from './components/ScrambleTeamManagerModal';
 import { ClubhouseHubModal } from './components/ClubhouseHubModal';
+import { AuthScreen } from './components/AuthScreen'; 
+import { useAuth } from './contexts/AuthContext';    
 
 // --- NEW FIREBASE IMPORT ---
 import { subscribeToCollection, addRecord, updateRecord, deleteRecord } from './services/db';
@@ -35,6 +37,9 @@ import {
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<'clubhouse' | 'live' | 'rankings' | 'courses' | 'events' | 'future'>('clubhouse');
+  
+  // --- AUTHENTICATION STATE ---
+  const { currentUser, memberProfile, loading: authLoading } = useAuth();
 
   // Dark Mode State
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -80,11 +85,10 @@ export default function App() {
     };
   }, []);
 
-  // Active Logged-in Golfer Profile
-  const [activeUserId, setActiveUserId] = useState<string>(() => {
-    return localStorage.getItem('bad_current_user_id') || 'member-1';
-  });
-  const activeUser = members.find((m) => m.id === activeUserId) || members[0];
+  // --- ACTIVE LOGGED-IN GOLFER PROFILE ---
+  // Replaced localStorage with the secure Firebase Auth ID
+  const activeUserId = currentUser?.uid || '';
+  const activeUser = memberProfile || members.find(m => m.id === activeUserId);
 
   // Modals state
   const [isClubhouseHubOpen, setIsClubhouseHubOpen] = useState(false);
@@ -259,6 +263,13 @@ export default function App() {
     ? courses.find((c) => c.id === activeSession.courseId) || courses[0]
     : courses[0];
 
+  // --- AUTHENTICATION GUARDS ---
+  // If Firebase is checking login status, show a blank screen or loader
+  if (authLoading) return <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-emerald-500 font-bold">Loading Clubhouse...</div>;
+
+  // If they aren't logged in, show the login screen!
+  if (!currentUser) return <AuthScreen />;
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
       <Header
@@ -286,7 +297,7 @@ export default function App() {
         onOpenProfile={() => handleOpenClubhouseHub('profiles')}
       />
 
-    <main className="flex-1 pb-16">
+      <main className="flex-1 pb-16">
         {currentTab === 'clubhouse' && (
           <ClubhouseDashboard
             members={members}
