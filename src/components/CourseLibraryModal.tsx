@@ -266,7 +266,7 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
                   type="text"
-                  placeholder="Search 30,000+ courses (e.g., TPC Harding Park)..."
+                  placeholder="Search 30,000+ courses (e.g., San Ramon Golf Club)..."
                   value={apiQuery}
                   onChange={(e) => setApiQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white"
@@ -347,7 +347,7 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Lincoln Park Golf Course"
+                  placeholder="e.g. San Ramon Golf Club"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
@@ -361,7 +361,7 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. San Francisco, CA"
+                  placeholder="e.g. San Ramon, CA"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
