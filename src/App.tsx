@@ -134,19 +134,25 @@ export default function App() {
 
   const handleTeamCreated = async (newTeam: TeamGroup) => {
     try {
-      // 1. Ensure the team has a unique ID before saving
+      // 1. Ensure the team has a unique ID
       const teamId = newTeam.id || `team-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       
       const teamToSave = {
         ...newTeam,
         id: teamId,
+        notes: newTeam.notes || '', // <-- Explicitly default to empty string
         createdAt: Date.now()
       };
 
-      // 2. Write directly to Firestore using setDoc so the document ID matches the team ID
-      await setDoc(doc(db, 'teams', teamId), teamToSave);
+      // 2. Strip out ANY remaining undefined values so Firestore doesn't crash
+      const cleanTeamToSave = Object.fromEntries(
+        Object.entries(teamToSave).filter(([_, v]) => v !== undefined)
+      );
+
+      // 3. Write directly to Firestore
+      await setDoc(doc(db, 'teams', teamId), cleanTeamToSave);
       
-      console.log("Team successfully saved to Firebase:", teamToSave);
+      console.log("Team successfully saved to Firebase:", cleanTeamToSave);
     } catch (err) {
       console.error("Error saving team to Firebase:", err);
     }
