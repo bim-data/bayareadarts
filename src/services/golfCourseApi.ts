@@ -1,11 +1,8 @@
 import { Course, TeeBox, HoleInfo } from '../types';
 
-// Replace with your actual GolfCourseAPI key
+// Your active GolfCourseAPI key
 const API_KEY = 'YWVWXINIAUWWFIZ6NTKQOHOUNE';
 const DIRECT_URL = 'https://api.golfcourseapi.com/v1';
-
-// CORS Proxy wrapper to pass custom headers from browser client-side code
-const BASE_URL = `https://corsproxy.io/?${encodeURIComponent(DIRECT_URL)}`;
 
 export interface ApiSearchResult {
   id: string;
@@ -26,19 +23,16 @@ export async function searchExternalCourses(query: string): Promise<ApiSearchRes
   if (!query.trim()) return [];
 
   try {
-    const searchTarget = `${DIRECT_URL}/search?search_query=${encodeURIComponent(query)}&fuzzy_match=true`;
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(searchTarget)}`;
+    // 1. Build the target URL with the API key included in the query string
+    const searchTarget = `${DIRECT_URL}/search?search_query=${encodeURIComponent(query)}&api_key=${API_KEY}`;
     
-    const res = await fetch(proxyUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Key ${API_KEY}`,
-        'Accept': 'application/json',
-      },
-    });
+    // 2. Use AllOrigins raw proxy to bypass browser CORS cleanly
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(searchTarget)}`;
+    
+    const res = await fetch(proxyUrl, { method: 'GET' });
 
     if (!res.ok) {
-      if (res.status === 401) throw new Error('Invalid API Key. Please verify your GolfCourseAPI key.');
+      if (res.status === 401 || res.status === 403) throw new Error('API Key unauthorized or forbidden. Check your GolfCourseAPI dashboard.');
       if (res.status === 429) throw new Error('Daily API rate limit reached (35 requests/day).');
       throw new Error(`API error (${res.status}): ${res.statusText}`);
     }
@@ -56,16 +50,10 @@ export async function searchExternalCourses(query: string): Promise<ApiSearchRes
  */
 export async function fetchExternalCourseDetails(courseId: string): Promise<Course> {
   try {
-    const courseTarget = `${DIRECT_URL}/courses/${courseId}`;
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(courseTarget)}`;
+    const courseTarget = `${DIRECT_URL}/courses/${courseId}?api_key=${API_KEY}`;
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(courseTarget)}`;
 
-    const res = await fetch(proxyUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Key ${API_KEY}`,
-        'Accept': 'application/json',
-      },
-    });
+    const res = await fetch(proxyUrl, { method: 'GET' });
 
     if (!res.ok) throw new Error(`Failed to fetch course details: ${res.statusText}`);
 
