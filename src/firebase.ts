@@ -20,3 +20,4 @@ const analytics = getAnalytics(app);
 // Export the database and auth services so your components can use them
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
