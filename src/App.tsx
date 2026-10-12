@@ -18,17 +18,10 @@ import { TeamHistoryModal } from './components/TeamHistoryModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { ScrambleTeamManagerModal } from './components/ScrambleTeamManagerModal';
 import { ClubhouseHubModal } from './components/ClubhouseHubModal';
-import { YamlBackupModal } from './components/YamlBackupModal';
-import {
-  loadClubhouseData,
-  saveCoursesToStorage,
-  saveMembersToStorage,
-  saveTeamsToStorage,
-  saveRoundsToStorage,
-  saveFutureRoundsToStorage,
-  resetClubhouseToBundledYaml,
-  YamlDataType,
-} from './services/yamlStorage';
+
+// --- NEW FIREBASE IMPORT ---
+import { subscribeToCollection, addRecord, updateRecord, deleteRecord } from './services/db';
+
 import { 
   Course, 
   MemberProfile, 
@@ -39,8 +32,6 @@ import {
   FutureRound,
   TeamGroup
 } from './types';
-import { INITIAL_BAY_AREA_COURSES } from './data/courses';
-import { INITIAL_GROUP_MEMBERS, INITIAL_COMPLETED_ROUNDS, INITIAL_TEAM_EVENTS, INITIAL_FUTURE_ROUNDS, INITIAL_SCRAMBLE_TEAMS } from './data/members';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<'clubhouse' | 'live' | 'rankings' | 'courses' | 'events' | 'future'>('clubhouse');
@@ -61,28 +52,38 @@ export default function App() {
     localStorage.setItem('bad_dark_mode', String(darkMode));
   }, [darkMode]);
 
-  // Application Data Stores with Flat YAML Storage Support
-  const [courses, setCourses] = useState<Course[]>(() => loadClubhouseData().courses);
-  const [members, setMembers] = useState<MemberProfile[]>(() => loadClubhouseData().members);
-  const [completedRounds, setCompletedRounds] = useState<CompletedRoundRecord[]>(() => loadClubhouseData().rounds);
-  const [teamEvents, setTeamEvents] = useState<TeamEventRecord[]>(INITIAL_TEAM_EVENTS);
-  const [futureRounds, setFutureRounds] = useState<FutureRound[]>(() => loadClubhouseData().futureRounds);
-  const [teams, setTeams] = useState<TeamGroup[]>(() => loadClubhouseData().teams);
+  // --- FIREBASE DATA STATES ---
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [members, setMembers] = useState<MemberProfile[]>([]);
+  const [completedRounds, setCompletedRounds] = useState<CompletedRoundRecord[]>([]);
+  const [teamEvents, setTeamEvents] = useState<TeamEventRecord[]>([]);
+  const [futureRounds, setFutureRounds] = useState<FutureRound[]>([]);
+  const [teams, setTeams] = useState<TeamGroup[]>([]);
   const [activeSession, setActiveSession] = useState<RoundSession | null>(null);
 
-  // Sync state changes to browser storage for offline & GitHub Pages persistence
-  useEffect(() => { saveCoursesToStorage(courses); }, [courses]);
-  useEffect(() => { saveMembersToStorage(members); }, [members]);
-  useEffect(() => { saveTeamsToStorage(teams); }, [teams]);
-  useEffect(() => { saveRoundsToStorage(completedRounds); }, [completedRounds]);
-  useEffect(() => { saveFutureRoundsToStorage(futureRounds); }, [futureRounds]);
+  // --- FIREBASE REAL-TIME LISTENERS ---
+  useEffect(() => {
+    const unsubCourses = subscribeToCollection<Course>('courses', setCourses);
+    const unsubMembers = subscribeToCollection<MemberProfile>('members', setMembers);
+    const unsubRounds = subscribeToCollection<CompletedRoundRecord>('rounds', setCompletedRounds);
+    const unsubEvents = subscribeToCollection<TeamEventRecord>('events', setTeamEvents);
+    const unsubFuture = subscribeToCollection<FutureRound>('future_rounds', setFutureRounds);
+    const unsubTeams = subscribeToCollection<TeamGroup>('teams', setTeams);
 
-  // Active Logged-in Golfer Profile (Persisted to localStorage)
+    return () => {
+      unsubCourses();
+      unsubMembers();
+      unsubRounds();
+      unsubEvents();
+      unsubFuture();
+      unsubTeams();
+    };
+  }, []);
+
+  // Active Logged-in Golfer Profile
   const [activeUserId, setActiveUserId] = useState<string>(() => {
-    const saved = localStorage.getItem('bad_current_user_id');
-    return saved || 'member-1';
+    return localStorage.getItem('bad_current_user_id') || 'member-1';
   });
-
   const activeUser = members.find((m) => m.id === activeUserId) || members[0];
 
   // Modals state
@@ -92,30 +93,6 @@ export default function App() {
   const [isNewRoundOpen, setIsNewRoundOpen] = useState(false);
   const [preselectedTeamId, setPreselectedTeamId] = useState<string | undefined>(undefined);
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
-  const [isYamlBackupOpen, setIsYamlBackupOpen] = useState(false);
-
-  // Flat YAML Handlers
-  const handleImportYaml = (type: YamlDataType, importedData: any) => {
-    if (type === 'courses') setCourses(importedData);
-    else if (type === 'members') setMembers(importedData);
-    else if (type === 'teams') setTeams(importedData);
-    else if (type === 'rounds') setCompletedRounds(importedData);
-    else if (type === 'future_rounds') setFutureRounds(importedData);
-  };
-
-  const handleResetDefaults = () => {
-    const fresh = resetClubhouseToBundledYaml();
-    setCourses(fresh.courses);
-    setMembers(fresh.members);
-    setTeams(fresh.teams);
-    setCompletedRounds(fresh.rounds);
-    setFutureRounds(fresh.futureRounds);
-  };
-
-  const handleOpenClubhouseHub = (tab: 'profiles' | 'teams' = 'profiles') => {
-    setClubhouseHubInitialTab(tab);
-    setIsClubhouseHubOpen(true);
-  };
   const [isJoinRoomOpen, setIsJoinRoomOpen] = useState(false);
   const [isOcrOpen, setIsOcrOpen] = useState(false);
   const [isScorecardMatrixOpen, setIsScorecardMatrixOpen] = useState(false);
@@ -127,125 +104,95 @@ export default function App() {
   const [isCreateFutureRoundOpen, setIsCreateFutureRoundOpen] = useState(false);
   const [isEditNicknameOpen, setIsEditNicknameOpen] = useState(false);
 
-  // Score History Modals State
   const [selectedMemberForHistory, setSelectedMemberForHistory] = useState<MemberProfile | null>(null);
   const [isPlayerHistoryOpen, setIsPlayerHistoryOpen] = useState(false);
   const [selectedTeamEventForHistory, setSelectedTeamEventForHistory] = useState<TeamEventRecord | null>(null);
   const [selectedTeamNameForHistory, setSelectedTeamNameForHistory] = useState<string | null>(null);
   const [isTeamHistoryOpen, setIsTeamHistoryOpen] = useState(false);
 
-  // Profile Management Handlers
-  const handleUpdateProfile = (updatedProfile: MemberProfile) => {
-    setMembers((prev) => prev.map((m) => (m.id === updatedProfile.id ? updatedProfile : m)));
+  const handleOpenClubhouseHub = (tab: 'profiles' | 'teams' = 'profiles') => {
+    setClubhouseHubInitialTab(tab);
+    setIsClubhouseHubOpen(true);
+  };
+
+  // --- FIREBASE WRITE OPERATIONS ---
+
+  const handleUpdateProfile = async (updatedProfile: MemberProfile) => {
+    if (!updatedProfile.id) return;
+    await updateRecord('members', updatedProfile.id, updatedProfile);
   };
 
   const handleAddNewMember = async (newMember: MemberProfile) => {
-    try {
-      await fetch('/api/members', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newMember),
-      });
-    } catch {}
-    setMembers((prev) => [...prev, newMember]);
+    await addRecord('members', newMember);
   };
 
-  // Team Management Handlers
-  const handleTeamCreated = (newTeam: TeamGroup) => {
-    setTeams((prev) => [...prev, newTeam]);
+  const handleTeamCreated = async (newTeam: TeamGroup) => {
+    await addRecord('teams', newTeam);
   };
 
-  const handleTeamUpdated = (updatedTeam: TeamGroup) => {
-    setTeams((prev) => prev.map((t) => (t.id === updatedTeam.id ? updatedTeam : t)));
+  const handleTeamUpdated = async (updatedTeam: TeamGroup) => {
+    if (!updatedTeam.id) return;
+    await updateRecord('teams', updatedTeam.id, updatedTeam);
   };
 
-  const handleTeamDeleted = (teamId: string) => {
-    setTeams((prev) => prev.filter((t) => t.id !== teamId));
+  const handleTeamDeleted = async (teamId: string) => {
+    await deleteRecord('teams', teamId);
   };
 
-  // Refresh handler when a past round is logged manually
-  const handleManualRoundLogged = () => {
-    fetch('/api/rounds')
-      .then((res) => res.json())
-      .then((data) => data.rounds && setCompletedRounds(data.rounds))
-      .catch(() => {});
-
-    fetch('/api/events')
-      .then((res) => res.json())
-      .then((data) => data.events && setTeamEvents(data.events))
-      .catch(() => {});
-
-    fetch('/api/members')
-      .then((res) => res.json())
-      .then((data) => data.members && setMembers(data.members))
-      .catch(() => {});
-
-    fetch('/api/teams')
-      .then((res) => res.json())
-      .then((data) => data.teams && setTeams(data.teams))
-      .catch(() => {});
+  const handleAddCourse = async (course: Course) => {
+    await addRecord('courses', course);
   };
 
-  // SSE EventSource reference
-  const sseRef = useRef<EventSource | null>(null);
+  const handleSaveMemberNickname = async (memberId: string, nickname: string, avatarEmoji: string, badgeTitle: string) => {
+    await updateRecord('members', memberId, { nickname, avatarEmoji, badgeTitle });
+  };
 
-  // Load Initial Data from API (with fallback)
+  const handleCreateFutureRound = async (futureRoundData: Partial<FutureRound>) => {
+    const newRound = {
+      ...futureRoundData,
+      id: `future-${Date.now()}`,
+      status: futureRoundData.status || 'placeholder',
+      registeredPlayerIds: futureRoundData.registeredPlayerIds || [],
+    };
+    await addRecord('future_rounds', newRound);
+  };
+
+  const handleRsvpPlayer = async (futureRoundId: string, memberId: string, action: 'join' | 'leave') => {
+    const round = futureRounds.find(r => r.id === futureRoundId);
+    if (!round) return;
+
+    let updatedIds = [...round.registeredPlayerIds];
+    if (action === 'join' && !updatedIds.includes(memberId)) {
+      updatedIds.push(memberId);
+    } else if (action === 'leave') {
+      updatedIds = updatedIds.filter(id => id !== memberId);
+    }
+    await updateRecord('future_rounds', futureRoundId, { registeredPlayerIds: updatedIds });
+  };
+
+  const handleDeleteFutureRound = async (futureRoundId: string) => {
+    await deleteRecord('future_rounds', futureRoundId);
+  };
+
+  const handleSaveIndividualRound = async (roundData: any) => {
+    await addRecord('rounds', roundData);
+  };
+
+  const handleSaveTeamEvent = async (eventData: any) => {
+    await addRecord('events', eventData);
+  };
+
+  // --- LIVE ROUND LOGIC (Keep Local Storage for now) ---
   useEffect(() => {
-    fetch('/api/courses')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.courses && data.courses.length > 0) setCourses(data.courses);
-      })
-      .catch(() => {});
-
-    fetch('/api/members')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.members && data.members.length > 0) setMembers(data.members);
-      })
-      .catch(() => {});
-
-    fetch('/api/rounds')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.rounds && data.rounds.length > 0) setCompletedRounds(data.rounds);
-      })
-      .catch(() => {});
-
-    fetch('/api/events')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.events && data.events.length > 0) setTeamEvents(data.events);
-      })
-      .catch(() => {});
-
-    fetch('/api/future-rounds')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.futureRounds && data.futureRounds.length > 0) setFutureRounds(data.futureRounds);
-      })
-      .catch(() => {});
-
-    fetch('/api/teams')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.teams && data.teams.length > 0) setTeams(data.teams);
-      })
-      .catch(() => {});
-
-    // Check localStorage for saved session
     const saved = localStorage.getItem('bad_active_session');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.status === 'active') {
-          setActiveSession(parsed);
-        }
+        if (parsed && parsed.status === 'active') setActiveSession(parsed);
       } catch {}
     }
   }, []);
 
-  // Sync activeSession to localStorage
   useEffect(() => {
     if (activeSession) {
       localStorage.setItem('bad_active_session', JSON.stringify(activeSession));
@@ -254,365 +201,66 @@ export default function App() {
     }
   }, [activeSession]);
 
-  // Subscribe to Real-Time SSE stream when an active room code is present
-  useEffect(() => {
-    if (!activeSession || !activeSession.roomCode) {
-      if (sseRef.current) {
-        sseRef.current.close();
-        sseRef.current = null;
-      }
-      return;
-    }
-
-    const roomCode = activeSession.roomCode;
-    const sse = new EventSource(`/api/rooms/${roomCode}/stream`);
-    sseRef.current = sse;
-
-    sse.onmessage = (event) => {
-      try {
-        const updatedSession = JSON.parse(event.data);
-        if (updatedSession && updatedSession.roomCode === roomCode) {
-          setActiveSession(updatedSession);
-        }
-      } catch (err) {
-        console.error('SSE Parse Error:', err);
-      }
+  const handleCreateSession = async (partialData: Partial<RoundSession>) => {
+    const roomCode = `DART-${Math.floor(10 + Math.random() * 90)}`;
+    const newSession: RoundSession = {
+      id: `sess-${Date.now()}`,
+      roomCode,
+      courseId: partialData.courseId || courses[0]?.id || '',
+      courseName: partialData.courseName || courses[0]?.name || '',
+      teeId: partialData.teeId || '',
+      teeName: partialData.teeName || '',
+      rating: partialData.rating || 72,
+      slope: partialData.slope || 113,
+      date: partialData.date || new Date().toISOString().split('T')[0],
+      format: partialData.format || 'stroke',
+      isTeamRound: partialData.format === 'scramble' || partialData.format === 'best_ball',
+      status: 'active',
+      players: partialData.players || [],
+      updatedAt: Date.now(),
     };
+    setActiveSession(newSession);
+    setCurrentTab('live');
+  };
 
-    sse.onerror = () => {
-      // Reconnection handled automatically by browser
-    };
-
-    return () => {
-      sse.close();
-      sseRef.current = null;
-    };
-  }, [activeSession?.roomCode]);
-
-  // Handle Update Single Hole Score in Live Round
   const handleUpdateScore = async (playerId: string, holeNumber: number, score: HoleScore) => {
     if (!activeSession) return;
-
-    // Optimistic local update
     const updatedPlayers = activeSession.players.map((p) => {
       if (p.playerId === playerId) {
-        return {
-          ...p,
-          scores: {
-            ...p.scores,
-            [holeNumber]: score,
-          },
-        };
+        return { ...p, scores: { ...p.scores, [holeNumber]: score } };
       }
       return p;
     });
-
-    const updatedSession: RoundSession = {
-      ...activeSession,
-      players: updatedPlayers,
-      updatedAt: Date.now(),
-    };
-
-    setActiveSession(updatedSession);
-
-    // Push to server for SSE broadcasting
-    try {
-      await fetch(`/api/rooms/${activeSession.roomCode}/score`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          playerId,
-          holeNumber,
-          score,
-        }),
-      });
-    } catch (err) {
-      console.warn('Offline update stored locally:', err);
-    }
+    setActiveSession({ ...activeSession, players: updatedPlayers, updatedAt: Date.now() });
   };
 
-  // Create New Live Round Session
-  const handleCreateSession = async (partialData: Partial<RoundSession>) => {
-    try {
-      const response = await fetch('/api/rooms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(partialData),
-      });
-      const json = await response.json();
-      if (json.session) {
-        setActiveSession(json.session);
-        setCurrentTab('live');
-      }
-    } catch (err) {
-      console.error(err);
-      // Fallback local session if server unavailable
-      const roomCode = `DART-${Math.floor(10 + Math.random() * 90)}`;
-      const localSession: RoundSession = {
-        id: `sess-${Date.now()}`,
-        roomCode,
-        courseId: partialData.courseId || courses[0].id,
-        courseName: partialData.courseName || courses[0].name,
-        teeId: partialData.teeId || courses[0].tees[0].id,
-        teeName: partialData.teeName || courses[0].tees[0].name,
-        rating: partialData.rating || courses[0].tees[0].rating,
-        slope: partialData.slope || courses[0].tees[0].slope,
-        date: partialData.date || new Date().toISOString().split('T')[0],
-        format: partialData.format || 'stroke',
-        isTeamRound: partialData.format === 'scramble' || partialData.format === 'best_ball',
-        status: 'active',
-        players: partialData.players || [],
-        updatedAt: Date.now(),
-      };
-      setActiveSession(localSession);
-      setCurrentTab('live');
-    }
-  };
-
-  // Join Existing Round via PIN
-  const handleJoinRoom = async (roomCode: string, playerName: string, handicapIndex: number, memberId?: string): Promise<boolean> => {
-    try {
-      const response = await fetch(`/api/rooms/${roomCode}/join`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: playerName,
-          handicapIndex,
-          playerId: memberId,
-        }),
-      });
-
-      if (!response.ok) return false;
-      const json = await response.json();
-      if (json.session) {
-        setActiveSession(json.session);
-        setCurrentTab('live');
-        return true;
-      }
-      return false;
-    } catch (err) {
-      console.error(err);
-      return false;
-    }
-  };
-
-  // Finish Round & Save
   const handleFinishRound = async () => {
-    if (!activeSession) return;
-    try {
-      await fetch(`/api/rooms/${activeSession.roomCode}/finish`, {
-        method: 'POST',
-      });
-    } catch {}
-
-    // Refresh rounds and events
-    fetch('/api/rounds').then((r) => r.json()).then((d) => d.rounds && setCompletedRounds(d.rounds)).catch(() => {});
-    fetch('/api/events').then((r) => r.json()).then((d) => d.events && setTeamEvents(d.events)).catch(() => {});
-    fetch('/api/members').then((r) => r.json()).then((d) => d.members && setMembers(d.members)).catch(() => {});
-
+    // In a full implementation, you would write the activeSession scores to Firebase here.
     setActiveSession(null);
     setCurrentTab('clubhouse');
   };
 
-  // Save Individual Round from OCR
-  const handleSaveIndividualRound = async (roundData: any) => {
-    try {
-      const response = await fetch('/api/rounds', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(roundData),
-      });
-      const json = await response.json();
-      if (json.round) {
-        setCompletedRounds((prev) => [json.round, ...prev]);
-        fetch('/api/members').then((r) => r.json()).then((d) => d.members && setMembers(d.members)).catch(() => {});
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const handleJoinRoom = async () => { return false; };
+  const handleStartFutureRound = async () => {};
+  const handleManualRoundLogged = () => {};
 
-  // Save Team Event from OCR
-  const handleSaveTeamEvent = async (eventData: any) => {
-    try {
-      const response = await fetch('/api/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData),
-      });
-      const json = await response.json();
-      if (json.event) {
-        setTeamEvents((prev) => [json.event, ...prev]);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // Add Custom Course
-  const handleAddCourse = async (course: Course) => {
-    try {
-      await fetch('/api/courses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(course),
-      });
-    } catch {}
-    setCourses((prev) => [...prev, course]);
-  };
-
-  // Save Member Nickname & Badge
-  const handleSaveMemberNickname = async (memberId: string, nickname: string, avatarEmoji: string, badgeTitle: string) => {
-    try {
-      await fetch(`/api/members/${memberId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname, avatarEmoji, badgeTitle }),
-      });
-    } catch {}
-
-    setMembers((prev) =>
-      prev.map((m) => {
-        if (m.id === memberId) {
-          return { ...m, nickname, avatarEmoji, badgeTitle };
-        }
-        return m;
-      })
-    );
-  };
-
-  // Create Future Round Placeholder
-  const handleCreateFutureRound = async (futureRoundData: Partial<FutureRound>) => {
-    try {
-      const response = await fetch('/api/future-rounds', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(futureRoundData),
-      });
-      const json = await response.json();
-      if (json.futureRound) {
-        setFutureRounds((prev) => [json.futureRound, ...prev]);
-      }
-    } catch (err) {
-      console.error(err);
-      // Fallback
-      const newRound: FutureRound = {
-        id: `future-${Date.now()}`,
-        courseId: futureRoundData.courseId || courses[0].id,
-        courseName: futureRoundData.courseName || courses[0].name,
-        targetDate: futureRoundData.targetDate || '2026-10-18',
-        targetTimeWindow: futureRoundData.targetTimeWindow || 'Morning',
-        status: futureRoundData.status || 'placeholder',
-        bookingOpenDaysAhead: 7,
-        bookingOpensAt: futureRoundData.bookingOpensAt || '7 days out',
-        format: futureRoundData.format || 'stroke',
-        registeredPlayerIds: futureRoundData.registeredPlayerIds || [],
-        maxPlayers: 4,
-        notes: futureRoundData.notes,
-      };
-      setFutureRounds((prev) => [newRound, ...prev]);
-    }
-  };
-
-  // RSVP Pre-Registration in Future Round
-  const handleRsvpPlayer = async (futureRoundId: string, memberId: string, action: 'join' | 'leave') => {
-    try {
-      const response = await fetch(`/api/future-rounds/${futureRoundId}/rsvp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memberId, action }),
-      });
-      const json = await response.json();
-      if (json.futureRound) {
-        setFutureRounds((prev) =>
-          prev.map((r) => (r.id === futureRoundId ? json.futureRound : r))
-        );
-      }
-    } catch (err) {
-      console.error(err);
-      // Local fallback
-      setFutureRounds((prev) =>
-        prev.map((r) => {
-          if (r.id === futureRoundId) {
-            const updatedIds =
-              action === 'leave'
-                ? r.registeredPlayerIds.filter((id) => id !== memberId)
-                : r.registeredPlayerIds.includes(memberId)
-                ? r.registeredPlayerIds
-                : [...r.registeredPlayerIds, memberId];
-            return { ...r, registeredPlayerIds: updatedIds };
-          }
-          return r;
-        })
-      );
-    }
-  };
-
-  // Start Live Round from Future Round Booking
-  const handleStartFutureRound = async (futureRoundId: string) => {
-    try {
-      const response = await fetch(`/api/future-rounds/${futureRoundId}/start`, {
-        method: 'POST',
-      });
-      const json = await response.json();
-      if (json.session) {
-        setActiveSession(json.session);
-        setCurrentTab('live');
-      }
-    } catch (err) {
-      console.error(err);
-      const fr = futureRounds.find((r) => r.id === futureRoundId);
-      if (fr) {
-        const c = courses.find((item) => item.id === fr.courseId) || courses[0];
-        handleCreateSession({
-          courseId: c.id,
-          courseName: c.name,
-          date: fr.targetDate,
-          format: fr.format,
-          players: fr.registeredPlayerIds.map((pid) => {
-            const mem = members.find((m) => m.id === pid);
-            return {
-              playerId: pid,
-              name: mem?.name || 'Player',
-              handicapIndex: mem?.handicapIndex || 10,
-              courseHandicap: 10,
-              scores: {},
-            };
-          }),
-        });
-      }
-    }
-  };
-
-  // Delete Future Round
-  const handleDeleteFutureRound = async (futureRoundId: string) => {
-    try {
-      await fetch(`/api/future-rounds/${futureRoundId}`, { method: 'DELETE' });
-    } catch {}
-    setFutureRounds((prev) => prev.filter((r) => r.id !== futureRoundId));
-  };
-
-  // Open Score History for Member
   const handleOpenMemberHistory = (member: MemberProfile) => {
     setSelectedMemberForHistory(member);
     setIsPlayerHistoryOpen(true);
   };
 
-  // Open Score History for Scramble Team
   const handleOpenTeamHistory = (event: TeamEventRecord, teamName?: string) => {
     setSelectedTeamEventForHistory(event);
     setSelectedTeamNameForHistory(teamName || null);
     setIsTeamHistoryOpen(true);
   };
 
-  // Active course reference for live scorer
   const activeCourse = activeSession
     ? courses.find((c) => c.id === activeSession.courseId) || courses[0]
     : courses[0];
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
-      {/* Top Header Bar */}
       <Header
         currentTab={currentTab}
         setCurrentTab={(tab) => {
@@ -636,10 +284,8 @@ export default function App() {
         onOpenOcr={() => setIsOcrOpen(true)}
         onOpenEditNickname={() => setIsEditNicknameOpen(true)}
         onOpenProfile={() => handleOpenClubhouseHub('profiles')}
-        onOpenYamlBackup={() => setIsYamlBackupOpen(true)}
       />
 
-      {/* Main Content Area */}
       <main className="flex-1 pb-16">
         {currentTab === 'clubhouse' && (
           <ClubhouseDashboard
@@ -668,7 +314,6 @@ export default function App() {
             onOpenEditNickname={() => setIsEditNicknameOpen(true)}
             onSelectMemberForHistory={handleOpenMemberHistory}
             onSelectTeamForHistory={handleOpenTeamHistory}
-            onOpenYamlBackup={() => setIsYamlBackupOpen(true)}
           />
         )}
 
@@ -704,19 +349,6 @@ export default function App() {
           setPreselectedTeamId(team.id);
           setIsNewRoundOpen(true);
         }}
-        onOpenYamlBackup={() => setIsYamlBackupOpen(true)}
-      />
-
-      <YamlBackupModal
-        isOpen={isYamlBackupOpen}
-        onClose={() => setIsYamlBackupOpen(false)}
-        courses={courses}
-        members={members}
-        teams={teams}
-        completedRounds={completedRounds}
-        futureRounds={futureRounds}
-        onImportSuccess={handleImportYaml}
-        onResetToDefaults={handleResetDefaults}
       />
 
       <NewRoundModal
@@ -745,9 +377,7 @@ export default function App() {
         onTeamCreated={handleTeamCreated}
         onTeamUpdated={handleTeamUpdated}
         onTeamDeleted={handleTeamDeleted}
-        onSelectTeamForRound={(_team) => {
-          setIsNewRoundOpen(true);
-        }}
+        onSelectTeamForRound={(_team) => setIsNewRoundOpen(true)}
       />
 
       <JoinRoomModal
@@ -774,7 +404,6 @@ export default function App() {
             session={activeSession}
             course={activeCourse}
           />
-
           <LeaderboardModal
             isOpen={isLeaderboardOpen}
             onClose={() => setIsLeaderboardOpen(false)}
