@@ -48,7 +48,6 @@ interface ClubhouseDashboardProps {
   onOpenEditNickname: () => void;
   onSelectMemberForHistory: (member: MemberProfile) => void;
   onSelectTeamForHistory: (event: TeamEventRecord, teamName?: string) => void;
-  onOpenYamlBackup?: () => void;
 }
 
 export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
@@ -77,7 +76,6 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
   onOpenEditNickname,
   onSelectMemberForHistory,
   onSelectTeamForHistory,
-  onOpenYamlBackup,
 }) => {
   const sortedMembers = [...members].sort((a, b) => a.handicapIndex - b.handicapIndex);
   const lowGrossMember = [...members].sort((a, b) => a.bestRound - b.bestRound)[0];
@@ -94,16 +92,6 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             alt="Bay Area Golf Banner"
             className="w-full h-full object-cover"
           />
-          {onOpenYamlBackup && (
-            <button
-              onClick={onOpenYamlBackup}
-              className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 bg-slate-950/85 hover:bg-slate-900 border border-emerald-500/50 text-emerald-300 hover:text-white text-xs font-black py-1.5 px-3 sm:py-2 sm:px-3.5 rounded-xl backdrop-blur-md flex items-center gap-2 transition-all cursor-pointer shadow-xl hover:border-emerald-400"
-              title="Export and import YAML flat files for GitHub backup"
-            >
-              <FileCode className="w-4 h-4 text-emerald-400" />
-              <span>YAML & Git Backup</span>
-            </button>
-          )}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent flex items-end p-4 sm:p-7">
             <div className="flex items-center gap-3 sm:gap-4 text-white">
               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-white/80 overflow-hidden shadow-xl bg-white shrink-0">
