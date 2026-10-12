@@ -1,7 +1,7 @@
 import { Course, TeeBox, HoleInfo } from '../types';
 
 // Replace with your actual key or VITE_GOLF_COURSE_API_KEY
-const API_KEY = 'YOUR_GOLF_COURSE_API_KEY';
+const API_KEY = 'YWVWXINIAUWWFIZ6NTKQOHOUNE';
 const BASE_URL = 'https://api.golfcourseapi.com/v1';
 
 export interface ApiSearchResult {
