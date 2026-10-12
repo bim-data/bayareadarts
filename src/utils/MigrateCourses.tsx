@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { db } from '../firebase';
 import { collection, doc, setDoc } from 'firebase/firestore';
-import yaml from 'js-yaml'; // Make sure you ran: npm install js-yaml
+import * as yaml from 'js-yaml'; // Make sure you ran: npm install js-yaml
 
 // Your exact YAML data
 const rawYamlData = `
