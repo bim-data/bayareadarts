@@ -18,7 +18,6 @@ import { TeamHistoryModal } from './components/TeamHistoryModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { ScrambleTeamManagerModal } from './components/ScrambleTeamManagerModal';
 import { ClubhouseHubModal } from './components/ClubhouseHubModal';
-import { MigrateCourses } from './utils/MigrateCourses';
 
 // --- NEW FIREBASE IMPORT ---
 import { subscribeToCollection, addRecord, updateRecord, deleteRecord } from './services/db';
