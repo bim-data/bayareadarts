@@ -287,38 +287,35 @@ export default function App() {
         onOpenProfile={() => handleOpenClubhouseHub('profiles')}
       />
 
-     <main className="flex-1 pb-16">
+    <main className="flex-1 pb-16">
         {currentTab === 'clubhouse' && (
-          <>
-            <MigrateCourses />
-            <ClubhouseDashboard
-              members={members}
-              completedRounds={completedRounds}
-              teamEvents={teamEvents}
-              futureRounds={futureRounds}
-              courses={courses}
-              teams={teams}
-              activeSession={activeSession}
-              activeUser={activeUser}
-              onOpenProfile={() => handleOpenClubhouseHub('profiles')}
-              onStartRound={() => setIsNewRoundOpen(true)}
-              onLogPastRound={() => setIsNewRoundOpen(true)}
-              onOpenTeamManager={() => handleOpenClubhouseHub('teams')}
-              onJoinRoom={() => setIsNewRoundOpen(true)}
-              onScanScorecard={() => setIsOcrOpen(true)}
-              onViewRankings={() => setIsHandicapOpen(true)}
-              onViewCourses={() => setIsCourseLibraryOpen(true)}
-              onResumeLiveRound={() => setCurrentTab('live')}
-              onOpenBadgeCustomizer={() => setIsBadgeCustomizerOpen(true)}
-              onOpenCreateFutureRound={() => setIsCreateFutureRoundOpen(true)}
-              onRsvpPlayer={handleRsvpPlayer}
-              onStartFutureRound={handleStartFutureRound}
-              onDeleteFutureRound={handleDeleteFutureRound}
-              onOpenEditNickname={() => setIsEditNicknameOpen(true)}
-              onSelectMemberForHistory={handleOpenMemberHistory}
-              onSelectTeamForHistory={handleOpenTeamHistory}
-            />
-          </>
+          <ClubhouseDashboard
+            members={members}
+            completedRounds={completedRounds}
+            teamEvents={teamEvents}
+            futureRounds={futureRounds}
+            courses={courses}
+            teams={teams}
+            activeSession={activeSession}
+            activeUser={activeUser}
+            onOpenProfile={() => handleOpenClubhouseHub('profiles')}
+            onStartRound={() => setIsNewRoundOpen(true)}
+            onLogPastRound={() => setIsNewRoundOpen(true)}
+            onOpenTeamManager={() => handleOpenClubhouseHub('teams')}
+            onJoinRoom={() => setIsNewRoundOpen(true)}
+            onScanScorecard={() => setIsOcrOpen(true)}
+            onViewRankings={() => setIsHandicapOpen(true)}
+            onViewCourses={() => setIsCourseLibraryOpen(true)}
+            onResumeLiveRound={() => setCurrentTab('live')}
+            onOpenBadgeCustomizer={() => setIsBadgeCustomizerOpen(true)}
+            onOpenCreateFutureRound={() => setIsCreateFutureRoundOpen(true)}
+            onRsvpPlayer={handleRsvpPlayer}
+            onStartFutureRound={handleStartFutureRound}
+            onDeleteFutureRound={handleDeleteFutureRound}
+            onOpenEditNickname={() => setIsEditNicknameOpen(true)}
+            onSelectMemberForHistory={handleOpenMemberHistory}
+            onSelectTeamForHistory={handleOpenTeamHistory}
+          />
         )}
 
         {currentTab === 'live' && activeSession && (
