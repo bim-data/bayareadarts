@@ -348,7 +348,7 @@ export default function App() {
         initialTab={clubhouseHubInitialTab}
         members={members}
         activeUserId={activeUserId}
-        onSelectActiveUser={setActiveUserId}
+        onSelectActiveUser={() => {}}
         onUpdateProfile={handleUpdateProfile}
         onAddNewMember={handleAddNewMember}
         completedRounds={completedRounds}
@@ -491,10 +491,7 @@ export default function App() {
         onClose={() => setIsUserProfileOpen(false)}
         members={members}
         activeUserId={activeUserId}
-        onSelectActiveUser={(id) => {
-          setActiveUserId(id);
-          localStorage.setItem('bad_current_user_id', id);
-        }}
+        onSelectActiveUser={() => {}}
         onUpdateProfile={handleUpdateProfile}
         onAddNewMember={handleAddNewMember}
         completedRounds={completedRounds}
