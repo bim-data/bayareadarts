@@ -316,7 +316,13 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                           WHS Index
                         </div>
                         <div className="font-stats font-bold text-base text-emerald-700 dark:text-emerald-300 leading-none">
-                          {member.handicapIndex > 0 ? member.handicapIndex.toFixed(1) : `+${Math.abs(member.handicapIndex).toFixed(1)}`}
+                          {member.roundsCount < 3 
+                            ? 'NH' 
+                            : member.handicapIndex > 0 
+                              ? member.handicapIndex.toFixed(1) 
+                              : member.handicapIndex === 0 
+                                ? '0.0' 
+                                : `+${Math.abs(member.handicapIndex).toFixed(1)}`}
                         </div>
                       </div>
                     </div>
