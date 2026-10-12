@@ -1,7 +1,7 @@
 import { Course, TeeBox, HoleInfo } from '../types';
 
-// Replace with your actual key or set up VITE_GOLF_COURSE_API_KEY in your .env
-const API_KEY = 'YWVWXINIAUWWFIZ6NTKQOHOUNE';
+// Replace with your actual key or VITE_GOLF_COURSE_API_KEY
+const API_KEY = 'YOUR_GOLF_COURSE_API_KEY';
 const BASE_URL = 'https://api.golfcourseapi.com/v1';
 
 export interface ApiSearchResult {
@@ -23,19 +23,19 @@ export async function searchExternalCourses(query: string): Promise<ApiSearchRes
   if (!query.trim()) return [];
 
   try {
-    const res = await fetch(
-      `${BASE_URL}/search?search_term=${encodeURIComponent(query)}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${API_KEY}`,
-          'Accept': 'application/json',
-        },
-      }
-    );
+    // GolfCourseAPI parameter name is search_query
+    const url = `${BASE_URL}/search?search_query=${encodeURIComponent(query)}&fuzzy_match=true`;
+    
+    const res = await fetch(url, {
+      headers: {
+        'x-api-key': API_KEY,
+        'Accept': 'application/json',
+      },
+    });
 
     if (!res.ok) {
       if (res.status === 429) throw new Error('Daily API rate limit reached (35 requests/day).');
-      throw new Error(`API error: ${res.statusText}`);
+      throw new Error(`API error (${res.status}): ${res.statusText}`);
     }
 
     const data = await res.json();
@@ -54,7 +54,7 @@ export async function fetchExternalCourseDetails(courseId: string): Promise<Cour
   try {
     const res = await fetch(`${BASE_URL}/courses/${courseId}`, {
       headers: {
-        'Authorization': `Bearer ${API_KEY}`,
+        'x-api-key': API_KEY,
         'Accept': 'application/json',
       },
     });
@@ -64,7 +64,7 @@ export async function fetchExternalCourseDetails(courseId: string): Promise<Cour
     const data = await res.json();
     const rawCourse = data.course || data;
 
-    // Combine male & female tees provided by API
+    // Combine male & female tees
     const rawTees = [
       ...(rawCourse.tees?.male || []),
       ...(rawCourse.tees?.female || []),
@@ -79,7 +79,7 @@ export async function fetchExternalCourseDetails(courseId: string): Promise<Cour
       totalYardage: Number(t.total_yards) || 6000,
     }));
 
-    // Extract hole information from the first tee box set that contains valid hole details
+    // Find sample tee containing hole details
     const sampleTeeWithHoles = rawTees.find((t: any) => Array.isArray(t.holes) && t.holes.length > 0);
 
     const mappedHoles: HoleInfo[] = sampleTeeWithHoles
@@ -123,7 +123,6 @@ export async function fetchExternalCourseDetails(courseId: string): Promise<Cour
   }
 }
 
-// Utility to match common tee name strings to UI colors
 function getTeeHexColor(name: string = ''): string {
   const lower = name.toLowerCase();
   if (lower.includes('black') || lower.includes('champ')) return '#141413';
@@ -139,7 +138,7 @@ function deriveRegionFromState(state?: string, city?: string): 'SF' | 'East Bay'
   if (state && state !== 'CA') return 'Other';
   const c = (city || '').toLowerCase();
   if (c.includes('san francisco')) return 'SF';
-  if (c.includes('oakland') || c.includes('alameda') || c.includes('livermore') || c.includes('walnut creek') || c.includes('pleasanton')) return 'East Bay';
+  if (c.includes('oakland') || c.includes('alameda') || c.includes('livermore') || c.includes('walnut creek') || c.includes('pleasanton') || c.includes('castro valley')) return 'East Bay';
   if (c.includes('palo alto') || c.includes('burlingame') || c.includes('half moon bay') || c.includes('pacifica')) return 'Peninsula';
   if (c.includes('san rafael') || c.includes('novato') || c.includes('napa') || c.includes('sonoma')) return 'North Bay';
   if (c.includes('san jose') || c.includes('morgan hill') || c.includes('milpitas') || c.includes('sunnyvale')) return 'South Bay';
