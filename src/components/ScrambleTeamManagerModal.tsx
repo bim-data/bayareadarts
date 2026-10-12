@@ -76,7 +76,7 @@ export const ScrambleTeamManagerModal: React.FC<ScrambleTeamManagerModalProps> =
 
   // Form state
   const [teamName, setTeamName] = useState('');
-  const [teamSize, setTeamSize] = useState<number>(2); // 2, 3, or 4
+  const [teamSize, setTeamSize] = useState<number>(2); // 1, 2, 3, or 4
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const [selectedColor, setSelectedColor] = useState('emerald');
   const [selectedEmoji, setSelectedEmoji] = useState('🎯');
@@ -90,9 +90,10 @@ export const ScrambleTeamManagerModal: React.FC<ScrambleTeamManagerModalProps> =
     setIsEditing(true);
     setEditingTeamId(null);
     setTeamName('');
-    setTeamSize(size);
-    // pre-fill with first `size` members
-    setSelectedMemberIds(members.slice(0, size).map((m) => m.id));
+    const validSize = Math.max(1, Math.min(4, size));
+    setTeamSize(validSize);
+    // pre-fill with first `validSize` members
+    setSelectedMemberIds(members.slice(0, validSize).map((m) => m.id));
     setSelectedColor('emerald');
     setSelectedEmoji('🎯');
     setTeamNotes('');
@@ -113,8 +114,8 @@ export const ScrambleTeamManagerModal: React.FC<ScrambleTeamManagerModalProps> =
 
   const handleToggleMember = (memberId: string) => {
     if (selectedMemberIds.includes(memberId)) {
-      if (selectedMemberIds.length <= 2) {
-        setFormError('A scramble team must have at least 2 players');
+      if (selectedMemberIds.length <= 1) {
+        setFormError('A scramble squad must have at least 1 player');
         return;
       }
       setSelectedMemberIds((prev) => prev.filter((id) => id !== memberId));
@@ -134,8 +135,8 @@ export const ScrambleTeamManagerModal: React.FC<ScrambleTeamManagerModalProps> =
       setFormError('Please enter a team name');
       return;
     }
-    if (selectedMemberIds.length < 2) {
-      setFormError('Please select at least 2 players for the scramble team');
+    if (selectedMemberIds.length < 1) {
+      setFormError('Please select at least 1 player for the scramble squad');
       return;
     }
     if (selectedMemberIds.length > 4) {
@@ -199,20 +200,20 @@ export const ScrambleTeamManagerModal: React.FC<ScrambleTeamManagerModalProps> =
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="card-elevated max-w-3xl w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden my-6 shadow-2xl text-slate-900 dark:text-slate-100 transition-colors">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
+      <div className="card-elevated w-full sm:max-w-3xl h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:rounded-3xl bg-white dark:bg-slate-900 border-0 sm:border border-slate-200 dark:border-slate-800 rounded-none sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl text-slate-900 dark:text-slate-100 transition-colors">
         {/* Header */}
-        <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div className="shrink-0 p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
               <Users className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-heading font-extrabold text-xl text-slate-900 dark:text-slate-100">
-                Scramble Teams & Duos
+                Scramble Teams & Squads
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Manage 2 to 4 player teams for group scrambles, match play battles & scratch games
+                Manage 1 to 4 player teams for group scrambles, match play battles & practice
               </p>
             </div>
           </div>
@@ -232,11 +233,11 @@ export const ScrambleTeamManagerModal: React.FC<ScrambleTeamManagerModalProps> =
           </div>
         )}
 
-        <div className="p-5 sm:p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+        <div className="p-4 sm:p-6 space-y-6 flex-1 overflow-y-auto overscroll-contain">
           {!isEditing ? (
             <>
               {/* Action bar */}
-              <div className="flex items-center justify-between flex-wrap gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <h4 className="font-heading font-bold text-base text-slate-900 dark:text-slate-100">
                     Registered Scramble Squads ({teams.length})
@@ -245,20 +246,33 @@ export const ScrambleTeamManagerModal: React.FC<ScrambleTeamManagerModalProps> =
                     Select whole teams as players in round setup or track team scrambles
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full sm:w-auto">
+                  <button
+                    onClick={() => handleStartCreate(1)}
+                    className="btn-modern py-2 px-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <span>+ Solo (1P)</span>
+                  </button>
                   <button
                     onClick={() => handleStartCreate(2)}
-                    className="btn-modern px-3 py-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                    className="btn-modern py-2 px-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>+ New Duo (2P)</span>
+                    <span>+ Duo (2P)</span>
+                  </button>
+                  <button
+                    onClick={() => handleStartCreate(3)}
+                    className="btn-modern py-2 px-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>+ Trio (3P)</span>
                   </button>
                   <button
                     onClick={() => handleStartCreate(4)}
-                    className="btn-modern px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    className="btn-modern py-2 px-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1 shadow-xs cursor-pointer"
                   >
                     <Users className="w-3.5 h-3.5" />
-                    <span>+ 4-Man Full Scramble</span>
+                    <span>+ 4-Man</span>
                   </button>
                 </div>
               </div>
@@ -267,7 +281,7 @@ export const ScrambleTeamManagerModal: React.FC<ScrambleTeamManagerModalProps> =
               <div className="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300">
                 <Shield className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>
-                  <strong>Pre-Built Teams Advantage:</strong> In the New Round modal, switch to "Teams" to pick any duo or 4-man squad in one tap without re-adding each golfer.
+                  <strong>Pre-Built Teams Advantage:</strong> In the New Round modal, switch to "Teams" to pick any solo, duo, trio or 4-man squad in one tap without re-adding each golfer.
                 </span>
               </div>
 
@@ -276,7 +290,14 @@ export const ScrambleTeamManagerModal: React.FC<ScrambleTeamManagerModalProps> =
                 {teams.map((team) => {
                   const teamHcp = calculateTeamScrambleHandicap(team.playerIds, members);
                   const roster = team.playerIds.map((id) => members.find((m) => m.id === id)).filter(Boolean) as MemberProfile[];
-                  const isFoursome = team.playerIds.length >= 4;
+                  const squadLabel =
+                    team.playerIds.length === 1
+                      ? 'Solo (1P)'
+                      : team.playerIds.length === 2
+                      ? 'Duo (2P)'
+                      : team.playerIds.length === 3
+                      ? 'Trio (3P)'
+                      : 'Full Foursome (4P)';
 
                   return (
                     <div
@@ -294,11 +315,11 @@ export const ScrambleTeamManagerModal: React.FC<ScrambleTeamManagerModalProps> =
                               {team.name}
                             </h5>
                             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                              <span className="font-medium">
-                                {team.playerIds.length} Players {isFoursome ? '(Full Group)' : '(Duo)'}
+                              <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                                {squadLabel}
                               </span>
                               <span>·</span>
-                              <span className="font-stats font-bold text-emerald-600 dark:text-emerald-400">
+                              <span className="font-stats font-bold text-slate-700 dark:text-slate-300">
                                 Team Hcp: {teamHcp}
                               </span>
                             </div>
@@ -400,13 +421,13 @@ export const ScrambleTeamManagerModal: React.FC<ScrambleTeamManagerModalProps> =
                 />
               </div>
 
-              {/* Team Size Selector: 2, 3, or 4 */}
+              {/* Team Size Selector: 1, 2, 3, or 4 */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
                   Target Squad Size
                 </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[2, 3, 4].map((size) => (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[1, 2, 3, 4].map((size) => (
                     <button
                       key={size}
                       type="button"
@@ -426,7 +447,7 @@ export const ScrambleTeamManagerModal: React.FC<ScrambleTeamManagerModalProps> =
                           : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
                       }`}
                     >
-                      {size === 2 ? '2 Players (Duo)' : size === 3 ? '3 Players (Trio)' : '4 Players (Full Group)'}
+                      {size === 1 ? '1 Solo' : size === 2 ? '2-Man Duo' : size === 3 ? '3-Man Trio' : '4-Man Full'}
                     </button>
                   ))}
                 </div>

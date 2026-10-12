@@ -1,4 +1,5 @@
 import React from 'react';
+import { dartsLogo } from '../assets';
 import { 
   Trophy, 
   Plus, 
@@ -10,7 +11,8 @@ import {
   Moon,
   Sparkles,
   User,
-  ChevronDown
+  ChevronDown,
+  FileCode
 } from 'lucide-react';
 import { GameFormat, RoundSession, MemberProfile } from '../types';
 
@@ -26,6 +28,7 @@ interface HeaderProps {
   onOpenOcr: () => void;
   onOpenEditNickname: () => void;
   onOpenProfile: () => void;
+  onOpenYamlBackup?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -40,6 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenOcr,
   onOpenEditNickname,
   onOpenProfile,
+  onOpenYamlBackup,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
@@ -51,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <div className="w-10 h-10 rounded-full border border-slate-300 dark:border-slate-700 overflow-hidden shadow-sm hover:scale-105 transition-transform bg-white">
             <img 
-              src="/src/assets/images/bay_area_darts_logo_1791561323731.jpg" 
+              src={dartsLogo} 
               alt="Bay Area Darts Emblem"
               className="w-full h-full object-cover"
             />
@@ -170,6 +174,17 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <User className="w-4 h-4 text-emerald-600" />
               <span>Log In</span>
+            </button>
+          )}
+
+          {onOpenYamlBackup && (
+            <button
+              onClick={onOpenYamlBackup}
+              title="YAML Flat-File Storage & Git Sync"
+              className="hidden lg:flex btn-modern px-2.5 sm:px-3 py-1.5 rounded-xl border border-emerald-500/30 hover:border-emerald-500/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-xs font-semibold items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              <FileCode className="w-4 h-4 text-emerald-500" />
+              <span>YAML Sync</span>
             </button>
           )}
 

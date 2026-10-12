@@ -1,30 +1,35 @@
-# Unified Clubhouse Management Hub & Mobile View Optimization
+# YAML Flat-File Storage & GitHub Pages Static Hosting Architecture
 
-Streamline the Bay Area Darts clubhouse experience by consolidating Golfer Profiles and Scramble Teams into a single unified management hub, bringing "Join with PIN" directly into the Start Round flow, and overhauling mobile responsiveness with full-viewport modal sheets and zero element collisions.
+Enable Bay Area Darts to run as a high-performance web application on GitHub Pages with zero blank-page errors, backed by human-readable separate YAML flat data files (`courses.yaml`, `members.yaml`, `teams.yaml`, `rounds.yaml`), 1-click YAML export and import tools to sync changes directly into your Git backup, and automated GitHub Actions deployment.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The following user preferences were confirmed during clarification and anchor this implementation:
+> The following architectural decisions were confirmed with the user and shape this revised implementation plan:
 
-- **Confirmed Decision 1 (Unified Hub Presentation)**: Provide a dedicated tabbed modal ("Clubhouse Roster & Teams") that seamlessly toggles between **Golfer Profiles** (viewing stats, switching active user, editing profile/email, adding new golfers) and **Scramble Teams** (creating, editing, and managing 2-to-4 player squads). This reduces home page tile clutter.
-- **Confirmed Decision 2 (Start Round PIN Integration)**: Embed "Join with PIN" as a primary tab inside `NewRoundModal` alongside "Start Live Round" and "Log Past Round". Golfers can launch a live room, join a friend's room via PIN, or log a past scorecard all from one dialog.
-- **Confirmed Decision 3 (Mobile Dialog Architecture)**: Convert all modals on mobile (`< 640px`) to native-feeling full-screen viewport sheets (`h-[100dvh]` with `sticky` headers and `sticky` action footers). This prevents pop-ups from being cut off or overflowing small screens.
-- **Confirmed Decision 4 (Header & Tile Overlap Fixes)**: Restructure the top navigation header and dashboard quick-launch tiles with responsive breakpoints, flex truncation, and min-touch targets (≥ 44px) so elements never collide or clip on narrow devices.
+- **Confirmed Decision 1 (Separate YAML Flat Files)**: The primary data records will be structured as individual human-readable YAML files in a `data/` directory:
+  - `data/courses.yaml`: Course specs, tee boxes, yardages, hole pars, and handicap indexes.
+  - `data/members.yaml`: Golfer profiles, handicaps, differentials, and scoring averages.
+  - `data/teams.yaml`: Pre-configured scramble squads (1P, 2P, 3P, 4P) and rosters.
+  - `data/rounds.yaml`: Completed historical scorecards, gross/net scores, and hole details.
+  - `data/future-rounds.yaml`: Upcoming muni placeholders, confirmed dates, and RSVPs.
+- **Confirmed Decision 2 (Export & Import YAML for Git Backups)**: Because GitHub Pages is a static host without write permissions to the repository's git commit tree, the application will provide a dedicated **Clubhouse YAML Manager**:
+  - **1-Click YAML Export**: Golfers can download updated `members.yaml`, `rounds.yaml`, or all data files in one click after logging rounds to easily commit them to their Git repository.
+  - **Drag-and-Drop YAML Import**: Golfers can upload any updated YAML file to immediately hydrate or sync the browser state.
+- **Confirmed Decision 3 (Dual-Mode Local Disk Sync in Dev)**: When running locally or in AI Studio, `server.ts` will directly read and write to the `data/*.yaml` files on disk, ensuring changes made in development are saved straight to the YAML files.
+- **Confirmed Decision 4 (Relative Asset Paths for GitHub Pages)**: Set Vite `base: './'` so all compiled JavaScript, CSS, fonts, and images resolve accurately whether hosted on GitHub Pages (`https://<user>.github.io/<repo>/`), at a custom domain, or locally.
+- **Confirmed Decision 5 (Automated GitHub Actions Deployment)**: Provide a `.github/workflows/deploy.yml` workflow that automatically tests, builds, and deploys the site to GitHub Pages on every push to `main`.
 
 ---
 
 ## 1. Overview & Core Concept
 
 - **What It Does**:
-  1. **Consolidated Clubhouse Roster Hub**: Replaces multiple disconnected home tiles with a unified "Clubhouse Roster & Teams" modal featuring two intuitive tabs: *Golfer Profiles & Handicaps* and *Scramble Squads (2–4 Players)*.
-  2. **All-in-One Round Launcher**: Expands the Start Round modal into a 3-tab unified hub:
-     - *Start Live Round*: Host a live multi-device foursome or 2v2 duel with auto-generated PIN.
-     - *Join with PIN*: Enter a 4-digit code to immediately connect to a friend's live room.
-     - *Log Past Round*: Historical date picker with hole-by-hole or quick total entry.
-  3. **Mobile-First Responsive Layout**: Solves mobile clipping, modal cut-offs, and element collisions by implementing fluid 100dvh sheets with pinned thumb-friendly save/close footers, adaptive font scaling, and collision-proof header spacing.
-- **Target Audience / Persona**: Bay Area Darts golfers checking in from mobile phones at tee boxes, in golf carts, or in the clubhouse after 18 holes.
-- **Key Value**: A significantly cleaner home page with fewer redundant tiles, frictionless round joining, and an effortless mobile experience with zero overlapping buttons or overflowing dialogs.
+  1. **Solves the Blank White Page**: Fixes the 3 root causes of GitHub Pages loading errors: relative asset path resolution (`base: './'`), automated production compilation (`dist/`), and client-side independence from the local Express server.
+  2. **Human-Readable YAML Storage**: Moves away from opaque binary or database stores to clean, git-diffable YAML files that you can view, edit, and back up directly in GitHub.
+  3. **Git-Synced Clubhouse Workflow**: Users can score rounds or manage scramble squads on GitHub Pages, export the updated YAML files, and push them to GitHub to keep their repository fully up to date.
+- **Target Audience / Persona**: Bay Area Darts golfers backing up their club records on GitHub and using GitHub Pages for mobile live scoring and clubhouse tracking.
+- **Key Value**: 100% free hosting, version-controlled club records in clean YAML, and a responsive web app that never shows a blank page.
 
 ---
 
@@ -34,62 +39,49 @@ Streamline the Bay Area Darts clubhouse experience by consolidating Golfer Profi
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        HOME DASHBOARD (STREAMLINED)                     │
+│                        GITHUB PAGES & YAML WORKFLOW                    │
 │                                                                        │
-│  [ Start / Enter Round ]    [ Clubhouse Roster & Teams ]   [ Future Rds ]│
-│   (Live, PIN, or Past)       (Golfers & Scramble Teams)     (Muni Alerts)│
-└──────────────────┬─────────────────────────────┬───────────────────────┘
-                   │                             │
-                   ▼                             ▼
-┌──────────────────────────────────────┐  ┌───────────────────────────────┐
-│       START / ENTER ROUND MODAL      │  │    CLUBHOUSE MANAGEMENT HUB   │
-│ ┌──────────────┬──────────┬────────┐ │  │ ┌──────────────┬────────────┐ │
-│ │ Start Live   │ Join PIN │ Past Rd│ │  │ │ Golfer Roster│ Scramble   │ │
-│ └──────────────┴──────────┴────────┘ │  │ │ & Profiles   │ Teams (2-4)│ │
-│                                      │  │ └──────────────┴────────────┘ │
-│ • Live Foursome / 2v2 Match Play     │  │ • Active golfer profile card  │
-│ • Instant PIN join & player claim    │  │ • Edit email, phone, nickname │
-│ • Date picker & Hole/Total scores    │  │ • Build duos, trios, 4-man    │
-│                                      │  │ • Team handicap preview       │
-│ [Sticky Footer: Submit / Close]      │  │ [Sticky Footer: Save / Close] │
-└──────────────────────────────────────┘  └───────────────────────────────┘
+│   1. USER VISITS GITHUB PAGES                                          │
+│      • Browser downloads compiled SPA bundle via relative paths        │
+│      • App parses bundled data/*.yaml files (courses, members, squads) │
+│      • Instant dashboard load with zero network errors                 │
+│                                                                        │
+│   2. USER PLAYS & LOGS ROUNDS                                          │
+│      • Scores hole-by-hole, records putts, FIR/GIR, scramble honors    │
+│      • Round stats immediately update in browser state & localStorage  │
+│                                                                        │
+│   3. USER BACKS UP TO GITHUB (EXPORT YAML)                             │
+│      • Opens Clubhouse Roster & Teams ──► "YAML Backup & Git Sync"     │
+│      • Clicks "Export Updated YAML Files" (or single rounds.yaml)      │
+│      • Drops files into repository folder & commits to GitHub:         │
+│          git commit -am "Log Harding Park round" && git push           │
+│      • GitHub Actions builds & redeploys latest records automatically  │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Mobile Layout & Anti-Overlap Polish
-- **Full-Screen Mobile Viewport Sheets**:
-  - On viewports `< 640px` (`sm:` breakpoint), modals occupy `100dvh` with `rounded-none`, zero exterior margin, and zero background gutter.
-  - Modal headers are pinned (`sticky top-0 z-20`) with prominent close buttons.
-  - Form and scorecard bodies scroll smoothly (`flex-1 overflow-y-auto overscroll-contain`).
-  - Action buttons are pinned in a sticky bottom tray (`sticky bottom-0 z-20`) with safe-area padding for mobile thumbs.
-- **Header Responsive Densification**:
-  - On mobile, condense the brand mark to avoid taking up the entire line (`BAY AREA DARTS`).
-  - Keep the theme toggle, active golfer avatar badge, and the primary "New Round" trigger button; demote redundant duplicate buttons that already exist in the launcher.
-  - Zero line-wrapping or button collisions in the top bar.
-- **Home Launch Tile Modernization**:
-  - Consolidate the 6 micro-tiles into 3 or 4 high-contrast, comfortable touch targets (`min-h-[72px]`, `≥ 44px` touch targets):
-    1. **Start / Enter Round** (Emerald, primary hero action)
-    2. **Clubhouse Roster & Teams** (Blue/Purple, unified player & team management)
-    3. **Plan Future Round** (Amber, upcoming muni tee time notifications)
-    4. **Scan Scorecard** (Slate/Camera, OCR digitizer)
+### Visual & Interactive Preservation
+- **Preserve Existing UI**: The dark/emerald clubhouse design, comic-style badges, live scorecards, and scramble squad builders remain untouched.
+- **Clubhouse YAML Management Modal / Tab**: Integrated into `ClubhouseHubModal`:
+  - Clean card displaying flat-file status: `courses.yaml`, `members.yaml`, `teams.yaml`, `rounds.yaml`.
+  - Buttons: `Download All YAML`, `Export rounds.yaml`, `Import / Restore YAML`.
+  - Copyable Git command helper: `git commit -am "Update club records" && git push`.
 
 ---
 
 ## 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Consolidated Management Hub vs. Multiple Separate Pop-ups**
-  - *Chosen Approach*: Create a unified `ClubhouseHubModal` (or unified Roster & Teams manager) that houses both Golfer Profiles and Scramble Squads in a clean segmented tab control.
-  - *Why*: Eliminates competing tiles on the dashboard, keeps player handicaps and team rosters logically co-located, and makes switching active profiles or managing teams a single-click action.
-  - *Alternatives Considered*: Leaving separate buttons on the home screen was explicitly noted by the user as causing too many tiles.
-
-- **Decision 2: 3-Way Segmented Start Round Modal**
-  - *Chosen Approach*: Integrate "Join with PIN" as a first-class tab in `NewRoundModal` (`[Start Live Round | Join with PIN | Log Past Round]`).
-  - *Why*: Gives players one definitive "Play Golf" entry point. Whether you are hosting a new group, connecting to a friend's room with a PIN, or logging yesterday's scorecard, you open the same modal.
-  - *Alternatives Considered*: Keeping Join with PIN as a separate floating card, which clutters the home page and duplicates modal boilerplate.
-
-- **Decision 3: Responsive Modal Strategy (Sheet vs. Fixed Dialog)**
-  - *Chosen Approach*: Adaptive modal container: `fixed inset-0 sm:p-4`, inner card `w-full h-[100dvh] sm:h-auto sm:max-h-[85vh] sm:rounded-3xl flex flex-col`.
-  - *Why*: Fixed 80vh modals fail on mobile because virtual keyboards, browser navigation bars, and large tables (like hole-by-hole scorecards) cause vertical overflow or clipped buttons. A flex-column sheet guarantees the submit button is always accessible.
-  - *Alternatives Considered*: Responsive bottom sheet with drag-to-dismiss, which often conflicts with vertical scrolling on 18-hole scorecards.
+- **Decision 1: Separate YAML Files vs. Monolithic File**
+  - *Chosen Approach*: Separate YAML files (`courses.yaml`, `members.yaml`, `teams.yaml`, `rounds.yaml`, `future-rounds.yaml`).
+  - *Why*: Much cleaner Git diffs. Modifying member handicaps doesn't dirty the course list; logging a round only changes `rounds.yaml` and `members.yaml`.
+  - *Alternatives Considered*: Single `clubhouse.yaml` (confirmed rejected by user preference).
+- **Decision 2: Client-Side YAML Parser (`js-yaml`) vs. Pre-compiling to JSON**
+  - *Chosen Approach*: Use `js-yaml` in both Vite frontend and Express server, bundling raw YAML files via Vite.
+  - *Why*: Allows true dynamic import and export of `.yaml` files in the browser without requiring a Node build step for exports.
+  - *Alternatives Considered*: JSON only (confirmed preference for YAML).
+- **Decision 3: Export/Import vs. GitHub Personal Access Token (PAT)**
+  - *Chosen Approach*: 1-click YAML file export and drag-and-drop import.
+  - *Why*: Safe and frictionless. Asking golfers to generate GitHub Personal Access Tokens and store them in browser storage creates security risks and setup friction.
+  - *Alternatives Considered*: In-browser GitHub API commit tool via PAT.
 
 ---
 
@@ -97,56 +89,75 @@ Streamline the Bay Area Darts clubhouse experience by consolidating Golfer Profi
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                              FRONTEND (VITE/REACT)                     │
+│                              FRONTEND (VITE / REACT)                   │
 │                                                                        │
 │   ┌────────────────────────────────────────────────────────────────┐   │
-│   │                         Header.tsx                             │   │
-│   │  • Collapsible mobile layout with zero button collisions       │   │
-│   │  • Logo emblem + Active Golfer avatar + "Start Round"          │   │
-│   └────────────────────────────────────────────────────────────────┘   │
-│                                   │                                    │
-│   ┌───────────────────────────────┴────────────────────────────────┐   │
-│   │                    ClubhouseDashboard.tsx                      │   │
-│   │  • Streamlined Action Grid (3-4 high-impact hero cards)        │   │
-│   │  • Responsive Accolades & Member Roster (no text collisions)   │   │
+│   │                      src/App.tsx                               │   │
+│   │  • Clubhouse views, live scoring, modals                       │   │
 │   └───────────────────────────────┬────────────────────────────────┘   │
 │                                   │                                    │
-│         ┌─────────────────────────┴──────────────────────────┐         │
-│         ▼                                                    ▼         │
-│   ┌──────────────────────────────┐     ┌─────────────────────────────┐ │
-│   │      NewRoundModal.tsx       │     │    ClubhouseHubModal.tsx    │ │
-│   │  • Tab 1: Start Live Round   │     │  • Tab 1: Golfer Profiles   │ │
-│   │  • Tab 2: Join with PIN      │     │    - Active user overview   │ │
-│   │  • Tab 3: Log Past Round     │     │    - Profile/email edit     │ │
-│   │  • Full-screen mobile sheet  │     │    - Add new golfer         │ │
-│   │  • Sticky footer CTA bar     │     │  • Tab 2: Scramble Teams    │ │
-│   └──────────────────────────────┘     │    - 2 to 4 player squads   │ │
-│                                        │    - Team stats & handicaps │ │
-│                                        │  • Sticky footer controls   │ │
-│                                        └─────────────────────────────┘ │
+│                                   ▼                                    │
+│   ┌────────────────────────────────────────────────────────────────┐   │
+│   │                 src/services/yamlStorage.ts                    │   │
+│   │  • Parses & formats YAML using js-yaml                         │   │
+│   │  • Loads initial data from data/*.yaml                         │   │
+│   │  • In-memory cache + localStorage fallback                     │   │
+│   │  • Export functions: exportYamlFile(), exportAllZip()          │   │
+│   │  • Import function: importYamlFile()                           │   │
+│   └───────────────────────┬────────────────────────┬───────────────┘   │
+│                           │                        │                   │
+│         (Local Node.js)   ▼                        ▼  (GitHub Pages)   │
+│   ┌───────────────────────────────┐        ┌───────────────────────┐   │
+│   │          server.ts            │        │   Browser Memory /    │   │
+│   │   Reads/Writes data/*.yaml    │        │      localStorage     │   │
+│   │       directly to disk        │        │   + 1-Click Export    │   │
+│   └───────────────────────────────┘        └───────────────────────┘   │
 └────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│                             BACKEND (EXPRESS)                          │
+│                         FLAT DATA REPOSITORY FILES                     │
 │                                                                        │
-│   • GET/POST /api/rounds/rooms (Join & Host PIN sessions)              │
-│   • GET/POST/PUT /api/members (Golfer profile data & stats)            │
-│   • GET/POST/PUT/DELETE /api/teams (Scramble squad rosters & stats)    │
-│   • POST /api/rounds/manual (Historical rounds by date)                │
+│   • data/courses.yaml       (Pars, yardages, slopes, tees)             │
+│   • data/members.yaml       (Profiles, WHS indexes, scoring averages)  │
+│   • data/teams.yaml         (1P, 2P, 3P, 4P Scramble squads & rosters) │
+│   • data/rounds.yaml        (Completed hole-by-hole scorecards)        │
+│   • data/future-rounds.yaml (Upcoming dates, RSVPs, reminders)         │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Component State & Transition Details
-1. **`ClubhouseHubModal.tsx`**:
-   - Manages tab state (`'golfers' | 'teams'`).
-   - Golfer section integrates personal score history view, WHS index breakdown, profile editing (name, nickname, email, handicap goal), and new golfer creation.
-   - Teams section provides duo/trio/foursome builder with live handicap calculation, color tagging, and direct launch into round setup.
-2. **`NewRoundModal.tsx`**:
-   - Manages 3-state selector (`'live' | 'join' | 'manual'`).
-   - In `'join'` mode: Room PIN input field with auto-capitalization, player selection dropdown or guest name, and immediate session connection via `onJoinRoom`.
-   - In `'manual'` mode: Historical date picker, course selection, hole-by-hole or quick total input with sticky submit button.
-3. **Responsive Styles Across Modals**:
-   - Universal full-screen wrapper: `w-full h-[100dvh] sm:h-auto sm:max-h-[85vh] sm:rounded-3xl flex flex-col`.
-   - Guaranteed sticky footers: `sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-3 sm:p-4 shrink-0`.
-   - Header truncation: `truncate max-w-[200px]` with clear close `X` target.
+### Component & Build Strategy Details
+
+1. **Flat YAML Data Directory (`data/`)**:
+   - `data/courses.yaml`: Converted from `src/data/courses.ts` into clean, human-readable YAML.
+   - `data/members.yaml`: Converted from `src/data/members.ts`.
+   - `data/teams.yaml`: Converted from `INITIAL_SCRAMBLE_TEAMS`.
+   - `data/rounds.yaml`: Converted from initial completed rounds.
+   - `data/future-rounds.yaml`: Converted from `INITIAL_FUTURE_ROUNDS`.
+
+2. **YAML Parser & Storage Service (`src/services/yamlStorage.ts`)**:
+   - Uses `js-yaml` to serialize and deserialize data models.
+   - Dual-mode sync:
+     - On GitHub Pages: Reads bundled YAML, saves user edits to browser storage, provides `exportYaml(type)` download triggers.
+     - In Node dev (`server.ts`): Reads and writes directly to `data/*.yaml` using `fs.promises`.
+
+3. **Clubhouse YAML Management Modal (`src/components/YamlBackupModal.tsx`)**:
+   - Integrated into `ClubhouseHubModal` and dashboard.
+   - Shows file statuses with last-modified timestamps and item counts.
+   - 1-click download buttons:
+     - `Download All YAML Files (.zip or multi-file)`
+     - `Download rounds.yaml`
+     - `Download members.yaml`
+     - `Download teams.yaml`
+   - Drag & drop dropzone to load external YAML files into the app.
+
+4. **Vite Configuration (`vite.config.ts`)**:
+   - `base: './'` for relative asset links.
+   - Configure raw loader / asset handling for `.yaml` files.
+
+5. **GitHub Actions Workflow (`.github/workflows/deploy.yml`)**:
+   - Automatically builds on push to `main` branch.
+   - Deploys `dist/` directly to GitHub Pages using official GitHub Actions (`actions/deploy-pages@v4`).
+
+6. **GitHub Pages SPA Fallback (`public/404.html`)**:
+   - Prevents 404 errors on deep links and browser reloads on GitHub Pages.

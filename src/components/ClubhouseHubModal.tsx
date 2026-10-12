@@ -18,7 +18,8 @@ import {
   ShieldCheck,
   ChevronRight,
   Flame,
-  Award
+  Award,
+  FileCode
 } from 'lucide-react';
 import { MemberProfile, TeamGroup, CompletedRoundRecord } from '../types';
 import { calculateTeamScrambleHandicap } from './ScrambleTeamManagerModal';
@@ -38,6 +39,7 @@ interface ClubhouseHubModalProps {
   onTeamUpdated: (team: TeamGroup) => void;
   onTeamDeleted: (teamId: string) => void;
   onSelectTeamForRound?: (team: TeamGroup) => void;
+  onOpenYamlBackup?: () => void;
 }
 
 const COLOR_OPTIONS = [
@@ -66,6 +68,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
   onTeamUpdated,
   onTeamDeleted,
   onSelectTeamForRound,
+  onOpenYamlBackup,
 }) => {
   const [hubTab, setHubTab] = useState<'profiles' | 'teams'>(initialTab);
   const [profileSubTab, setProfileSubTab] = useState<'overview' | 'edit' | 'switch'>('overview');
@@ -349,7 +352,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
 
         {/* Primary Segmented Tab Switcher */}
         <div className="shrink-0 p-2 sm:px-5 sm:py-2.5 bg-slate-100/80 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-          <div className="grid grid-cols-2 p-1 bg-slate-200 dark:bg-slate-800 rounded-xl gap-1">
+          <div className={`grid ${onOpenYamlBackup ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'} p-1 bg-slate-200 dark:bg-slate-800 rounded-xl gap-1`}>
             <button
               onClick={() => {
                 setHubTab('profiles');
@@ -375,6 +378,18 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
               <Users className="w-4 h-4 text-amber-500" />
               <span>Scramble Squads ({teams.length})</span>
             </button>
+            {onOpenYamlBackup && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenYamlBackup();
+                }}
+                className="py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer text-emerald-700 dark:text-emerald-400 hover:bg-white dark:hover:bg-slate-900"
+              >
+                <FileCode className="w-4 h-4 text-emerald-500" />
+                <span>YAML & Git Backup</span>
+              </button>
+            )}
           </div>
         </div>
 

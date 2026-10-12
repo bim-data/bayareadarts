@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { dartsLogo, sniperBadge } from '../assets';
 import { X, Target, Sparkles, Check, Palette, Award, Download } from 'lucide-react';
 import { MemberProfile } from '../types';
 
@@ -75,7 +76,7 @@ export const ClubLogoCustomizer: React.FC<ClubLogoCustomizerProps> = ({
               </span>
               <div className="w-28 h-28 rounded-full border-2 border-slate-300 dark:border-slate-600 overflow-hidden shadow-md bg-white">
                 <img
-                  src="/src/assets/images/bay_area_darts_logo_1791561323731.jpg"
+                  src={dartsLogo}
                   alt="Bay Area Darts Mascot Logo"
                   className="w-full h-full object-cover"
                 />
@@ -97,7 +98,7 @@ export const ClubLogoCustomizer: React.FC<ClubLogoCustomizerProps> = ({
               </span>
               <div className="w-28 h-28 rounded-full border-2 border-slate-300 dark:border-slate-600 overflow-hidden shadow-md bg-white">
                 <img
-                  src="/src/assets/images/dart_sniper_badge_1791561343750.jpg"
+                  src={sniperBadge}
                   alt="Dart Sniper Badge"
                   className="w-full h-full object-cover"
                 />

@@ -115,8 +115,8 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
 
     onUpdateScore(activePlayer.playerId, currentHoleNum, updated);
 
-    // If team round, also sync score across all players on the same team so the whole squad shares the hole score!
-    if (hasTeams && activeTeam) {
+    // If scramble or team round, sync score across all players on the same team so the whole squad shares the hole score!
+    if (session.format === 'scramble' || (hasTeams && activeTeam)) {
       currentTeamPlayers.forEach((tp) => {
         if (tp.playerId !== activePlayer.playerId) {
           onUpdateScore(tp.playerId, currentHoleNum, updated);
@@ -216,7 +216,7 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
   }, [session, currentHoleNum]);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 space-y-4">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 pb-28 sm:pb-24 space-y-4">
       {/* 1. Header Bar: Course, Format, Room PIN */}
       <div className="card-modern p-3.5 sm:p-4 rounded-2xl flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -229,13 +229,28 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
           </button>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded">
+              <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded font-stats">
                 {session.format.toUpperCase()}
               </span>
-              {hasTeams && session.teams && session.teams.length > 0 && (
-                <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 rounded">
+              {session.format === 'scramble' && (
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 rounded font-stats">
+                  {session.teams && session.teams.length > 1
+                    ? 'TEAM DUEL'
+                    : session.teams && session.teams.length === 1
+                    ? session.teams[0].playerIds.length === 1
+                      ? 'SOLO SCRAMBLE (1P)'
+                      : `${session.teams[0].playerIds.length}-PERSON SCRAMBLE`
+                    : session.players.length === 1
+                    ? 'SOLO SCRAMBLE (1P)'
+                    : `${session.players.length}-PERSON SCRAMBLE`}
+                </span>
+              )}
+              {session.format !== 'scramble' && hasTeams && session.teams && session.teams.length > 0 && (
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 rounded font-stats">
                   {session.teams.length === 1
-                    ? `${session.teams[0].playerIds.length}-PERSON SCRAMBLE`
+                    ? session.teams[0].playerIds.length === 1
+                      ? 'SOLO SQUAD (1P)'
+                      : `${session.teams[0].playerIds.length}-PERSON TEAM`
                     : 'TEAM DUEL'}
                 </span>
               )}
@@ -551,70 +566,164 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
         </div>
 
         {/* Scramble Contributor Credit (Whose Drive was Chosen? + Key Approach/Putt) */}
-        {(session.format === 'scramble' || hasTeams) && currentTeamPlayers.length > 1 && (
+        {(session.format === 'scramble' || hasTeams) && currentTeamPlayers.length >= 1 && (
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3.5">
             {/* Drive Selection */}
             <div className="space-y-1.5">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
                 <span>🏌️ Whose Drive was Chosen?</span>
-                <span className="text-[11px] text-slate-400 font-normal">Scramble rule requirement</span>
+                <span className="text-[11px] text-slate-400 font-normal">
+                  {currentTeamPlayers.length === 1
+                    ? 'Solo Scramble · 100% Attributed'
+                    : 'Scramble rule requirement'}
+                </span>
               </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                {currentTeamPlayers.map((p) => {
-                  const isSelected = currentScore.driverPlayerId === p.playerId;
-                  return (
-                    <button
-                      key={p.playerId}
-                      onClick={() => updateHoleScore({ driverPlayerId: p.playerId })}
-                      className={`btn-modern px-2 py-2 rounded-xl text-xs font-medium text-center truncate cursor-pointer transition-all ${
-                        isSelected
-                          ? 'bg-emerald-600 text-white font-bold shadow-xs ring-1 ring-emerald-500'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
-                      }`}
-                      title={p.name}
-                    >
-                      {p.name.split(' ')[0]}'s Drive
-                    </button>
-                  );
-                })}
-              </div>
+
+              {currentTeamPlayers.length === 1 ? (
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-base shrink-0">🏌️</span>
+                    <div className="min-w-0">
+                      <span className="font-heading font-bold text-slate-900 dark:text-slate-100 block truncate">
+                        Solo Drive: {currentTeamPlayers[0].name.split(' ')[0]}
+                      </span>
+                      <span className="text-[10px] text-slate-400 block truncate">
+                        All tee shots automatically credited to solo golfer
+                      </span>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-stats font-bold text-[10px] shrink-0">
+                    Auto-Credited
+                  </span>
+                </div>
+              ) : (
+                <div
+                  className={`grid ${
+                    currentTeamPlayers.length === 2
+                      ? 'grid-cols-2'
+                      : currentTeamPlayers.length === 3
+                      ? 'grid-cols-3'
+                      : 'grid-cols-2 sm:grid-cols-4'
+                  } gap-1.5`}
+                >
+                  {currentTeamPlayers.map((p) => {
+                    const isSelected = currentScore.driverPlayerId === p.playerId;
+                    return (
+                      <button
+                        key={p.playerId}
+                        onClick={() => updateHoleScore({ driverPlayerId: p.playerId })}
+                        className={`btn-modern px-2 py-2 min-h-[36px] rounded-xl text-xs font-medium text-center truncate cursor-pointer transition-all flex items-center justify-center ${
+                          isSelected
+                            ? 'bg-emerald-600 text-white font-bold shadow-xs ring-1 ring-emerald-500'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        }`}
+                        title={p.name}
+                      >
+                        <span className="truncate">{p.name.split(' ')[0]}'s Drive</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Approach / Dart / Putt Contributor */}
             <div className="space-y-1.5">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
                 <span>🎯 Key Approach or Clutch Putt Contributor</span>
-                <span className="text-[11px] text-slate-400 font-normal">Attribution bragging rights</span>
+                <span className="text-[11px] text-slate-400 font-normal">
+                  {currentTeamPlayers.length === 1 ? 'Solo dart honors' : 'Attribution bragging rights'}
+                </span>
               </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                {currentTeamPlayers.map((p) => {
-                  const isSelected = currentScore.shotContributorId === p.playerId;
-                  return (
-                    <button
-                      key={p.playerId}
-                      onClick={() => updateHoleScore({ shotContributorId: p.playerId, shotContributorName: p.name })}
-                      className={`btn-modern px-2 py-2 rounded-xl text-xs font-medium text-center truncate cursor-pointer transition-all ${
-                        isSelected
-                          ? 'bg-blue-600 text-white font-bold shadow-xs ring-1 ring-blue-500'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
-                      }`}
-                      title={p.name}
-                    >
-                      {p.name.split(' ')[0]}'s Shot
-                    </button>
-                  );
-                })}
-                <button
-                  onClick={() => updateHoleScore({ shotContributorId: 'team', shotContributorName: 'Full Team Effort' })}
-                  className={`btn-modern col-span-2 sm:col-span-4 px-2 py-2 rounded-xl text-xs font-medium cursor-pointer ${
-                    currentScore.shotContributorId === 'team'
-                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                  }`}
+
+              {currentTeamPlayers.length === 1 ? (
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    onClick={() =>
+                      updateHoleScore({
+                        shotContributorId: currentTeamPlayers[0].playerId,
+                        shotContributorName: currentTeamPlayers[0].name,
+                      })
+                    }
+                    className={`btn-modern px-2 py-2 min-h-[38px] rounded-xl text-xs font-medium text-center truncate cursor-pointer transition-all flex items-center justify-center ${
+                      currentScore.shotContributorId === currentTeamPlayers[0].playerId || !currentScore.shotContributorId
+                        ? 'bg-blue-600 text-white font-bold shadow-xs ring-1 ring-blue-500'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <span className="truncate">🎯 {currentTeamPlayers[0].name.split(' ')[0]}'s Dart</span>
+                  </button>
+                  <button
+                    onClick={() =>
+                      updateHoleScore({
+                        shotContributorId: 'team',
+                        shotContributorName: 'Solo Dart Effort',
+                      })
+                    }
+                    className={`btn-modern px-2 py-2 min-h-[38px] rounded-xl text-xs font-medium cursor-pointer flex items-center justify-center transition-all ${
+                      currentScore.shotContributorId === 'team'
+                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold shadow-xs'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <span className="truncate">⛳ Solo Scramble</span>
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className={`grid ${
+                    currentTeamPlayers.length === 2
+                      ? 'grid-cols-2'
+                      : currentTeamPlayers.length === 3
+                      ? 'grid-cols-3'
+                      : 'grid-cols-2 sm:grid-cols-4'
+                  } gap-1.5`}
                 >
-                  🤝 Shared Squad Effort
-                </button>
-              </div>
+                  {currentTeamPlayers.map((p) => {
+                    const isSelected = currentScore.shotContributorId === p.playerId;
+                    return (
+                      <button
+                        key={p.playerId}
+                        onClick={() =>
+                          updateHoleScore({
+                            shotContributorId: p.playerId,
+                            shotContributorName: p.name,
+                          })
+                        }
+                        className={`btn-modern px-2 py-2 min-h-[36px] rounded-xl text-xs font-medium text-center truncate cursor-pointer transition-all flex items-center justify-center ${
+                          isSelected
+                            ? 'bg-blue-600 text-white font-bold shadow-xs ring-1 ring-blue-500'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        }`}
+                        title={p.name}
+                      >
+                        <span className="truncate">{p.name.split(' ')[0]}'s Shot</span>
+                      </button>
+                    );
+                  })}
+                  <button
+                    onClick={() =>
+                      updateHoleScore({
+                        shotContributorId: 'team',
+                        shotContributorName: 'Full Team Effort',
+                      })
+                    }
+                    className={`btn-modern ${
+                      currentTeamPlayers.length === 2
+                        ? 'col-span-2'
+                        : currentTeamPlayers.length === 3
+                        ? 'col-span-3'
+                        : 'col-span-2 sm:col-span-4'
+                    } px-2 py-2 min-h-[36px] rounded-xl text-xs font-medium cursor-pointer flex items-center justify-center transition-all ${
+                      currentScore.shotContributorId === 'team'
+                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold shadow-xs'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <span>🤝 Shared Squad Effort</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -646,7 +755,7 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
       </div>
 
       {/* 5. Sticky Bottom Action Controls */}
-      <div className="card-modern p-3 rounded-2xl flex items-center justify-between gap-2.5">
+      <div className="sticky bottom-2 z-30 card-modern p-3 rounded-2xl flex items-center justify-between gap-2.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-lg border border-slate-200 dark:border-slate-800">
         <button
           onClick={onOpenScorecardMatrix}
           className="btn-modern flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"

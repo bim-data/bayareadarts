@@ -1,6 +1,6 @@
 {
-  "summary":  "Architecture and design plan to unify Golfer Profiles and Scramble Teams into a single Clubhouse Management Hub, integrate Join with PIN into the Start Round workflow, and fix mobile responsiveness with full-screen mobile dialogs and sticky controls.",
-  "updatedAt":  "2026-10-11T21:41:29.979369825Z",
-  "requestFeedback":  true,
-  "userFacing":  true
+  "summary": "Revised implementation plan incorporating separate YAML flat file storage (courses.yaml, members.yaml, teams.yaml, rounds.yaml), browser YAML export/import workflows for Git backups, relative Vite asset paths (base: './'), and automated GitHub Actions deployment for GitHub Pages.",
+  "updatedAt": "2026-10-12T15:26:44.671174179Z",
+  "requestFeedback": true,
+  "userFacing": true
 }

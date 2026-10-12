@@ -18,6 +18,17 @@ import { TeamHistoryModal } from './components/TeamHistoryModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { ScrambleTeamManagerModal } from './components/ScrambleTeamManagerModal';
 import { ClubhouseHubModal } from './components/ClubhouseHubModal';
+import { YamlBackupModal } from './components/YamlBackupModal';
+import {
+  loadClubhouseData,
+  saveCoursesToStorage,
+  saveMembersToStorage,
+  saveTeamsToStorage,
+  saveRoundsToStorage,
+  saveFutureRoundsToStorage,
+  resetClubhouseToBundledYaml,
+  YamlDataType,
+} from './services/yamlStorage';
 import { 
   Course, 
   MemberProfile, 
@@ -50,14 +61,21 @@ export default function App() {
     localStorage.setItem('bad_dark_mode', String(darkMode));
   }, [darkMode]);
 
-  // Application Data Stores
-  const [courses, setCourses] = useState<Course[]>(INITIAL_BAY_AREA_COURSES);
-  const [members, setMembers] = useState<MemberProfile[]>(INITIAL_GROUP_MEMBERS);
-  const [completedRounds, setCompletedRounds] = useState<CompletedRoundRecord[]>(INITIAL_COMPLETED_ROUNDS);
+  // Application Data Stores with Flat YAML Storage Support
+  const [courses, setCourses] = useState<Course[]>(() => loadClubhouseData().courses);
+  const [members, setMembers] = useState<MemberProfile[]>(() => loadClubhouseData().members);
+  const [completedRounds, setCompletedRounds] = useState<CompletedRoundRecord[]>(() => loadClubhouseData().rounds);
   const [teamEvents, setTeamEvents] = useState<TeamEventRecord[]>(INITIAL_TEAM_EVENTS);
-  const [futureRounds, setFutureRounds] = useState<FutureRound[]>(INITIAL_FUTURE_ROUNDS);
-  const [teams, setTeams] = useState<TeamGroup[]>(INITIAL_SCRAMBLE_TEAMS);
+  const [futureRounds, setFutureRounds] = useState<FutureRound[]>(() => loadClubhouseData().futureRounds);
+  const [teams, setTeams] = useState<TeamGroup[]>(() => loadClubhouseData().teams);
   const [activeSession, setActiveSession] = useState<RoundSession | null>(null);
+
+  // Sync state changes to browser storage for offline & GitHub Pages persistence
+  useEffect(() => { saveCoursesToStorage(courses); }, [courses]);
+  useEffect(() => { saveMembersToStorage(members); }, [members]);
+  useEffect(() => { saveTeamsToStorage(teams); }, [teams]);
+  useEffect(() => { saveRoundsToStorage(completedRounds); }, [completedRounds]);
+  useEffect(() => { saveFutureRoundsToStorage(futureRounds); }, [futureRounds]);
 
   // Active Logged-in Golfer Profile (Persisted to localStorage)
   const [activeUserId, setActiveUserId] = useState<string>(() => {
@@ -72,7 +90,27 @@ export default function App() {
   const [clubhouseHubInitialTab, setClubhouseHubInitialTab] = useState<'profiles' | 'teams'>('profiles');
   const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
   const [isNewRoundOpen, setIsNewRoundOpen] = useState(false);
+  const [preselectedTeamId, setPreselectedTeamId] = useState<string | undefined>(undefined);
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
+  const [isYamlBackupOpen, setIsYamlBackupOpen] = useState(false);
+
+  // Flat YAML Handlers
+  const handleImportYaml = (type: YamlDataType, importedData: any) => {
+    if (type === 'courses') setCourses(importedData);
+    else if (type === 'members') setMembers(importedData);
+    else if (type === 'teams') setTeams(importedData);
+    else if (type === 'rounds') setCompletedRounds(importedData);
+    else if (type === 'future_rounds') setFutureRounds(importedData);
+  };
+
+  const handleResetDefaults = () => {
+    const fresh = resetClubhouseToBundledYaml();
+    setCourses(fresh.courses);
+    setMembers(fresh.members);
+    setTeams(fresh.teams);
+    setCompletedRounds(fresh.rounds);
+    setFutureRounds(fresh.futureRounds);
+  };
 
   const handleOpenClubhouseHub = (tab: 'profiles' | 'teams' = 'profiles') => {
     setClubhouseHubInitialTab(tab);
@@ -598,6 +636,7 @@ export default function App() {
         onOpenOcr={() => setIsOcrOpen(true)}
         onOpenEditNickname={() => setIsEditNicknameOpen(true)}
         onOpenProfile={() => handleOpenClubhouseHub('profiles')}
+        onOpenYamlBackup={() => setIsYamlBackupOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -629,6 +668,7 @@ export default function App() {
             onOpenEditNickname={() => setIsEditNicknameOpen(true)}
             onSelectMemberForHistory={handleOpenMemberHistory}
             onSelectTeamForHistory={handleOpenTeamHistory}
+            onOpenYamlBackup={() => setIsYamlBackupOpen(true)}
           />
         )}
 
@@ -660,18 +700,36 @@ export default function App() {
         onTeamCreated={handleTeamCreated}
         onTeamUpdated={handleTeamUpdated}
         onTeamDeleted={handleTeamDeleted}
-        onSelectTeamForRound={(_team) => {
+        onSelectTeamForRound={(team) => {
+          setPreselectedTeamId(team.id);
           setIsNewRoundOpen(true);
         }}
+        onOpenYamlBackup={() => setIsYamlBackupOpen(true)}
+      />
+
+      <YamlBackupModal
+        isOpen={isYamlBackupOpen}
+        onClose={() => setIsYamlBackupOpen(false)}
+        courses={courses}
+        members={members}
+        teams={teams}
+        completedRounds={completedRounds}
+        futureRounds={futureRounds}
+        onImportSuccess={handleImportYaml}
+        onResetToDefaults={handleResetDefaults}
       />
 
       <NewRoundModal
         isOpen={isNewRoundOpen}
-        onClose={() => setIsNewRoundOpen(false)}
+        onClose={() => {
+          setIsNewRoundOpen(false);
+          setPreselectedTeamId(undefined);
+        }}
         courses={courses}
         members={members}
         teams={teams}
         activeUserId={activeUserId}
+        initialSelectedTeamId={preselectedTeamId}
         onCourseAdded={handleAddCourse}
         onCreateSession={handleCreateSession}
         onOpenTeamManager={() => handleOpenClubhouseHub('teams')}

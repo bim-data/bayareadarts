@@ -35,6 +35,7 @@ interface NewRoundModalProps {
   members: MemberProfile[];
   teams?: TeamGroup[];
   activeUserId?: string;
+  initialSelectedTeamId?: string;
   onCourseAdded?: (newCourse: Course) => void;
   onCreateSession: (sessionData: Partial<RoundSession>) => void;
   onOpenTeamManager?: () => void;
@@ -49,6 +50,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
   members,
   teams = [],
   activeUserId,
+  initialSelectedTeamId,
   onCourseAdded,
   onCreateSession,
   onOpenTeamManager,
@@ -177,6 +179,15 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
       setSelectedPlayers(initial);
     }
   }, [isOpen, activeUserId]);
+
+  // Handle pre-selected team from ClubhouseHub
+  useEffect(() => {
+    if (initialSelectedTeamId && isOpen) {
+      setSelectedTeamIds([initialSelectedTeamId]);
+      setParticipantMode('teams');
+      setFormat('scramble');
+    }
+  }, [initialSelectedTeamId, isOpen]);
 
   if (!isOpen) return null;
 
@@ -322,6 +333,24 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
     if (finalPlayers.length === 0) {
       alert('Please select at least 1 golfer or team to play.');
       return;
+    }
+
+    // Auto-bundle golfers into a scramble squad if playing Scramble without explicit teams
+    if (format === 'scramble' && (!finalTeams || finalTeams.length === 0)) {
+      const squadName =
+        finalPlayers.length === 1
+          ? 'Solo Scramble'
+          : `${finalPlayers.length}-Man Scramble Squad`;
+      finalTeams = [
+        {
+          id: `scramble-auto-${Date.now()}`,
+          name: squadName,
+          playerIds: finalPlayers.map((p) => p.playerId),
+          avatarEmoji: '🎯',
+          colorTag: 'emerald',
+          stats: { roundsCount: 0, bestScore: 0, wins: 0 },
+        },
+      ];
     }
 
     onCreateSession({
@@ -731,24 +760,26 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                         <button
                           type="button"
                           onClick={() => setParticipantMode('golfers')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer truncate ${
                             participantMode === 'golfers'
                               ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
                               : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                           }`}
                         >
-                          Individual Golfers ({selectedPlayers.length})
+                          <span className="sm:hidden">Golfers ({selectedPlayers.length})</span>
+                          <span className="hidden sm:inline">Individual Golfers ({selectedPlayers.length})</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => setParticipantMode('teams')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer truncate ${
                             participantMode === 'teams'
                               ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
                               : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                           }`}
                         >
-                          Scramble Squads ({selectedTeamIds.length})
+                          <span className="sm:hidden">Squads ({selectedTeamIds.length})</span>
+                          <span className="hidden sm:inline">Scramble Squads ({selectedTeamIds.length})</span>
                         </button>
                       </div>
 
@@ -756,10 +787,11 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                         <button
                           type="button"
                           onClick={onOpenTeamManager}
-                          className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+                          className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer shrink-0"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
-                          <span>Manage Teams</span>
+                          <span className="hidden sm:inline">Manage Teams</span>
+                          <span className="sm:hidden">Teams</span>
                         </button>
                       )}
                     </div>
@@ -776,14 +808,16 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                                 <span className="font-heading font-bold text-xs truncate">
                                   {player.name}
                                 </span>
-                                <span className="text-[10px] text-slate-400 font-stats">
-                                  Index: {player.handicapIndex.toFixed(1)}
+                                <span className="text-[10px] text-slate-400 font-stats shrink-0">
+                                  Idx: {player.handicapIndex.toFixed(1)}
                                 </span>
                               </div>
                               <button
                                 type="button"
+                                disabled={selectedPlayers.length <= 1}
                                 onClick={() => handleRemovePlayer(player.playerId)}
-                                className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                className="p-1 text-slate-400 hover:text-red-500 disabled:opacity-30 disabled:hover:text-slate-400 disabled:cursor-not-allowed cursor-pointer shrink-0"
+                                title={selectedPlayers.length <= 1 ? 'Minimum 1 player required' : 'Remove golfer'}
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -793,19 +827,27 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
 
                         {/* Available golfers dropdown / click-add */}
                         <div className="pt-1 flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[11px] font-bold uppercase text-slate-400 mr-1">Add:</span>
-                          {members
-                            .filter((m) => !selectedPlayers.some((p) => p.playerId === m.id))
-                            .map((m) => (
-                              <button
-                                key={m.id}
-                                type="button"
-                                onClick={() => handleAddPlayer(m)}
-                                className="px-2.5 py-1 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer transition-colors"
-                              >
-                                + {m.nickname || m.name}
-                              </button>
-                            ))}
+                          {selectedPlayers.length >= 4 ? (
+                            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                              <span>✓ Full Foursome Selected (4 Golfers)</span>
+                            </span>
+                          ) : (
+                            <>
+                              <span className="text-[11px] font-bold uppercase text-slate-400 mr-1">Add:</span>
+                              {members
+                                .filter((m) => !selectedPlayers.some((p) => p.playerId === m.id))
+                                .map((m) => (
+                                  <button
+                                    key={m.id}
+                                    type="button"
+                                    onClick={() => handleAddPlayer(m)}
+                                    className="px-2.5 py-1 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer transition-colors"
+                                  >
+                                    + {m.nickname || m.name}
+                                  </button>
+                                ))}
+                            </>
+                          )}
                         </div>
                       </div>
                     ) : (

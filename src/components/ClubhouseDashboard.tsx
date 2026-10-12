@@ -1,4 +1,5 @@
 import React from 'react';
+import { dartsLogo, fairwayBanner } from '../assets';
 import { 
   Trophy, 
   Target, 
@@ -15,7 +16,8 @@ import {
   Award,
   Flag,
   Flame,
-  FileText
+  FileText,
+  FileCode
 } from 'lucide-react';
 import { MemberProfile, CompletedRoundRecord, TeamEventRecord, RoundSession, FutureRound, Course, TeamGroup } from '../types';
 import { FutureRoundsSection } from './FutureRoundsSection';
@@ -46,6 +48,7 @@ interface ClubhouseDashboardProps {
   onOpenEditNickname: () => void;
   onSelectMemberForHistory: (member: MemberProfile) => void;
   onSelectTeamForHistory: (event: TeamEventRecord, teamName?: string) => void;
+  onOpenYamlBackup?: () => void;
 }
 
 export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
@@ -74,6 +77,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
   onOpenEditNickname,
   onSelectMemberForHistory,
   onSelectTeamForHistory,
+  onOpenYamlBackup,
 }) => {
   const sortedMembers = [...members].sort((a, b) => a.handicapIndex - b.handicapIndex);
   const lowGrossMember = [...members].sort((a, b) => a.bestRound - b.bestRound)[0];
@@ -86,15 +90,25 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
       <div className="card-elevated rounded-3xl overflow-hidden relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-colors">
         <div className="relative min-h-[170px] sm:h-52 w-full overflow-hidden">
           <img
-            src="/src/assets/images/comic_golf_fairway_banner_1791561332599.jpg"
+            src={fairwayBanner}
             alt="Bay Area Golf Banner"
             className="w-full h-full object-cover"
           />
+          {onOpenYamlBackup && (
+            <button
+              onClick={onOpenYamlBackup}
+              className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 bg-slate-950/85 hover:bg-slate-900 border border-emerald-500/50 text-emerald-300 hover:text-white text-xs font-black py-1.5 px-3 sm:py-2 sm:px-3.5 rounded-xl backdrop-blur-md flex items-center gap-2 transition-all cursor-pointer shadow-xl hover:border-emerald-400"
+              title="Export and import YAML flat files for GitHub backup"
+            >
+              <FileCode className="w-4 h-4 text-emerald-400" />
+              <span>YAML & Git Backup</span>
+            </button>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent flex items-end p-4 sm:p-7">
             <div className="flex items-center gap-3 sm:gap-4 text-white">
               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-white/80 overflow-hidden shadow-xl bg-white shrink-0">
                 <img
-                  src="/src/assets/images/bay_area_darts_logo_1791561323731.jpg"
+                  src={dartsLogo}
                   alt="Bay Area Darts Mascot"
                   className="w-full h-full object-cover"
                 />

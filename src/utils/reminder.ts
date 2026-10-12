@@ -1,4 +1,5 @@
 import { FutureRound } from '../types';
+import { dartsLogo } from '../assets';
 
 /**
  * Calculates the exact date and time when the booking window opens
@@ -151,7 +152,7 @@ export async function requestNotificationReminder(futureRound: FutureRound): Pro
   if (Notification.permission === 'granted') {
     new Notification(`Bay Area Darts: Reminder Set!`, {
       body: `We will alert you when ${futureRound.courseName} booking opens!`,
-      icon: '/src/assets/images/bay_area_darts_logo_1791561323731.jpg',
+      icon: dartsLogo,
     });
     return true;
   }
@@ -161,7 +162,7 @@ export async function requestNotificationReminder(futureRound: FutureRound): Pro
     if (permission === 'granted') {
       new Notification(`Bay Area Darts: Reminder Enabled!`, {
         body: `You'll be notified when ${futureRound.courseName} tee sheet opens!`,
-        icon: '/src/assets/images/bay_area_darts_logo_1791561323731.jpg',
+        icon: dartsLogo,
       });
       return true;
     }

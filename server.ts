@@ -3,6 +3,8 @@ import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
 import path from 'path';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import { load, dump } from 'js-yaml';
 import { Course, GameFormat, RoundSession, HoleScore, CompletedRoundRecord, TeamEventRecord, MemberProfile, FutureRound, PlayerRoundData, TeamGroup, ManualPastRoundPayload } from './src/types';
 import { INITIAL_BAY_AREA_COURSES } from './src/data/courses';
 import { INITIAL_GROUP_MEMBERS, INITIAL_COMPLETED_ROUNDS, INITIAL_TEAM_EVENTS, INITIAL_FUTURE_ROUNDS, INITIAL_SCRAMBLE_TEAMS } from './src/data/members';
@@ -12,16 +14,47 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 const isProd = process.env.NODE_ENV === 'production';
+const DATA_DIR = path.resolve(process.cwd(), 'data');
 
 app.use(express.json({ limit: '25mb' }));
 
-// In-Memory Data Store with Initial Seeds
-let courses: Course[] = [...INITIAL_BAY_AREA_COURSES];
-let members: MemberProfile[] = [...INITIAL_GROUP_MEMBERS];
-let completedRounds: CompletedRoundRecord[] = [...INITIAL_COMPLETED_ROUNDS];
+// Ensure data directory exists
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// Helpers to load and save flat YAML files on disk
+function loadYamlFile<T>(filename: string, fallback: T): T {
+  const filePath = path.join(DATA_DIR, filename);
+  try {
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const parsed = load(content) as T;
+      if (parsed) return parsed;
+    }
+  } catch (err) {
+    console.error(`Failed to load ${filename} from disk:`, err);
+  }
+  return fallback;
+}
+
+function saveYamlFile(filename: string, data: unknown): void {
+  const filePath = path.join(DATA_DIR, filename);
+  try {
+    const yamlStr = dump(data, { indent: 2, lineWidth: -1, noRefs: true });
+    fs.writeFileSync(filePath, yamlStr, 'utf-8');
+  } catch (err) {
+    console.error(`Failed to write ${filename} to disk:`, err);
+  }
+}
+
+// Flat YAML Data Store with Disk Persistence
+let courses: Course[] = loadYamlFile<Course[]>('courses.yaml', [...INITIAL_BAY_AREA_COURSES]);
+let members: MemberProfile[] = loadYamlFile<MemberProfile[]>('members.yaml', [...INITIAL_GROUP_MEMBERS]);
+let completedRounds: CompletedRoundRecord[] = loadYamlFile<CompletedRoundRecord[]>('rounds.yaml', [...INITIAL_COMPLETED_ROUNDS]);
 let teamEvents: TeamEventRecord[] = [...INITIAL_TEAM_EVENTS];
-let futureRounds: FutureRound[] = [...INITIAL_FUTURE_ROUNDS];
-let scrambleTeams: TeamGroup[] = [...INITIAL_SCRAMBLE_TEAMS];
+let futureRounds: FutureRound[] = loadYamlFile<FutureRound[]>('future-rounds.yaml', [...INITIAL_FUTURE_ROUNDS]);
+let scrambleTeams: TeamGroup[] = loadYamlFile<TeamGroup[]>('teams.yaml', [...INITIAL_SCRAMBLE_TEAMS]);
 const activeRooms = new Map<string, RoundSession>();
 const sseClients = new Map<string, Set<Response>>();
 
@@ -119,6 +152,7 @@ app.post('/api/courses', (req: Request, res: Response) => {
   }
 
   courses.push(newCourse);
+  saveYamlFile('courses.yaml', courses);
   res.json({ success: true, course: newCourse });
 });
 
@@ -136,6 +170,7 @@ app.post('/api/members', (req: Request, res: Response) => {
   newMember.id = newMember.id || `member-${Date.now()}`;
   newMember.differentials = newMember.differentials || [];
   members.push(newMember);
+  saveYamlFile('members.yaml', members);
   res.json({ success: true, member: newMember });
 });
 
@@ -151,6 +186,7 @@ app.put('/api/members/:id', (req: Request, res: Response) => {
     ...req.body,
     id, // protect id
   };
+  saveYamlFile('members.yaml', members);
   res.json({ success: true, member: members[index] });
 });
 
@@ -187,6 +223,8 @@ app.post('/api/rounds', (req: Request, res: Response) => {
     }
   }
 
+  saveYamlFile('rounds.yaml', completedRounds);
+  saveYamlFile('members.yaml', members);
   res.json({ success: true, round });
 });
 
@@ -200,24 +238,6 @@ app.post('/api/events', (req: Request, res: Response) => {
   event.id = event.id || `event-${Date.now()}`;
   teamEvents.unshift(event);
   res.json({ success: true, event });
-});
-
-app.put('/api/members/:id', (req: Request, res: Response) => {
-  const memberId = req.params.id;
-  const member = members.find((m) => m.id === memberId);
-  if (!member) {
-    res.status(404).json({ error: 'Member not found' });
-    return;
-  }
-  const { nickname, avatarEmoji, badgeTitle, name, email, phone, handicapGoal } = req.body;
-  if (nickname !== undefined) member.nickname = nickname;
-  if (avatarEmoji !== undefined) member.avatarEmoji = avatarEmoji;
-  if (badgeTitle !== undefined) member.badgeTitle = badgeTitle;
-  if (name !== undefined) member.name = name;
-  if (email !== undefined) member.email = email;
-  if (phone !== undefined) member.phone = phone;
-  if (handicapGoal !== undefined) member.handicapGoal = handicapGoal;
-  res.json({ success: true, member });
 });
 
 // 5. Scramble Teams (Duos, Trios, 4-Man Squads)
@@ -234,6 +254,7 @@ app.post('/api/teams', (req: Request, res: Response) => {
   newTeam.id = newTeam.id || `team-${Date.now()}`;
   newTeam.stats = newTeam.stats || { roundsCount: 0, bestScore: 0, wins: 0 };
   scrambleTeams.push(newTeam);
+  saveYamlFile('teams.yaml', scrambleTeams);
   res.json({ success: true, team: newTeam });
 });
 
@@ -245,12 +266,14 @@ app.put('/api/teams/:id', (req: Request, res: Response) => {
     return;
   }
   scrambleTeams[idx] = { ...scrambleTeams[idx], ...req.body, id };
+  saveYamlFile('teams.yaml', scrambleTeams);
   res.json({ success: true, team: scrambleTeams[idx] });
 });
 
 app.delete('/api/teams/:id', (req: Request, res: Response) => {
   const { id } = req.params;
   scrambleTeams = scrambleTeams.filter((t) => t.id !== id);
+  saveYamlFile('teams.yaml', scrambleTeams);
   res.json({ success: true });
 });
 
@@ -297,6 +320,7 @@ app.post('/api/rounds/manual', (req: Request, res: Response) => {
       if (!team.stats.bestScore || payload.grossScore < team.stats.bestScore) {
         team.stats.bestScore = payload.grossScore;
       }
+      saveYamlFile('teams.yaml', scrambleTeams);
     }
 
     res.json({ success: true, event: newEvent, isTeam: true });
@@ -354,6 +378,8 @@ app.post('/api/rounds/manual', (req: Request, res: Response) => {
       }
     }
 
+    saveYamlFile('rounds.yaml', completedRounds);
+    saveYamlFile('members.yaml', members);
     res.json({ success: true, round: roundRecord, isTeam: false });
   }
 });
@@ -370,6 +396,7 @@ app.post('/api/future-rounds', (req: Request, res: Response) => {
   newFutureRound.maxPlayers = newFutureRound.maxPlayers || 4;
   newFutureRound.status = newFutureRound.status || 'placeholder';
   futureRounds.unshift(newFutureRound);
+  saveYamlFile('future-rounds.yaml', futureRounds);
   res.json({ success: true, futureRound: newFutureRound });
 });
 
@@ -381,6 +408,7 @@ app.put('/api/future-rounds/:id', (req: Request, res: Response) => {
     return;
   }
   futureRounds[index] = { ...futureRounds[index], ...req.body };
+  saveYamlFile('future-rounds.yaml', futureRounds);
   res.json({ success: true, futureRound: futureRounds[index] });
 });
 
@@ -401,12 +429,14 @@ app.post('/api/future-rounds/:id/rsvp', (req: Request, res: Response) => {
       futureRound.registeredPlayerIds.push(memberId);
     }
   }
+  saveYamlFile('future-rounds.yaml', futureRounds);
   res.json({ success: true, futureRound });
 });
 
 app.delete('/api/future-rounds/:id', (req: Request, res: Response) => {
   const { id } = req.params;
   futureRounds = futureRounds.filter((r) => r.id !== id);
+  saveYamlFile('future-rounds.yaml', futureRounds);
   res.json({ success: true });
 });
 
@@ -525,7 +555,7 @@ app.post('/api/rooms', (req: Request, res: Response) => {
     slope: payload.slope || courses[0].tees[0].slope,
     date: payload.date || new Date().toISOString().split('T')[0],
     format: payload.format || 'stroke',
-    isTeamRound: payload.format === 'scramble' || payload.format === 'best_ball',
+    isTeamRound: payload.isTeamRound !== undefined ? Boolean(payload.isTeamRound) : (payload.format === 'scramble' || payload.format === 'best_ball'),
     status: 'active',
     players: payload.players || [],
     teams: payload.teams || [],
@@ -731,8 +761,32 @@ app.post('/api/rooms/:code/finish', (req: Request, res: Response) => {
     }
   }
 
+  saveYamlFile('rounds.yaml', completedRounds);
+  saveYamlFile('members.yaml', members);
+  if (session.isTeamRound) {
+    saveYamlFile('teams.yaml', scrambleTeams);
+  }
+
   broadcastRoomUpdate(code, session);
   res.json({ success: true, session });
+});
+
+// Download raw YAML files from disk
+app.get('/api/yaml/download/:filename', (req: Request, res: Response) => {
+  const filename = req.params.filename;
+  const allowed = ['courses.yaml', 'members.yaml', 'teams.yaml', 'rounds.yaml', 'future-rounds.yaml'];
+  if (!allowed.includes(filename)) {
+    res.status(400).json({ error: 'Invalid file requested' });
+    return;
+  }
+  const filePath = path.join(DATA_DIR, filename);
+  if (!fs.existsSync(filePath)) {
+    res.status(404).json({ error: 'File not found' });
+    return;
+  }
+  res.setHeader('Content-Type', 'text/yaml; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.sendFile(filePath);
 });
 
 // 6. AI Scorecard Photo OCR Endpoint (Gemini 3.8 Flash Multimodal)

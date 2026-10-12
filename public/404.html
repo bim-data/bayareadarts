@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bay Area Darts — Redirecting</title>
+    <script>
+      // Single Page App redirect for GitHub Pages
+      // Keeps path, search query and hash when landing on non-root URLs
+      (function() {
+        var pathSegments = window.location.pathname.split('/');
+        // Redirect to root index of repository or domain
+        var redirectUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/') + window.location.search + window.location.hash;
+        window.location.replace(redirectUrl);
+      })();
+    </script>
+  </head>
+  <body style="background:#090d16;color:#e2e8f0;font-family:sans-serif;text-align:center;padding-top:20vh;">
+    <h2>Bay Area Darts Clubhouse</h2>
+    <p>Loading clubhouse records...</p>
+  </body>
+</html>

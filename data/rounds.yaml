@@ -1,0 +1,126 @@
+- id: cr-1
+  date: '2026-09-28'
+  courseId: harding-park
+  courseName: TPC Harding Park
+  teeName: Tournament (Blue)
+  format: stroke
+  isTeamRound: false
+  playerId: member-1
+  playerName: Dave Wong
+  grossScore: 78
+  netScore: 70
+  differential: 6.8
+  courseRating: 72.4
+  slopeRating: 129
+  totalPutts: 31
+  firCount: 10
+  girCount: 11
+  scores:
+    '1':
+      strokes: 4
+      putts: 2
+      fir: hit
+      gir: true
+    '2':
+      strokes: 5
+      putts: 2
+      fir: left
+      gir: false
+    '3':
+      strokes: 3
+      putts: 1
+      fir: none
+      gir: true
+    '4':
+      strokes: 5
+      putts: 2
+      fir: hit
+      gir: true
+    '5':
+      strokes: 4
+      putts: 2
+      fir: hit
+      gir: true
+    '6':
+      strokes: 5
+      putts: 2
+      fir: right
+      gir: false
+    '7':
+      strokes: 4
+      putts: 1
+      fir: hit
+      gir: true
+    '8':
+      strokes: 3
+      putts: 2
+      fir: none
+      gir: true
+    '9':
+      strokes: 5
+      putts: 2
+      fir: hit
+      gir: true
+    '10':
+      strokes: 5
+      putts: 2
+      fir: hit
+      gir: true
+    '11':
+      strokes: 3
+      putts: 1
+      fir: none
+      gir: true
+    '12':
+      strokes: 5
+      putts: 2
+      fir: hit
+      gir: false
+    '13':
+      strokes: 4
+      putts: 2
+      fir: left
+      gir: true
+    '14':
+      strokes: 5
+      putts: 2
+      fir: hit
+      gir: false
+    '15':
+      strokes: 4
+      putts: 1
+      fir: hit
+      gir: true
+    '16':
+      strokes: 4
+      putts: 2
+      fir: hit
+      gir: true
+    '17':
+      strokes: 3
+      putts: 1
+      fir: none
+      gir: true
+    '18':
+      strokes: 5
+      putts: 2
+      fir: right
+      gir: false
+- id: cr-2
+  date: '2026-09-14'
+  courseId: presidio
+  courseName: Presidio Golf Course
+  teeName: Blue
+  format: stableford
+  isTeamRound: false
+  playerId: member-3
+  playerName: Sam Chen
+  grossScore: 76
+  netScore: 72
+  differential: 4.6
+  courseRating: 70.8
+  slopeRating: 132
+  totalPutts: 28
+  firCount: 11
+  girCount: 13
+  scores: {}

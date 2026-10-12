@@ -1,0 +1,47 @@
+- id: future-1
+  courseId: harding-park
+  courseName: TPC Harding Park
+  targetDate: '2026-10-18'
+  targetTimeWindow: 8:00 AM – 9:30 AM
+  status: placeholder
+  bookingOpenDaysAhead: 7
+  bookingOpensAt: Sunday, Oct 11 at 7:00 PM
+  teeName: Tournament (Blue)
+  format: stroke
+  registeredPlayerIds:
+    - member-1
+    - member-2
+    - member-3
+  maxPlayers: 4
+  notes: Lake Merced morning dew round. Need to snag an 8:30 AM slot the moment SF resident tee sheet drops!
+- id: future-2
+  courseId: presidio
+  courseName: Presidio Golf Course
+  targetDate: '2026-10-14'
+  targetTimeWindow: 9:15 AM Confirmed
+  status: confirmed
+  bookingOpenDaysAhead: 7
+  bookingOpensAt: Window Opened Oct 7
+  teeName: Blue
+  format: stableford
+  registeredPlayerIds:
+    - member-1
+    - member-3
+    - member-4
+  maxPlayers: 4
+  notes: Tee time confirmed! 9:15 AM tee-off. Dave booked through Presidio website.
+- id: future-3
+  courseId: corica-south
+  courseName: Corica Park — South
+  targetDate: '2026-10-25'
+  targetTimeWindow: 10:00 AM – 11:30 AM
+  status: placeholder
+  bookingOpenDaysAhead: 7
+  bookingOpensAt: Sunday, Oct 18 at 8:00 AM
+  teeName: Black Tees
+  format: scramble
+  registeredPlayerIds:
+    - member-1
+    - member-2
+  maxPlayers: 4
+  notes: 2-Man or 4-Man Dart Scramble on the Australian Sandbelt turf. Two spots open for the crew!

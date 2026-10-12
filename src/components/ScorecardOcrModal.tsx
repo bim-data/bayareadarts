@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { fairwayBanner } from '../assets';
 import { 
   X, 
   Camera, 
@@ -64,7 +65,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
 
   // Sample scorecard photo fallback
   const handleLoadSampleCard = () => {
-    setSelectedImage('/src/assets/images/comic_golf_fairway_banner_1791561332599.jpg');
+    setSelectedImage(fairwayBanner);
     setErrorMsg(null);
   };
 
@@ -76,7 +77,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
     setErrorMsg(null);
 
     try {
-      const response = await fetch('/api/ocr/scorecard', {
+      let response = await fetch('/api/scorecard-ocr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -86,7 +87,19 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error('OCR API failed to process scorecard image');
+        // Try fallback route
+        response = await fetch('/api/ocr/scorecard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: selectedImage,
+            format: selectedFormat,
+          }),
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error('Scorecard OCR is unavailable in static mode. You can enter scores manually or via Enter Round.');
       }
 
       const data: OcrScorecardResponse = await response.json();
