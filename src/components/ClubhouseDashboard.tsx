@@ -78,9 +78,13 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
   onSelectTeamForHistory,
 }) => {
   const sortedMembers = [...members].sort((a, b) => a.handicapIndex - b.handicapIndex);
-  const lowGrossMember = [...members].sort((a, b) => a.bestRound - b.bestRound)[0];
-  const dartSniperMember = [...members].sort((a, b) => b.girPercent - a.girPercent)[0];
-  const flatstickMember = [...members].sort((a, b) => a.avgPutts - b.avgPutts)[0];
+  
+  // Only include players who have actually logged a round!
+  const eligibleMembers = members.filter(m => m.roundsCount > 0);
+  
+  const lowGrossMember = eligibleMembers.length > 0 ? [...eligibleMembers].sort((a, b) => a.bestRound - b.bestRound)[0] : null;
+  const dartSniperMember = eligibleMembers.length > 0 ? [...eligibleMembers].sort((a, b) => b.girPercent - a.girPercent)[0] : null;
+  const flatstickMember = eligibleMembers.length > 0 ? [...eligibleMembers].sort((a, b) => a.avgPutts - b.avgPutts)[0] : null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-8">
@@ -339,10 +343,10 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                   DART SNIPER (GIR %)
                 </span>
                 <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
-                  {dartSniperMember?.name}
+                  {dartSniperMember?.name || 'TBD'}
                 </span>
                 <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
-                  {dartSniperMember?.girPercent || 58}% Greens Hit
+                  {dartSniperMember ? `${dartSniperMember.girPercent}% Greens Hit` : 'No rounds yet'}
                 </span>
               </div>
             </div>
@@ -360,10 +364,10 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                   FLATSTICK KING (PUTTS)
                 </span>
                 <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
-                  {flatstickMember?.name}
+                  {flatstickMember?.name || 'TBD'}
                 </span>
                 <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
-                  {flatstickMember?.avgPutts || 28.2} Putts / Rd
+                  {flatstickMember ? `${flatstickMember.avgPutts} Putts / Rd` : 'No rounds yet'}
                 </span>
               </div>
             </div>
@@ -381,10 +385,10 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                   LOW GROSS RECORD
                 </span>
                 <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
-                  {lowGrossMember?.name}
+                  {lowGrossMember?.name || 'TBD'}
                 </span>
                 <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
-                  {lowGrossMember?.bestRound || 71} Gross
+                  {lowGrossMember ? `${lowGrossMember.bestRound} Gross` : 'No rounds yet'}
                 </span>
               </div>
             </div>
