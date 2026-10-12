@@ -25,19 +25,28 @@ const firebaseConfig = {
 // ⚠️ MAX 17 COURSES PER DAY (2 API calls used per course)
 const TARGET_COURSES = [
   "San Ramon Golf Club",
-  "Redwood Canyon Golf Course",
+  "Redwood Canyon",
   "Shoreline Golf Links",
   "Canyon Lakes Golf Course",
   "Poplar Creek Golf Course",
   "Deep Cliff Golf Course",
   "Los Lagos Golf Course",
   "Tilden Park Golf Course",
-  // Add up to 12 more here...
 ];
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const DIRECT_URL = 'https://api.golfcourseapi.com/v1';
+
+// Proper auth headers for server-to-server requests
+const fetchOptions = {
+  method: 'GET',
+  headers: {
+    'Authorization': `Bearer ${API_KEY}`,
+    'x-api-key': API_KEY, // Sending both common formats to be absolutely bulletproof
+    'Accept': 'application/json'
+  }
+};
 
 async function runImport() {
   console.log(`Starting targeted import for ${TARGET_COURSES.length} courses...`);
@@ -47,8 +56,8 @@ async function runImport() {
       console.log(`\n🔍 Searching for: ${courseName}...`);
       
       // Step 1: Search for the specific course (1 API Call)
-      const searchUrl = `${DIRECT_URL}/search?search_query=${encodeURIComponent(courseName)}&fuzzy_match=true&api_key=${API_KEY}`;
-      const searchRes = await fetch(searchUrl);
+      const searchUrl = `${DIRECT_URL}/search?search_query=${encodeURIComponent(courseName)}&fuzzy_match=true`;
+      const searchRes = await fetch(searchUrl, fetchOptions);
       
       if (!searchRes.ok) {
         console.log(`❌ Search failed for ${courseName} (Status: ${searchRes.status})`);
@@ -66,8 +75,8 @@ async function runImport() {
       console.log(`📥 Found match: ${firstResult.course_name || firstResult.club_name}. Fetching scorecard details...`);
 
       // Step 2: Fetch the full details (1 API Call)
-      const detailsUrl = `${DIRECT_URL}/courses/${firstResult.id}?api_key=${API_KEY}`;
-      const detailsRes = await fetch(detailsUrl);
+      const detailsUrl = `${DIRECT_URL}/courses/${firstResult.id}`;
+      const detailsRes = await fetch(detailsUrl, fetchOptions);
       
       if (!detailsRes.ok) {
         console.log(`❌ Details fetch failed for ${firstResult.id} (Status: ${detailsRes.status})`);
@@ -116,8 +125,8 @@ async function runImport() {
       await setDoc(doc(db, "courses", firstResult.id), firestoreCourse);
       console.log(`✅ Successfully saved ${cleanName} to Firestore.`);
 
-      // Pause for 1 second to avoid tripping rate limiters
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Pause for 1.5 seconds to avoid tripping rate limiters
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
     } catch (err) {
       console.error(`🚨 Error processing ${courseName}:`, err);
