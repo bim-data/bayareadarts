@@ -19,7 +19,9 @@ import { UserProfileModal } from './components/UserProfileModal';
 import { ScrambleTeamManagerModal } from './components/ScrambleTeamManagerModal';
 import { ClubhouseHubModal } from './components/ClubhouseHubModal';
 import { AuthScreen } from './components/AuthScreen'; 
-import { useAuth } from './contexts/AuthContext';    
+import { useAuth } from './contexts/AuthContext';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from './firebase';
 
 // --- NEW FIREBASE IMPORT ---
 import { subscribeToCollection, addRecord, updateRecord, deleteRecord } from './services/db';
@@ -131,7 +133,23 @@ export default function App() {
   };
 
   const handleTeamCreated = async (newTeam: TeamGroup) => {
-    await addRecord('teams', newTeam);
+    try {
+      // 1. Ensure the team has a unique ID before saving
+      const teamId = newTeam.id || `team-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      
+      const teamToSave = {
+        ...newTeam,
+        id: teamId,
+        createdAt: Date.now()
+      };
+
+      // 2. Write directly to Firestore using setDoc so the document ID matches the team ID
+      await setDoc(doc(db, 'teams', teamId), teamToSave);
+      
+      console.log("Team successfully saved to Firebase:", teamToSave);
+    } catch (err) {
+      console.error("Error saving team to Firebase:", err);
+    }
   };
 
   const handleTeamUpdated = async (updatedTeam: TeamGroup) => {
