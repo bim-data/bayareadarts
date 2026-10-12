@@ -30,7 +30,7 @@ export const AuthScreen: React.FC = () => {
           nickname: '',
           avatarEmoji: '⛳',
           badgeTitle: 'Rookie',
-          handicapIndex: 10.0,
+          handicapIndex: 0.0,
           scoringAverage: 0,
           girPercent: 0,
           avgPutts: 0,
