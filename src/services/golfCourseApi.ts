@@ -23,12 +23,12 @@ export async function searchExternalCourses(query: string): Promise<ApiSearchRes
   if (!query.trim()) return [];
 
   try {
-    // GolfCourseAPI parameter name is search_query
-    const url = `${BASE_URL}/search?search_query=${encodeURIComponent(query)}&fuzzy_match=true`;
+    // Pass API key in query params to prevent CORS custom header preflight blocks
+    const url = `${BASE_URL}/search?search_query=${encodeURIComponent(query)}&fuzzy_match=true&api_key=${API_KEY}`;
     
     const res = await fetch(url, {
+      method: 'GET',
       headers: {
-        'x-api-key': API_KEY,
         'Accept': 'application/json',
       },
     });
@@ -48,13 +48,14 @@ export async function searchExternalCourses(query: string): Promise<ApiSearchRes
 
 /**
  * Fetch detailed tee box & hole information for a specific course by ID
- * and map it to our internal Course structure.
  */
 export async function fetchExternalCourseDetails(courseId: string): Promise<Course> {
   try {
-    const res = await fetch(`${BASE_URL}/courses/${courseId}`, {
+    const url = `${BASE_URL}/courses/${courseId}?api_key=${API_KEY}`;
+
+    const res = await fetch(url, {
+      method: 'GET',
       headers: {
-        'x-api-key': API_KEY,
         'Accept': 'application/json',
       },
     });
@@ -138,7 +139,7 @@ function deriveRegionFromState(state?: string, city?: string): 'SF' | 'East Bay'
   if (state && state !== 'CA') return 'Other';
   const c = (city || '').toLowerCase();
   if (c.includes('san francisco')) return 'SF';
-  if (c.includes('oakland') || c.includes('alameda') || c.includes('livermore') || c.includes('walnut creek') || c.includes('pleasanton') || c.includes('castro valley')) return 'East Bay';
+  if (c.includes('oakland') || c.includes('alameda') || c.includes('livermore') || c.includes('walnut creek') || c.includes('pleasanton') || c.includes('castro valley') || c.includes('san ramon')) return 'East Bay';
   if (c.includes('palo alto') || c.includes('burlingame') || c.includes('half moon bay') || c.includes('pacifica')) return 'Peninsula';
   if (c.includes('san rafael') || c.includes('novato') || c.includes('napa') || c.includes('sonoma')) return 'North Bay';
   if (c.includes('san jose') || c.includes('morgan hill') || c.includes('milpitas') || c.includes('sunnyvale')) return 'South Bay';
