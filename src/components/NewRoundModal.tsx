@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, Play, Trash2, Check, KeyRound, FileText 
+  X, 
+  Play, 
+  Trash2, 
+  Check, 
+  Calendar, 
+  KeyRound, 
+  FileText, 
+  Edit3,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 import { Course, GameFormat, MemberProfile, PlayerRoundData, RoundSession, TeeBox, TeamGroup, HoleScore } from '../types';
 import { SearchableCourseSelect } from './SearchableCourseSelect';
 import { AddCourseModal } from './AddCourseModal';
 import { findWhiteOrEquivalentTee } from '../utils/teeUtils';
+import { calculateTeamScrambleHandicap } from './ScrambleTeamManagerModal';
 
 interface NewRoundModalProps {
   isOpen: boolean;
@@ -32,6 +42,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
   initialSelectedTeamId,
   onCourseAdded,
   onCreateSession,
+  onOpenTeamManager,
   onManualRoundLogged,
   onJoinRoom,
 }) => {
@@ -120,7 +131,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
 
       const success = await onJoinRoom(joinRoomCode.trim().toUpperCase(), pName, pHcp, mId);
       if (success) onClose();
-      else setJoinErrorMsg('Room not found or invalid PIN.');
+      else setJoinErrorMsg('Room not found or invalid PIN. Check with the host.');
     } catch (err: any) {
       setJoinErrorMsg(err.message || 'Failed to join live round');
     } finally {
@@ -231,42 +242,55 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                 </div>
                 <div className="min-w-0">
                   <h3 className="font-heading font-extrabold text-lg sm:text-xl truncate">
-                    {modalTab === 'live' ? 'Start Live Round' : modalTab === 'join' ? 'Join Live Round' : 'Log Past Round'}
+                    {modalTab === 'live' ? 'Start Live Round' : modalTab === 'join' ? 'Join Live Round via PIN' : 'Log Past Round Manually'}
                   </h3>
-                  <p className="text-xs text-slate-500 truncate">Logged in as {activeUser.nickname}</p>
+                  <p className="text-xs text-slate-500 truncate">Logged in as <strong>{activeUser.nickname}</strong></p>
                 </div>
               </div>
-              <button onClick={onClose} className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+              <button onClick={onClose} className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="grid grid-cols-3 p-1 bg-slate-200 dark:bg-slate-800 rounded-xl gap-1">
-              <button onClick={() => setModalTab('live')} className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${modalTab === 'live' ? 'bg-white dark:bg-slate-900 shadow-xs' : 'text-slate-600 dark:text-slate-400'}`}>
-                <Play className="w-3.5 h-3.5" /> <span className="truncate capitalize">Live</span>
+              <button onClick={() => setModalTab('live')} className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${modalTab === 'live' ? 'bg-white dark:bg-slate-900 shadow-xs text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}>
+                <Play className="w-3.5 h-3.5" /> <span className="truncate capitalize">Start Live</span>
               </button>
-              <button onClick={() => setModalTab('join')} className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${modalTab === 'join' ? 'bg-white dark:bg-slate-900 shadow-xs' : 'text-slate-600 dark:text-slate-400'}`}>
-                <KeyRound className="w-3.5 h-3.5 text-amber-500" /> <span className="truncate capitalize">Join</span>
+              <button onClick={() => setModalTab('join')} className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${modalTab === 'join' ? 'bg-white dark:bg-slate-900 shadow-xs text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}>
+                <KeyRound className="w-3.5 h-3.5 text-amber-500" /> <span className="truncate capitalize">Join with PIN</span>
               </button>
-              <button onClick={() => setModalTab('manual')} className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${modalTab === 'manual' ? 'bg-white dark:bg-slate-900 shadow-xs' : 'text-slate-600 dark:text-slate-400'}`}>
+              <button onClick={() => setModalTab('manual')} className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${modalTab === 'manual' ? 'bg-white dark:bg-slate-900 shadow-xs text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}>
                 <FileText className="w-3.5 h-3.5 text-blue-500" /> <span className="truncate capitalize">Log Past</span>
               </button>
             </div>
           </div>
 
           {manualSuccessMessage && (
-            <div className="shrink-0 mx-4 sm:mx-6 mt-3 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 rounded-xl flex items-center gap-2 text-xs font-semibold text-emerald-800 dark:text-emerald-200">
-              <Check className="w-4 h-4" /> <span>{manualSuccessMessage}</span>
+            <div className="shrink-0 mx-4 sm:mx-6 mt-3 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center gap-2 text-xs font-semibold text-emerald-800 dark:text-emerald-200 animate-fadeIn">
+              <Check className="w-4 h-4 text-emerald-600" /> <span>{manualSuccessMessage}</span>
             </div>
           )}
 
           <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5">
             {modalTab === 'join' && (
               <form onSubmit={handleJoinFromModal} className="space-y-5">
-                {joinErrorMsg && <div className="p-3 bg-red-50 text-red-700 rounded-xl text-xs font-semibold">{joinErrorMsg}</div>}
+                <div className="p-4 rounded-2xl bg-amber-500/10 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800/60 flex items-start gap-3">
+                  <KeyRound className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                  <div className="text-xs text-slate-600 dark:text-slate-300">
+                    <strong className="text-slate-900 dark:text-slate-100 block mb-0.5">Live Multi-Device Foursome Sync</strong>
+                    Enter the 4-character room code generated by your host to join the live scoring scorecard on your phone in real time.
+                  </div>
+                </div>
+
+                {joinErrorMsg && (
+                  <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl text-xs font-semibold text-red-700 dark:text-red-300 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{joinErrorMsg}</span>
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase text-slate-500 block text-center">Room PIN Code *</label>
-                  <input type="text" maxLength={6} value={joinRoomCode} onChange={(e) => setJoinRoomCode(e.target.value.toUpperCase())} className="w-full max-w-xs mx-auto block px-4 py-3 text-center uppercase font-mono font-extrabold text-3xl rounded-2xl border-2 border-amber-400 dark:border-amber-600 bg-white dark:bg-slate-800" />
+                  <input type="text" maxLength={6} value={joinRoomCode} onChange={(e) => setJoinRoomCode(e.target.value.toUpperCase())} autoFocus className="w-full max-w-xs mx-auto block px-4 py-3 text-center uppercase font-mono font-extrabold text-3xl rounded-2xl border-2 border-amber-400 dark:border-amber-600 bg-white dark:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-amber-500/20 shadow-sm" />
                 </div>
               </form>
             )}
@@ -274,35 +298,62 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
             {modalTab !== 'join' && (
               <>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-slate-500">Select Golf Course *</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold uppercase text-slate-500">Select Golf Course *</label>
+                    <span className="text-[11px] text-slate-400 font-medium">{courses.length} courses loaded</span>
+                  </div>
                   <SearchableCourseSelect courses={courses} selectedCourseId={selectedCourseId} onSelectCourse={(c) => setSelectedCourseId(c.id)} onOpenAddCourse={() => setIsAddCourseModalOpen(true)} />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase text-slate-500">Tee Box *</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold uppercase text-slate-500">Tee Box *</label>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">White / Regular Default</span>
+                    </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                      {selectedCourse?.tees.map((tee: TeeBox) => (
-                        <button key={tee.id} onClick={() => setSelectedTeeId(tee.id)} className={`p-2 rounded-xl border text-left ${tee.id === selectedTeeId ? 'border-emerald-500 ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950/40' : 'bg-white dark:bg-slate-800'}`}>
-                          <span className="font-bold text-xs truncate">{tee.name}</span>
-                        </button>
-                      ))}
+                      {selectedCourse?.tees.map((tee: TeeBox) => {
+                        const isSelected = tee.id === selectedTeeId;
+                        const isWhiteTee = tee.name.toLowerCase().includes('white') || tee.color.toLowerCase().includes('white') || tee.name.toLowerCase().includes('regular');
+                        return (
+                          <button key={tee.id} onClick={() => setSelectedTeeId(tee.id)} className={`p-2 rounded-xl border text-left cursor-pointer transition-all ${isSelected ? 'border-emerald-500 ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-slate-900 dark:text-slate-100 shadow-xs' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300'}`}>
+                            <div className="flex items-center justify-between">
+                              <span className="font-heading font-bold text-xs truncate">{tee.name}</span>
+                              {isWhiteTee && <span className="text-[9px] px-1 py-0.2 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 rounded font-bold">STD</span>}
+                            </div>
+                            <span className="text-[10px] text-slate-400 block font-stats mt-0.5">{tee.totalYardage}y &middot; {tee.rating}/{tee.slope}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase text-slate-500">Round Date *</label>
-                    <input type="date" value={roundDate} max={new Date().toISOString().split('T')[0]} onChange={(e) => setRoundDate(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border bg-white dark:bg-slate-800 text-sm font-semibold" />
+                    <label className="text-xs font-bold uppercase text-slate-500 flex justify-between">
+                      <span>Round Date *</span>
+                      <span className="text-[10px] font-normal">{modalTab === 'manual' ? 'Slots into history' : 'Today by default'}</span>
+                    </label>
+                    <div className="relative">
+                      <input type="date" value={roundDate} max={new Date().toISOString().split('T')[0]} onChange={(e) => setRoundDate(e.target.value)} className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer" />
+                      <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5 pointer-events-none" />
+                    </div>
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase text-slate-500">Game Format *</label>
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                    <button onClick={() => { setFormat('stroke'); setParticipantMode('golfers'); }} className={`p-2.5 rounded-xl border text-left ${format === 'stroke' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'bg-white dark:bg-slate-800'}`}><span className="font-bold text-xs block">Stroke Play</span></button>
-                    <button onClick={() => { setFormat('scramble'); setParticipantMode('teams'); }} className={`p-2.5 rounded-xl border text-left ${format === 'scramble' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'bg-white dark:bg-slate-800'}`}><span className="font-bold text-xs block">Scramble</span></button>
-                    <button onClick={() => { setFormat('match_play'); setParticipantMode('golfers'); }} className={`p-2.5 rounded-xl border text-left ${format === 'match_play' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'bg-white dark:bg-slate-800'}`}><span className="font-bold text-xs block">Match Play</span></button>
-                    <button onClick={() => { setFormat('stableford'); setParticipantMode('golfers'); }} className={`p-2.5 rounded-xl border text-left ${format === 'stableford' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'bg-white dark:bg-slate-800'}`}><span className="font-bold text-xs block">Stableford</span></button>
-                    <button onClick={() => { setFormat('skins'); setParticipantMode('golfers'); }} className={`p-2.5 rounded-xl border text-left ${format === 'skins' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'bg-white dark:bg-slate-800'}`}><span className="font-bold text-xs block">Skins</span></button>
+                    {[
+                      { id: 'stroke', label: 'Stroke Play', desc: 'Gross & Net' },
+                      { id: 'scramble', label: 'Scramble', desc: 'Squad Shot' },
+                      { id: 'match_play', label: 'Match Play', desc: 'Hole-by-hole' },
+                      { id: 'stableford', label: 'Stableford', desc: 'Points' },
+                      { id: 'skins', label: 'Skins', desc: 'Per hole pot' }
+                    ].map((f) => (
+                      <button key={f.id} onClick={() => { setFormat(f.id as any); setParticipantMode(f.id === 'scramble' ? 'teams' : 'golfers'); }} className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${format === f.id ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}>
+                        <span className="font-heading font-bold text-xs block leading-tight">{f.label}</span>
+                        <span className="text-[10px] opacity-75 block mt-0.5">{f.desc}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -313,55 +364,82 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                         <span className="px-3 py-1.5 text-xs font-bold text-slate-900 dark:text-white">Individual Golfers Only</span>
                       ) : (
                         <>
-                          <button onClick={() => setParticipantMode('golfers')} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${participantMode === 'golfers' ? 'bg-white dark:bg-slate-900 shadow-2xs' : 'text-slate-500'}`}>Golfers</button>
-                          <button onClick={() => setParticipantMode('teams')} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${participantMode === 'teams' ? 'bg-white dark:bg-slate-900 shadow-2xs' : 'text-slate-500'}`}>Scramble Squads</button>
+                          <button onClick={() => setParticipantMode('golfers')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${participantMode === 'golfers' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>Golfers ({selectedPlayers.length})</button>
+                          <button onClick={() => setParticipantMode('teams')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${participantMode === 'teams' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>Scramble Squads ({selectedTeamIds.length})</button>
                         </>
                       )}
                     </div>
+                    {participantMode === 'teams' && onOpenTeamManager && (
+                      <button type="button" onClick={onOpenTeamManager} className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer shrink-0">
+                        <Edit3 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Manage Teams</span><span className="sm:hidden">Teams</span>
+                      </button>
+                    )}
                   </div>
 
                   {participantMode === 'golfers' || format !== 'scramble' ? (
                     <div className="space-y-2">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {selectedPlayers.map((player) => (
-                          <div key={player.playerId} className="p-2.5 rounded-xl border bg-white dark:bg-slate-800 flex justify-between items-center">
-                            <span className="font-bold text-xs">{player.name}</span>
-                            <button onClick={() => handleRemovePlayer(player.playerId)} className="text-slate-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                          <div key={player.playerId} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-between gap-2 shadow-2xs">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-heading font-bold text-xs truncate">{player.name}</span>
+                              <span className="text-[10px] text-slate-400 font-stats shrink-0">Idx: {player.handicapIndex.toFixed(1)}</span>
+                            </div>
+                            <button onClick={() => handleRemovePlayer(player.playerId)} className="p-1 text-slate-400 hover:text-red-500 cursor-pointer shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
                           </div>
                         ))}
                       </div>
-                      <div className="pt-1 flex flex-wrap gap-1.5">
+                      <div className="pt-1 flex flex-wrap gap-1.5 items-center">
                         <span className="text-[11px] font-bold uppercase text-slate-400 mr-1">Add:</span>
                         {members.filter((m) => !selectedPlayers.some((p) => p.playerId === m.id)).map((m) => (
-                          <button key={m.id} onClick={() => handleAddPlayer(m)} className="px-2.5 py-1 rounded-lg border border-dashed hover:border-emerald-500 text-xs font-semibold">+ {m.nickname || m.name}</button>
+                          <button key={m.id} onClick={() => handleAddPlayer(m)} className="px-2.5 py-1 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer transition-colors">+ {m.nickname || m.name}</button>
                         ))}
                       </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {teams.map((t) => (
-                        <button key={t.id} onClick={() => handleToggleTeam(t.id)} className={`p-3 rounded-xl border text-left flex justify-between items-center ${selectedTeamIds.includes(t.id) ? 'border-emerald-500 ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950/40' : 'bg-white dark:bg-slate-800'}`}>
-                          <span className="font-bold text-xs">{t.avatarEmoji} {t.name}</span>
-                          {selectedTeamIds.includes(t.id) && <Check className="w-4 h-4 text-emerald-600" />}
-                        </button>
-                      ))}
+                      {teams.map((t) => {
+                        const isSelected = selectedTeamIds.includes(t.id);
+                        const teamHcp = calculateTeamScrambleHandicap(t.playerIds, members);
+                        return (
+                          <button key={t.id} onClick={() => handleToggleTeam(t.id)} className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${isSelected ? 'border-emerald-500 ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 shadow-2xs' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xl">{t.avatarEmoji || '🎯'}</span>
+                                <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100">{t.name}</span>
+                              </div>
+                              <span className="text-[10px] text-slate-500 block mt-0.5">{t.playerIds.length} Golfers &middot; Hcp: {teamHcp.toFixed(1)}</span>
+                            </div>
+                            <div className={`w-5 h-5 rounded-lg border flex items-center justify-center ${isSelected ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300'}`}>
+                              {isSelected && <Check className="w-3.5 h-3.5" />}
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
 
                 {modalTab === 'manual' && (
                   <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => setManualEntryMode('hole_by_hole')} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${manualEntryMode === 'hole_by_hole' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'text-slate-500'}`}>Hole-by-Hole</button>
-                      <button onClick={() => setManualEntryMode('quick_total')} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${manualEntryMode === 'quick_total' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'text-slate-500'}`}>Quick Total</button>
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setManualEntryMode('hole_by_hole')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${manualEntryMode === 'hole_by_hole' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>Hole-by-Hole Scorecard</button>
+                        <button onClick={() => setManualEntryMode('quick_total')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${manualEntryMode === 'quick_total' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>Quick Total 18-Hole</button>
+                      </div>
+                      {manualEntryMode === 'hole_by_hole' && (
+                        <button type="button" onClick={handleQuickParAllHoles} className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold cursor-pointer hover:bg-emerald-100">
+                          ⚡ Quick Par All Holes
+                        </button>
+                      )}
                     </div>
 
                     {manualEntryMode === 'quick_total' ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {['Gross', 'Putts', 'FIR %', 'GIR %'].map((lbl, i) => (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
+                        {['Gross Score', 'Total Putts', 'FIR %', 'GIR %'].map((lbl, i) => (
                           <div key={lbl}>
-                            <label className="text-[11px] font-bold uppercase text-slate-500">{lbl}</label>
-                            <input type="number" value={[manualGrossScore, manualPuttsTotal, manualFirPercent, manualGirPercent][i]} onChange={(e) => [setManualGrossScore, setManualPuttsTotal, setManualFirPercent, setManualGirPercent][i](parseInt(e.target.value) || 0)} className="w-full px-3 py-2 rounded-xl border bg-white dark:bg-slate-800 font-bold text-center" />
+                            <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1">{lbl}</label>
+                            <input type="number" value={[manualGrossScore, manualPuttsTotal, manualFirPercent, manualGirPercent][i]} onChange={(e) => [setManualGrossScore, setManualPuttsTotal, setManualFirPercent, setManualGirPercent][i](parseInt(e.target.value) || 0)} className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-stats font-bold text-lg text-slate-900 dark:text-slate-100 text-center" />
                           </div>
                         ))}
                       </div>
@@ -370,13 +448,17 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                         {Array.from({ length: 18 }, (_, idx) => idx + 1).map((hNum) => {
                           const par = selectedCourse?.holes.find((h) => h.number === hNum)?.par || 4;
                           const score = manualHoleScores[hNum]?.strokes || par;
+                          const diff = score - par;
                           return (
-                            <div key={hNum} className="p-2 rounded-xl border text-center bg-slate-50 dark:bg-slate-800/40">
-                              <div className="text-[11px] text-slate-400 font-bold mb-1">#{hNum} P{par}</div>
+                            <div key={hNum} className={`p-2 rounded-xl border text-center transition-all ${diff < 0 ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800' : diff === 0 ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700'}`}>
+                              <div className="flex items-center justify-between text-[11px] text-slate-400 font-bold mb-1">
+                                <span>#{hNum}</span>
+                                <span>P{par}</span>
+                              </div>
                               <div className="flex justify-center gap-1">
-                                <button onClick={() => handleUpdateManualHole(hNum, score - 1)} className="w-6 h-6 rounded bg-white text-slate-700 font-bold text-xs">-</button>
-                                <span className="font-extrabold text-sm w-5">{score}</span>
-                                <button onClick={() => handleUpdateManualHole(hNum, score + 1)} className="w-6 h-6 rounded bg-white text-slate-700 font-bold text-xs">+</button>
+                                <button onClick={() => handleUpdateManualHole(hNum, score - 1)} className="w-6 h-6 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs cursor-pointer">-</button>
+                                <span className="font-stats font-extrabold text-sm w-5 text-slate-900 dark:text-slate-100">{score}</span>
+                                <button onClick={() => handleUpdateManualHole(hNum, score + 1)} className="w-6 h-6 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs cursor-pointer">+</button>
                               </div>
                             </div>
                           );
@@ -389,14 +471,23 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
             )}
           </div>
 
-          <div className="shrink-0 p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-800/80 border-t flex justify-between gap-3">
-            <button onClick={onClose} className="btn-modern px-4 py-2.5 rounded-xl border text-xs font-semibold">Cancel</button>
+          <div className="shrink-0 p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex justify-between gap-3">
+            <button onClick={onClose} className="btn-modern px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">Cancel</button>
             {modalTab === 'join' ? (
-              <button disabled={joinLoading} onClick={handleJoinFromModal} className="btn-modern px-5 py-2.5 bg-amber-600 text-white rounded-xl text-xs font-bold">Join Round</button>
+              <button disabled={joinLoading} onClick={handleJoinFromModal} className="btn-modern px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50">
+                {joinLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                <span>{joinLoading ? 'Connecting...' : 'Connect to Live Round (PIN)'}</span>
+              </button>
             ) : modalTab === 'live' ? (
-              <button onClick={handleStartLiveRound} className="btn-modern px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold">Start Live</button>
+              <button onClick={handleStartLiveRound} className="btn-modern px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-xs">
+                <Play className="w-4 h-4 fill-current" />
+                <span>Start Live Session ({participantMode === 'teams' ? `${selectedTeamIds.length} Squads` : `${selectedPlayers.length} Golfers`})</span>
+              </button>
             ) : (
-              <button disabled={isSubmittingManual} onClick={handleSubmitManualRound} className="btn-modern px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold">Save Past Round</button>
+              <button disabled={isSubmittingManual} onClick={handleSubmitManualRound} className="btn-modern px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50">
+                <Check className="w-4 h-4" />
+                <span>{isSubmittingManual ? 'Saving...' : `Save Past Round (${manualGrossScore} Gross)`}</span>
+              </button>
             )}
           </div>
         </div>
