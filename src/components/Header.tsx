@@ -8,7 +8,8 @@ import {
   Moon,
   User,
   ChevronDown,
-  FileCode
+  FileCode,
+  LogOut
 } from 'lucide-react';
 import { RoundSession, MemberProfile } from '../types';
 
@@ -25,6 +26,7 @@ interface HeaderProps {
   onOpenEditNickname: () => void;
   onOpenProfile: () => void;
   onOpenLogin: () => void;
+  onLogout: () => void;
   onOpenYamlBackup?: () => void;
 }
 
@@ -40,6 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenOcr,
   onOpenProfile,
   onOpenLogin,
+  onLogout,
   onOpenYamlBackup,
 }) => {
   return (
@@ -85,12 +88,17 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {activeUser ? (
-            <button onClick={onOpenProfile} className="btn-modern px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 cursor-pointer shadow-2xs">
-              <span className="text-sm">{activeUser.avatarEmoji}</span>
-              <span className="hidden sm:inline max-w-[100px] truncate">{activeUser.nickname}</span>
-              <span className="px-1.5 py-0.2 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-mono text-[10px] font-bold">{activeUser.handicapIndex.toFixed(1)}</span>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button onClick={onOpenProfile} className="btn-modern px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 cursor-pointer shadow-2xs">
+                <span className="text-sm">{activeUser.avatarEmoji}</span>
+                <span className="hidden sm:inline max-w-[100px] truncate">{activeUser.nickname}</span>
+                <span className="px-1.5 py-0.2 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-mono text-[10px] font-bold">{activeUser.handicapIndex.toFixed(1)}</span>
+                <ChevronDown className="w-3 h-3 text-slate-400" />
+              </button>
+              <button onClick={onLogout} title="Log Out" className="p-2 rounded-xl text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer">
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           ) : (
             <button onClick={onOpenLogin} className="btn-modern px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
               <User className="w-4 h-4 text-emerald-600" />
