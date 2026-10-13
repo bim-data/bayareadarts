@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { ClubhouseDashboard } from './components/ClubhouseDashboard';
 import { LiveRoundScorer } from './components/LiveRoundScorer';
@@ -40,16 +40,13 @@ import {
 export default function App() {
   const [currentTab, setCurrentTab] = useState<'clubhouse' | 'live' | 'rankings' | 'courses' | 'events' | 'future'>('clubhouse');
   
-  // --- AUTHENTICATION STATE ---
   const { currentUser, memberProfile, loading: authLoading } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // Automatically close auth modal when user successfully logs in
   useEffect(() => {
     if (currentUser) setIsAuthModalOpen(false);
   }, [currentUser]);
 
-  // Dark Mode State
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('bad_dark_mode');
     if (saved !== null) return saved === 'true';
@@ -65,7 +62,6 @@ export default function App() {
     localStorage.setItem('bad_dark_mode', String(darkMode));
   }, [darkMode]);
 
-  // --- FIREBASE DATA STATES ---
   const [courses, setCourses] = useState<Course[]>([]);
   const [members, setMembers] = useState<MemberProfile[]>([]);
   const [completedRounds, setCompletedRounds] = useState<CompletedRoundRecord[]>([]);
@@ -74,7 +70,6 @@ export default function App() {
   const [teams, setTeams] = useState<TeamGroup[]>([]);
   const [activeSession, setActiveSession] = useState<RoundSession | null>(null);
 
-  // --- FIREBASE REAL-TIME LISTENERS ---
   useEffect(() => {
     const unsubCourses = subscribeToCollection<Course>('courses', setCourses);
     const unsubMembers = subscribeToCollection<MemberProfile>('members', setMembers);
@@ -93,11 +88,9 @@ export default function App() {
     };
   }, []);
 
-  // --- ACTIVE LOGGED-IN GOLFER PROFILE ---
   const activeUserId = currentUser?.uid || '';
   const activeUser = memberProfile || members.find(m => m.id === activeUserId);
 
-  // Modals state
   const [isClubhouseHubOpen, setIsClubhouseHubOpen] = useState(false);
   const [clubhouseHubInitialTab, setClubhouseHubInitialTab] = useState<'profiles' | 'teams'>('profiles');
   const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
@@ -125,8 +118,6 @@ export default function App() {
     setClubhouseHubInitialTab(tab);
     setIsClubhouseHubOpen(true);
   };
-
-  // --- FIREBASE WRITE OPERATIONS ---
 
   const handleUpdateProfile = async (updatedProfile: MemberProfile) => {
     if (!updatedProfile.id) return;
@@ -207,7 +198,6 @@ export default function App() {
     await addRecord('events', eventData);
   };
 
-  // --- LIVE ROUND LOGIC (Keep Local Storage for now) ---
   useEffect(() => {
     const saved = localStorage.getItem('bad_active_session');
     if (saved) {
@@ -264,9 +254,9 @@ export default function App() {
     setCurrentTab('clubhouse');
   };
 
-  const handleJoinRoom = async () => { return false; };
-  const handleStartFutureRound = async () => {};
-  const handleManualRoundLogged = () => {};
+  const handleJoinRoom = async (_roomCode: string, _playerName: string, _handicapIndex: number, _memberId?: string) => { return false; };
+  const handleStartFutureRound = async (_futureRoundId: string) => {};
+  const handleManualRoundLogged = (_data: Record<string, string | number | boolean | object | undefined>) => {};
 
   const handleOpenMemberHistory = (member: MemberProfile) => {
     setSelectedMemberForHistory(member);
@@ -372,7 +362,6 @@ export default function App() {
         )}
       </main>
 
-      {/* MODALS */}
       <ClubhouseHubModal
         isOpen={isClubhouseHubOpen}
         onClose={() => setIsClubhouseHubOpen(false)}
@@ -528,7 +517,6 @@ export default function App() {
         completedRounds={completedRounds}
       />
 
-      {/* Auth Screen Overlay for Guests */}
       {(!currentUser && isAuthModalOpen) && (
         <div className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950 overflow-y-auto">
           <button 
