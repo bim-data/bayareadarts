@@ -280,7 +280,11 @@ export default function App() {
 
   const handleUpdatePastRound = async (roundId: string, updatedData: Partial<CompletedRoundRecord>) => {
     try {
-      await updateRecord('rounds', roundId, updatedData);
+      // Strip out undefined or NaN values so Firebase doesn't silently crash
+      const cleanData = Object.fromEntries(
+        Object.entries(updatedData).filter(([_, v]) => v !== undefined && !Number.isNaN(v))
+      );
+      await updateRecord('rounds', roundId, cleanData);
     } catch (error) {
       console.error("Failed to update past round:", error);
     }
