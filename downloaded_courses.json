@@ -1,10 +1,10 @@
 [
   {
-    "id": "yrx5zm70",
-    "name": "San Ramon Gc",
+    "id": "san-ramon",
+    "name": "San Ramon Golf Club",
     "city": "San Ramon",
-    "region": "Other",
-    "notes": "Imported via targeted script on 10/13/2026",
+    "region": "East Bay",
+    "notes": "Public course 18 holes through San Ramon neighborhood",
     "tees": [
       {
         "id": "yrx5zm70-tee-0",
@@ -175,11 +175,11 @@
     ]
   },
   {
-    "id": "sh9s6p0v",
-    "name": "Poplar Creek Gc",
+    "id": "poplar-creek",
+    "name": "Poplar Creek Golf Course",
     "city": "San Mateo",
-    "region": "Other",
-    "notes": "Imported via targeted script on 10/13/2026",
+    "region": "Penninsula",
+    "notes": "18 hole public course at the foot of the SFO runways on the bay",
     "tees": [
       {
         "id": "sh9s6p0v-tee-0",
@@ -350,11 +350,11 @@
     ]
   },
   {
-    "id": "g4sw91dz",
-    "name": "Deep Cliff Gc",
+    "id": "deep-cliff",
+    "name": "Deep Cliff Golf Course",
     "city": "Cupertino",
-    "region": "Other",
-    "notes": "Imported via targeted script on 10/13/2026",
+    "region": "South Bay",
+    "notes": "9 Hole executive course through small foothill woods and homes",
     "tees": [
       {
         "id": "g4sw91dz-tee-0",
@@ -533,186 +533,11 @@
     ]
   },
   {
-    "id": "zjyvs97v",
-    "name": "Los Lagos",
-    "city": "Costa Mesa",
-    "region": "Other",
-    "notes": "Imported via targeted script on 10/13/2026",
-    "tees": [
-      {
-        "id": "zjyvs97v-tee-0",
-        "name": "Blue",
-        "color": "#2563EB",
-        "rating": 71.3,
-        "slope": 125,
-        "totalYardage": 6573
-      },
-      {
-        "id": "zjyvs97v-tee-1",
-        "name": "Blue/White",
-        "color": "#2563EB",
-        "rating": 70.6,
-        "slope": 123,
-        "totalYardage": 6425
-      },
-      {
-        "id": "zjyvs97v-tee-2",
-        "name": "White",
-        "color": "#2563EB",
-        "rating": 69.7,
-        "slope": 121,
-        "totalYardage": 6238
-      },
-      {
-        "id": "zjyvs97v-tee-3",
-        "name": "Silver",
-        "color": "#2563EB",
-        "rating": 68.2,
-        "slope": 117,
-        "totalYardage": 5925
-      },
-      {
-        "id": "zjyvs97v-tee-4",
-        "name": "Blue",
-        "color": "#2563EB",
-        "rating": 77.5,
-        "slope": 134,
-        "totalYardage": 6573
-      },
-      {
-        "id": "zjyvs97v-tee-5",
-        "name": "White",
-        "color": "#2563EB",
-        "rating": 75.7,
-        "slope": 130,
-        "totalYardage": 6238
-      },
-      {
-        "id": "zjyvs97v-tee-6",
-        "name": "Silver",
-        "color": "#2563EB",
-        "rating": 73.9,
-        "slope": 126,
-        "totalYardage": 5925
-      }
-    ],
-    "holes": [
-      {
-        "number": 1,
-        "par": 5,
-        "yardage": 530,
-        "handicapIndex": 11
-      },
-      {
-        "number": 2,
-        "par": 5,
-        "yardage": 533,
-        "handicapIndex": 5
-      },
-      {
-        "number": 3,
-        "par": 4,
-        "yardage": 412,
-        "handicapIndex": 1
-      },
-      {
-        "number": 4,
-        "par": 3,
-        "yardage": 176,
-        "handicapIndex": 9
-      },
-      {
-        "number": 5,
-        "par": 4,
-        "yardage": 354,
-        "handicapIndex": 13
-      },
-      {
-        "number": 6,
-        "par": 5,
-        "yardage": 544,
-        "handicapIndex": 7
-      },
-      {
-        "number": 7,
-        "par": 3,
-        "yardage": 208,
-        "handicapIndex": 3
-      },
-      {
-        "number": 8,
-        "par": 4,
-        "yardage": 312,
-        "handicapIndex": 17
-      },
-      {
-        "number": 9,
-        "par": 4,
-        "yardage": 348,
-        "handicapIndex": 15
-      },
-      {
-        "number": 10,
-        "par": 4,
-        "yardage": 373,
-        "handicapIndex": 14
-      },
-      {
-        "number": 11,
-        "par": 3,
-        "yardage": 165,
-        "handicapIndex": 12
-      },
-      {
-        "number": 12,
-        "par": 4,
-        "yardage": 359,
-        "handicapIndex": 16
-      },
-      {
-        "number": 13,
-        "par": 4,
-        "yardage": 378,
-        "handicapIndex": 6
-      },
-      {
-        "number": 14,
-        "par": 5,
-        "yardage": 567,
-        "handicapIndex": 4
-      },
-      {
-        "number": 15,
-        "par": 3,
-        "yardage": 194,
-        "handicapIndex": 8
-      },
-      {
-        "number": 16,
-        "par": 4,
-        "yardage": 419,
-        "handicapIndex": 2
-      },
-      {
-        "number": 17,
-        "par": 3,
-        "yardage": 181,
-        "handicapIndex": 10
-      },
-      {
-        "number": 18,
-        "par": 5,
-        "yardage": 520,
-        "handicapIndex": 18
-      }
-    ]
-  },
-  {
-    "id": "tq7659nk",
-    "name": "Tilden Park Gc",
+    "id": "tilden-park",
+    "name": "Tilden Park Golf Course",
     "city": "Berkeley",
-    "region": "Other",
-    "notes": "Imported via targeted script on 10/13/2026",
+    "region": "Easy Bay",
+    "notes": "Hilly course through Tilden Park",
     "tees": [
       {
         "id": "tq7659nk-tee-0",
@@ -891,11 +716,11 @@
     ]
   },
   {
-    "id": "xt716xwt",
-    "name": "Mission Hills Gc",
+    "id": "mission-hills",
+    "name": "Mission Hills Golf Course",
     "city": "Hayward",
-    "region": "Other",
-    "notes": "Imported via targeted script on 10/13/2026",
+    "region": "East Bay",
+    "notes": "9 Hole executive course",
     "tees": [
       {
         "id": "xt716xwt-tee-0",
