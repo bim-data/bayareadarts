@@ -185,10 +185,11 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
     onClose();
   };
 
-  const handleSubmitManualRound = async () => {
+ const handleSubmitManualRound = async () => {
     setIsSubmittingManual(true);
     let gross = manualGrossScore, putts = manualPuttsTotal, fir = manualFirPercent, gir = manualGirPercent;
 
+    // 1. Get exact totals if using Hole-by-Hole
     if (manualEntryMode === 'hole_by_hole') {
       gross = Object.values(manualHoleScores).reduce((acc, h) => acc + (h.strokes || 4), 0);
       putts = Object.values(manualHoleScores).reduce((acc, h) => acc + (h.putts || 2), 0);
@@ -197,9 +198,30 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
       gir = Math.round((Object.values(manualHoleScores).filter((h) => h.gir).length / 18) * 100);
     }
 
-    const payload: Record<string, string | number | boolean | object | undefined> = {
-      playerId: activeUser.id, playerName: activeUser.name, date: roundDate, courseId: selectedCourse.id, courseName: selectedCourse.name,
-      teeId: selectedTee.id, teeName: selectedTee.name, format, entryMode: manualEntryMode, grossScore: gross, putts, firPercent: fir, girPercent: gir,
+    // 2. Calculate Handicap Differential & Net Score
+    const rating = selectedTee?.rating || 72;
+    const slope = selectedTee?.slope || 113;
+    const courseHandicap = Math.round(activeUser.handicapIndex * (slope / 113) + (rating - 72));
+    const netScore = gross - courseHandicap;
+    const differential = Number((((gross - rating) * 113) / slope).toFixed(1));
+
+    // 3. Build the full payload
+    const payload: Record<string, any> = {
+      playerId: activeUser.id, 
+      playerName: activeUser.name, 
+      date: roundDate, 
+      courseId: selectedCourse.id, 
+      courseName: selectedCourse.name,
+      teeId: selectedTee.id, 
+      teeName: selectedTee.name, 
+      format, 
+      entryMode: manualEntryMode, 
+      grossScore: gross, 
+      netScore, 
+      differential, 
+      totalPutts: putts, 
+      firPercent: fir, 
+      girPercent: gir,
       holeScores: manualEntryMode === 'hole_by_hole' ? manualHoleScores : undefined,
     };
 
@@ -218,6 +240,11 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
       setIsSubmittingManual(false);
     }
   };
+
+  // 4. Calculate display score for the button
+  const displayGross = manualEntryMode === 'hole_by_hole' 
+    ? Object.values(manualHoleScores).reduce((acc, h) => acc + (h.strokes || 4), 0)
+    : manualGrossScore;
 
   return (
     <>
@@ -480,7 +507,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
             ) : (
               <button disabled={isSubmittingManual} onClick={handleSubmitManualRound} className="btn-modern px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50">
                 <Check className="w-4 h-4" />
-                <span>{isSubmittingManual ? 'Saving...' : `Save Past Round (${manualGrossScore} Gross)`}</span>
+                <span>{isSubmittingManual ? 'Saving...' : `Save Past Round (${displayGross} Gross)`}</span>
               </button>
             )}
           </div>
