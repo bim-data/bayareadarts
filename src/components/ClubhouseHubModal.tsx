@@ -42,6 +42,8 @@ interface ClubhouseHubModalProps {
   onOpenYamlBackup?: () => void;
 }
 
+const [expandedRoundId, setExpandedRoundId] = useState<string | null>(null);
+
 const COLOR_OPTIONS = [
   { id: 'emerald', label: 'Emerald', bg: 'bg-emerald-500', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-500', ring: 'ring-emerald-500' },
   { id: 'amber', label: 'Amber', bg: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-500', ring: 'ring-amber-500' },
@@ -599,30 +601,81 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                         No individual rounds logged for {activeUser.name} yet. Use "Start Round" to record your scores.
                       </div>
                     ) : (
-                      <div className="divide-y divide-slate-100 dark:divide-slate-800 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900">
-                        {myRounds.slice(0, 5).map((r) => (
-                          <div key={r.id} className="p-3 sm:p-3.5 flex items-center justify-between gap-3 text-xs">
-                            <div>
-                              <div className="font-heading font-bold text-slate-900 dark:text-slate-100">
-                                {r.courseName}
+                      <div className="space-y-3">
+                        {myRounds.slice(0, 5).map((round) => {
+                          const isExpanded = expandedRoundId === round.id;
+                          
+                          return (
+                            <div key={round.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden transition-all shadow-xs">
+                              {/* Clickable Header Row */}
+                              <div 
+                                onClick={() => setExpandedRoundId(isExpanded ? null : round.id)}
+                                className="p-3 sm:p-3.5 flex items-center justify-between gap-3 text-xs cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                              >
+                                <div>
+                                  <div className="font-heading font-bold text-slate-900 dark:text-slate-100">
+                                    {round.courseName}
+                                  </div>
+                                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                                    {round.date} · {round.teeName} Tee
+                                  </div>
+                                </div>
+                                <div className="text-right flex items-center gap-3">
+                                  <div>
+                                    <span className="font-stats font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                                      {round.grossScore}
+                                    </span>
+                                    <span className="text-[11px] text-slate-400 ml-1">
+                                      ({round.netScore} net)
+                                    </span>
+                                    <div className="text-[10px] font-stats text-emerald-600 dark:text-emerald-400 font-bold">
+                                      Diff: {round.differential?.toFixed(1)}
+                                    </div>
+                                  </div>
+                                  <div className={`w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                                    ▼
+                                  </div>
+                                </div>
                               </div>
-                              <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                                {r.date} · {r.teeName} Tee · {r.grossScore} Gross
-                              </div>
+
+                              {/* Expandable Scorecard Grid */}
+                              {isExpanded && (
+                                <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 animate-fadeIn">
+                                  {round.holeScores ? (
+                                    <div className="space-y-2">
+                                      {/* Front 9 */}
+                                      <div className="grid grid-cols-9 gap-1">
+                                        {Array.from({length: 9}, (_, i) => i + 1).map(h => (
+                                          <div key={h} className="text-center">
+                                            <div className="text-[9px] font-bold text-slate-400 mb-1">#{h}</div>
+                                            <div className="text-xs font-bold text-slate-900 dark:text-white py-1.5 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 shadow-2xs">
+                                              {round.holeScores[h]?.strokes || '-'}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      {/* Back 9 */}
+                                      <div className="grid grid-cols-9 gap-1">
+                                        {Array.from({length: 9}, (_, i) => i + 10).map(h => (
+                                          <div key={h} className="text-center">
+                                            <div className="text-[9px] font-bold text-slate-400 mb-1">#{h}</div>
+                                            <div className="text-xs font-bold text-slate-900 dark:text-white py-1.5 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 shadow-2xs">
+                                              {round.holeScores[h]?.strokes || '-'}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="text-xs text-slate-500 text-center italic py-2">
+                                      No hole-by-hole scorecard was saved for this round (Quick Total entry).
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                            <div className="text-right">
-                              <span className="font-stats font-extrabold text-sm text-slate-900 dark:text-slate-100">
-                                {r.grossScore}
-                              </span>
-                              <span className="text-[11px] text-slate-400 ml-1">
-                                ({r.netScore} net)
-                              </span>
-                              <div className="text-[10px] font-stats text-emerald-600 dark:text-emerald-400 font-bold">
-                                Diff: {r.differential.toFixed(1)}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
