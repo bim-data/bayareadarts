@@ -76,8 +76,22 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      // 1. Reset all the basic fields
       setSelectedPlayers([]);
       setManualSuccessMessage('');
+      setRoundDate(new Date().toISOString().split('T')[0]);
+      setManualGrossScore(82);
+      setManualPuttsTotal(32);
+      
+      // 2. Force reset the 18 holes back to default par/putts
+      if (selectedCourse && selectedCourse.holes) {
+        const resetScores: Record<number, any> = {};
+        selectedCourse.holes.forEach((h) => {
+          resetScores[h.number] = { strokes: h.par, putts: 2, fir: h.par === 3 ? 'none' : 'hit', gir: true };
+        });
+        setManualHoleScores(resetScores);
+      }
+
       if (initialSelectedTeamId) {
         setSelectedTeamIds([initialSelectedTeamId]);
         setParticipantMode('teams');
@@ -469,6 +483,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                         {Array.from({ length: 18 }, (_, idx) => idx + 1).map((hNum) => {
                           const par = selectedCourse?.holes.find((h) => h.number === hNum)?.par || 4;
                           const score = manualHoleScores[hNum]?.strokes || par;
+                          const putts = manualHoleScores[hNum]?.putts || 2;
                           const diff = score - par;
                           return (
                             <div key={hNum} className={`p-2 rounded-xl border text-center transition-all ${diff < 0 ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800' : diff === 0 ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700'}`}>
@@ -476,10 +491,22 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                                 <span>#{hNum}</span>
                                 <span>P{par}</span>
                               </div>
-                              <div className="flex justify-center gap-1">
-                                <button onClick={() => handleUpdateManualHole(hNum, score - 1)} className="w-6 h-6 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs cursor-pointer">-</button>
+                              
+                              {/* Strokes Row */}
+                              <div className="flex justify-center gap-1 mb-1.5">
+                                <button onClick={() => handleUpdateManualHole(hNum, score - 1, putts)} className="w-6 h-6 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs cursor-pointer">-</button>
                                 <span className="font-stats font-extrabold text-sm w-5 text-slate-900 dark:text-slate-100">{score}</span>
-                                <button onClick={() => handleUpdateManualHole(hNum, score + 1)} className="w-6 h-6 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs cursor-pointer">+</button>
+                                <button onClick={() => handleUpdateManualHole(hNum, score + 1, putts)} className="w-6 h-6 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs cursor-pointer">+</button>
+                              </div>
+
+                              {/* Putts Row */}
+                              <div className="flex justify-center gap-1 pt-1.5 border-t border-slate-200/50 dark:border-slate-700/50">
+                                <button onClick={() => handleUpdateManualHole(hNum, score, putts - 1)} className="w-5 h-5 rounded bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold text-[10px] shadow-2xs cursor-pointer">-</button>
+                                <div className="flex flex-col items-center justify-center w-6">
+                                  <span className="text-[8px] uppercase font-bold text-slate-400 leading-none">Putts</span>
+                                  <span className="font-stats font-bold text-xs text-emerald-600 dark:text-emerald-400 leading-tight">{putts}</span>
+                                </div>
+                                <button onClick={() => handleUpdateManualHole(hNum, score, putts + 1)} className="w-5 h-5 rounded bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold text-[10px] shadow-2xs cursor-pointer">+</button>
                               </div>
                             </div>
                           );
