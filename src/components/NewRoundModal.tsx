@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, Play, Trash2, Check, Calendar, Edit3, FileText, KeyRound, RefreshCw, AlertCircle
+  X, Play, Trash2, Check, KeyRound, FileText 
 } from 'lucide-react';
 import { Course, GameFormat, MemberProfile, PlayerRoundData, RoundSession, TeeBox, TeamGroup, HoleScore } from '../types';
 import { SearchableCourseSelect } from './SearchableCourseSelect';
 import { AddCourseModal } from './AddCourseModal';
 import { findWhiteOrEquivalentTee } from '../utils/teeUtils';
-import { calculateTeamScrambleHandicap } from './ScrambleTeamManagerModal';
 
 interface NewRoundModalProps {
   isOpen: boolean;
@@ -19,7 +18,7 @@ interface NewRoundModalProps {
   onCourseAdded?: (newCourse: Course) => void;
   onCreateSession: (sessionData: Partial<RoundSession>) => void;
   onOpenTeamManager?: () => void;
-  onManualRoundLogged?: (data: any) => void;
+  onManualRoundLogged?: (data: Record<string, string | number | boolean | object | undefined>) => void;
   onJoinRoom?: (roomCode: string, playerName: string, handicapIndex: number, memberId?: string) => Promise<boolean>;
 }
 
@@ -33,7 +32,6 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
   initialSelectedTeamId,
   onCourseAdded,
   onCreateSession,
-  onOpenTeamManager,
   onManualRoundLogged,
   onJoinRoom,
 }) => {
@@ -159,14 +157,20 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
   };
 
   const handleStartLiveRound = () => {
-    let finalPlayers = participantMode === 'teams' ? [] : selectedPlayers;
+    let finalPlayers: PlayerRoundData[] = participantMode === 'teams' ? [] : [...selectedPlayers];
     let finalTeams = participantMode === 'teams' ? teams.filter((t) => selectedTeamIds.includes(t.id)) : undefined;
 
     if (participantMode === 'teams' && finalTeams) {
       finalTeams.forEach((team) => team.playerIds.forEach((pid) => {
         const m = members.find((mem) => mem.id === pid);
-        if (m && !finalPlayers.some((p: any) => p.playerId === m.id)) {
-          finalPlayers.push({ playerId: m.id, name: m.name, handicapIndex: m.handicapIndex, courseHandicap: Math.round(m.handicapIndex * ((selectedTee?.slope || 124) / 113) + ((selectedTee?.rating || 70.2) - 72)), scores: {} } as any);
+        if (m && !finalPlayers.some((p) => p.playerId === m.id)) {
+          finalPlayers.push({ 
+            playerId: m.id, 
+            name: m.name, 
+            handicapIndex: m.handicapIndex, 
+            courseHandicap: Math.round(m.handicapIndex * ((selectedTee?.slope || 124) / 113) + ((selectedTee?.rating || 70.2) - 72)), 
+            scores: {} 
+          });
         }
       }));
     }
@@ -192,7 +196,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
       gir = Math.round((Object.values(manualHoleScores).filter((h) => h.gir).length / 18) * 100);
     }
 
-    const payload: any = {
+    const payload: Record<string, string | number | boolean | object | undefined> = {
       playerId: activeUser.id, playerName: activeUser.name, date: roundDate, courseId: selectedCourse.id, courseName: selectedCourse.name,
       teeId: selectedTee.id, teeName: selectedTee.name, format, entryMode: manualEntryMode, grossScore: gross, putts, firPercent: fir, girPercent: gir,
       holeScores: manualEntryMode === 'hole_by_hole' ? manualHoleScores : undefined,
@@ -238,16 +242,15 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
             </div>
 
             <div className="grid grid-cols-3 p-1 bg-slate-200 dark:bg-slate-800 rounded-xl gap-1">
-              {['live', 'join', 'manual'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setModalTab(tab as any)}
-                  className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${modalTab === tab ? 'bg-white dark:bg-slate-900 shadow-xs' : 'text-slate-600 dark:text-slate-400'}`}
-                >
-                  {tab === 'live' ? <Play className="w-3.5 h-3.5" /> : tab === 'join' ? <KeyRound className="w-3.5 h-3.5 text-amber-500" /> : <FileText className="w-3.5 h-3.5 text-blue-500" />}
-                  <span className="truncate capitalize">{tab === 'manual' ? 'Log Past' : tab}</span>
-                </button>
-              ))}
+              <button onClick={() => setModalTab('live')} className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${modalTab === 'live' ? 'bg-white dark:bg-slate-900 shadow-xs' : 'text-slate-600 dark:text-slate-400'}`}>
+                <Play className="w-3.5 h-3.5" /> <span className="truncate capitalize">Live</span>
+              </button>
+              <button onClick={() => setModalTab('join')} className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${modalTab === 'join' ? 'bg-white dark:bg-slate-900 shadow-xs' : 'text-slate-600 dark:text-slate-400'}`}>
+                <KeyRound className="w-3.5 h-3.5 text-amber-500" /> <span className="truncate capitalize">Join</span>
+              </button>
+              <button onClick={() => setModalTab('manual')} className={`py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${modalTab === 'manual' ? 'bg-white dark:bg-slate-900 shadow-xs' : 'text-slate-600 dark:text-slate-400'}`}>
+                <FileText className="w-3.5 h-3.5 text-blue-500" /> <span className="truncate capitalize">Log Past</span>
+              </button>
             </div>
           </div>
 
@@ -295,15 +298,14 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase text-slate-500">Game Format *</label>
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                    {[{ id: 'stroke', label: 'Stroke Play' }, { id: 'scramble', label: 'Scramble' }, { id: 'match_play', label: 'Match Play' }, { id: 'stableford', label: 'Stableford' }, { id: 'skins', label: 'Skins' }].map((f) => (
-                      <button key={f.id} onClick={() => { setFormat(f.id as any); setParticipantMode(f.id === 'scramble' ? 'teams' : 'golfers'); }} className={`p-2.5 rounded-xl border text-left ${format === f.id ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'bg-white dark:bg-slate-800'}`}>
-                        <span className="font-bold text-xs block">{f.label}</span>
-                      </button>
-                    ))}
+                    <button onClick={() => { setFormat('stroke'); setParticipantMode('golfers'); }} className={`p-2.5 rounded-xl border text-left ${format === 'stroke' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'bg-white dark:bg-slate-800'}`}><span className="font-bold text-xs block">Stroke Play</span></button>
+                    <button onClick={() => { setFormat('scramble'); setParticipantMode('teams'); }} className={`p-2.5 rounded-xl border text-left ${format === 'scramble' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'bg-white dark:bg-slate-800'}`}><span className="font-bold text-xs block">Scramble</span></button>
+                    <button onClick={() => { setFormat('match_play'); setParticipantMode('golfers'); }} className={`p-2.5 rounded-xl border text-left ${format === 'match_play' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'bg-white dark:bg-slate-800'}`}><span className="font-bold text-xs block">Match Play</span></button>
+                    <button onClick={() => { setFormat('stableford'); setParticipantMode('golfers'); }} className={`p-2.5 rounded-xl border text-left ${format === 'stableford' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'bg-white dark:bg-slate-800'}`}><span className="font-bold text-xs block">Stableford</span></button>
+                    <button onClick={() => { setFormat('skins'); setParticipantMode('golfers'); }} className={`p-2.5 rounded-xl border text-left ${format === 'skins' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'bg-white dark:bg-slate-800'}`}><span className="font-bold text-xs block">Skins</span></button>
                   </div>
                 </div>
 
-                {/* Participant Selection - Available in both Live and Manual rounds! */}
                 <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
