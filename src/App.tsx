@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { ClubhouseDashboard } from './components/ClubhouseDashboard';
 import { LiveRoundScorer } from './components/LiveRoundScorer';
@@ -300,7 +300,6 @@ export default function App() {
           if (!currentUser) return setIsAuthModalOpen(true);
           setIsNewRoundOpen(true);
         }}
-        onOpenJoinRoom={() => setIsNewRoundOpen(true)}
         onOpenOcr={() => setIsOcrOpen(true)}
         onOpenEditNickname={() => setIsEditNicknameOpen(true)}
         onOpenProfile={() => {
@@ -454,6 +453,10 @@ export default function App() {
         onClose={() => setIsCourseLibraryOpen(false)}
         courses={courses}
         onAddCourse={handleAddCourse}
+        onPlanFutureRound={(courseId) => {
+          setIsCourseLibraryOpen(false);
+          setIsCreateFutureRoundOpen(true);
+        }}
       />
 
       <HandicapLeaderboardModal
