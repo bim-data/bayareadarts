@@ -278,6 +278,14 @@ export default function App() {
     }
   };
 
+  const handleUpdatePastRound = async (roundId: string, updatedData: Partial<CompletedRoundRecord>) => {
+    try {
+      await updateRecord('rounds', roundId, updatedData);
+    } catch (error) {
+      console.error("Failed to update past round:", error);
+    }
+  };
+
   const handleOpenMemberHistory = (member: MemberProfile) => {
     setSelectedMemberForHistory(member);
     setIsPlayerHistoryOpen(true);
@@ -403,6 +411,8 @@ export default function App() {
           setPreselectedTeamId(team.id);
           setIsNewRoundOpen(true);
         }}
+        courses={courses}
+        onUpdatePastRound={handleUpdatePastRound}
       />
 
       <NewRoundModal
@@ -501,6 +511,8 @@ export default function App() {
         teamEvents={teamEvents}
         activeUserId={activeUserId}
         onOpenEditProfile={() => handleOpenClubhouseHub('profiles')}
+        courses={courses}
+        onUpdatePastRound={handleUpdatePastRound
       />
 
       <TeamHistoryModal
