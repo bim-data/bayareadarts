@@ -1,15 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, 
-  Play, 
-  Trash2, 
-  Check, 
-  Calendar, 
-  KeyRound, 
-  FileText, 
-  Edit3,
-  RefreshCw,
-  AlertCircle
+  X, Play, Trash2, Check, Calendar, KeyRound, FileText, Edit3, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { Course, GameFormat, MemberProfile, PlayerRoundData, RoundSession, TeeBox, TeamGroup, HoleScore } from '../types';
 import { SearchableCourseSelect } from './SearchableCourseSelect';
@@ -83,7 +74,6 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
   const [manualSuccessMessage, setManualSuccessMessage] = useState('');
 
-  // Clear selections on open to prevent auto-injection bugs
   useEffect(() => {
     if (isOpen) {
       setSelectedPlayers([]);
@@ -364,8 +354,8 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                         <span className="px-3 py-1.5 text-xs font-bold text-slate-900 dark:text-white">Individual Golfers Only</span>
                       ) : (
                         <>
-                          <button onClick={() => setParticipantMode('golfers')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${participantMode === 'golfers' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>Golfers ({selectedPlayers.length})</button>
-                          <button onClick={() => setParticipantMode('teams')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${participantMode === 'teams' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>Scramble Squads ({selectedTeamIds.length})</button>
+                          <button onClick={() => setParticipantMode('golfers')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${participantMode === 'golfers' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>Golfers</button>
+                          <button onClick={() => setParticipantMode('teams')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${participantMode === 'teams' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>Scramble Squads</button>
                         </>
                       )}
                     </div>
@@ -379,15 +369,19 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                   {participantMode === 'golfers' || format !== 'scramble' ? (
                     <div className="space-y-2">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {selectedPlayers.map((player) => (
-                          <div key={player.playerId} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-between gap-2 shadow-2xs">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="font-heading font-bold text-xs truncate">{player.name}</span>
-                              <span className="text-[10px] text-slate-400 font-stats shrink-0">Idx: {player.handicapIndex.toFixed(1)}</span>
+                        {selectedPlayers.map((player) => {
+                          const memberObj = members.find((m) => m.id === player.playerId);
+                          return (
+                            <div key={player.playerId} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-between gap-2 shadow-2xs">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-base">{memberObj?.avatarEmoji || '🏌️‍♂️'}</span>
+                                <span className="font-heading font-bold text-xs truncate">{player.name}</span>
+                                <span className="text-[10px] text-slate-400 font-stats shrink-0">Idx: {player.handicapIndex.toFixed(1)}</span>
+                              </div>
+                              <button onClick={() => handleRemovePlayer(player.playerId)} className="p-1 text-slate-400 hover:text-red-500 cursor-pointer shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
                             </div>
-                            <button onClick={() => handleRemovePlayer(player.playerId)} className="p-1 text-slate-400 hover:text-red-500 cursor-pointer shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                       <div className="pt-1 flex flex-wrap gap-1.5 items-center">
                         <span className="text-[11px] font-bold uppercase text-slate-400 mr-1">Add:</span>
