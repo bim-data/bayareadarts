@@ -258,7 +258,19 @@ export default function App() {
 
   const handleJoinRoom = async (_roomCode: string, _playerName: string, _handicapIndex: number, _memberId?: string) => { return false; };
   const handleStartFutureRound = async (_futureRoundId: string) => {};
-  const handleManualRoundLogged = (_data: Record<string, string | number | boolean | object | undefined>) => {};
+  const handleManualRoundLogged = async (data: Record<string, any>) => {
+    try {
+      const newRound = {
+        id: `round-${Date.now()}`,
+        ...data,
+        createdAt: Date.now()
+      };
+      await addRecord('rounds', newRound);
+      console.log("Successfully saved past round:", newRound);
+    } catch (error) {
+      console.error("Failed to save past round to Firebase:", error);
+    }
+  };
 
   const handleOpenMemberHistory = (member: MemberProfile) => {
     setSelectedMemberForHistory(member);
