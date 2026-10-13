@@ -48,6 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        {/* Zone 1: Comic Emblem Wordmark */}
         <div 
           onClick={() => setCurrentTab('clubhouse')}
           className="flex items-center gap-3 cursor-pointer select-none shrink-0"
@@ -69,6 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
+        {/* Zone 2: Navigation Links */}
         <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold">
           <button onClick={() => setCurrentTab('clubhouse')} className={`whitespace-nowrap transition-colors pb-1 border-b-2 cursor-pointer ${currentTab === 'clubhouse' ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'}`}>Clubhouse</button>
           {activeSession && (
@@ -82,6 +84,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button onClick={() => setCurrentTab('events')} className={`whitespace-nowrap transition-colors pb-1 border-b-2 cursor-pointer ${currentTab === 'events' ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'}`}>Scrambles & Events</button>
         </nav>
 
+        {/* Zone 3: Actions, User Profile & Theme Toggle */}
         <div className="flex items-center gap-2 shrink-0">
           <button onClick={onToggleDarkMode} className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
             {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
