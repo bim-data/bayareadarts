@@ -587,7 +587,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <h5 className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100">
-                        {activeUser.nickname}'s Recorded Rounds ({myRounds.length})
+                        {activeUser.nickname || activeUser.name}'s Recorded Rounds ({myRounds.length})
                       </h5>
                       <span className="text-xs text-slate-400">
                         Historical & Live Rounds
