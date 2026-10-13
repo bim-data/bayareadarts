@@ -23,6 +23,7 @@ import { useAuth } from './contexts/AuthContext';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { X } from 'lucide-react';
+import { getAuth, signOut } from 'firebase/auth';
 
 import { subscribeToCollection, addRecord, updateRecord, deleteRecord } from './services/db';
 
@@ -307,6 +308,10 @@ export default function App() {
           handleOpenClubhouseHub('profiles');
         }}
         onOpenLogin={() => setIsAuthModalOpen(true)}
+        onLogout={async () => {
+          const auth = getAuth();
+          await signOut(auth);
+        }}
       />
 
       <main className="flex-1 pb-16">
