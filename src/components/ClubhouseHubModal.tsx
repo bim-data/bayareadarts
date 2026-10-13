@@ -42,7 +42,6 @@ interface ClubhouseHubModalProps {
   onOpenYamlBackup?: () => void;
 }
 
-const [expandedRoundId, setExpandedRoundId] = useState<string | null>(null);
 
 const COLOR_OPTIONS = [
   { id: 'emerald', label: 'Emerald', bg: 'bg-emerald-500', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-500', ring: 'ring-emerald-500' },
@@ -76,6 +75,8 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
   const [profileSubTab, setProfileSubTab] = useState<'overview' | 'edit' | 'switch'>('overview');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const [expandedRoundId, setExpandedRoundId] = useState<string | null>(null);
+  
   // Active User Selection
   const activeUser = members.find((m) => m.id === activeUserId) || members[0];
 
