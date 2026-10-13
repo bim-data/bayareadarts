@@ -107,6 +107,7 @@ export default function App() {
   const [isTeamEventsOpen, setIsTeamEventsOpen] = useState(false);
   const [isBadgeCustomizerOpen, setIsBadgeCustomizerOpen] = useState(false);
   const [isCreateFutureRoundOpen, setIsCreateFutureRoundOpen] = useState(false);
+  const [preselectedCourseId, setPreselectedCourseId] = useState<string | undefined>(undefined);
   const [isEditNicknameOpen, setIsEditNicknameOpen] = useState(false);
 
   const [selectedMemberForHistory, setSelectedMemberForHistory] = useState<MemberProfile | null>(null);
@@ -454,6 +455,7 @@ export default function App() {
         courses={courses}
         onAddCourse={handleAddCourse}
         onPlanFutureRound={(courseId) => {
+          setPreselectedCourseId(courseId); // Save the course!
           setIsCourseLibraryOpen(false);
           setIsCreateFutureRoundOpen(true);
         }}
@@ -499,10 +501,14 @@ export default function App() {
 
       <CreateFutureRoundModal
         isOpen={isCreateFutureRoundOpen}
-        onClose={() => setIsCreateFutureRoundOpen(false)}
+        onClose={() => {
+          setIsCreateFutureRoundOpen(false);
+          setPreselectedCourseId(undefined); // Clear it when closing
+        }}
         courses={courses}
         members={members}
         activeUserId={activeUserId}
+        initialSelectedCourseId={preselectedCourseId} // Pass the course!
         onCourseAdded={handleAddCourse}
         onCreateFutureRound={handleCreateFutureRound}
       />
