@@ -1,0 +1,1044 @@
+[
+  {
+    "id": "yrx5zm70",
+    "name": "San Ramon Gc",
+    "city": "San Ramon",
+    "region": "Other",
+    "notes": "Imported via targeted script on 10/13/2026",
+    "tees": [
+      {
+        "id": "yrx5zm70-tee-0",
+        "name": "Blue",
+        "color": "#2563EB",
+        "rating": 71.3,
+        "slope": 129,
+        "totalYardage": 6417
+      },
+      {
+        "id": "yrx5zm70-tee-1",
+        "name": "White",
+        "color": "#2563EB",
+        "rating": 69.8,
+        "slope": 124,
+        "totalYardage": 6072
+      },
+      {
+        "id": "yrx5zm70-tee-2",
+        "name": "Red",
+        "color": "#2563EB",
+        "rating": 67.9,
+        "slope": 119,
+        "totalYardage": 5678
+      },
+      {
+        "id": "yrx5zm70-tee-3",
+        "name": "Silver",
+        "color": "#2563EB",
+        "rating": 64.1,
+        "slope": 101,
+        "totalYardage": 4748
+      },
+      {
+        "id": "yrx5zm70-tee-4",
+        "name": "White",
+        "color": "#2563EB",
+        "rating": 75.2,
+        "slope": 135,
+        "totalYardage": 6072
+      },
+      {
+        "id": "yrx5zm70-tee-5",
+        "name": "Red",
+        "color": "#2563EB",
+        "rating": 72.9,
+        "slope": 132,
+        "totalYardage": 5678
+      },
+      {
+        "id": "yrx5zm70-tee-6",
+        "name": "Silver",
+        "color": "#2563EB",
+        "rating": 68.1,
+        "slope": 115,
+        "totalYardage": 4748
+      }
+    ],
+    "holes": [
+      {
+        "number": 1,
+        "par": 4,
+        "yardage": 341,
+        "handicapIndex": 9
+      },
+      {
+        "number": 2,
+        "par": 3,
+        "yardage": 202,
+        "handicapIndex": 5
+      },
+      {
+        "number": 3,
+        "par": 4,
+        "yardage": 293,
+        "handicapIndex": 17
+      },
+      {
+        "number": 4,
+        "par": 4,
+        "yardage": 426,
+        "handicapIndex": 1
+      },
+      {
+        "number": 5,
+        "par": 4,
+        "yardage": 338,
+        "handicapIndex": 15
+      },
+      {
+        "number": 6,
+        "par": 5,
+        "yardage": 528,
+        "handicapIndex": 11
+      },
+      {
+        "number": 7,
+        "par": 3,
+        "yardage": 218,
+        "handicapIndex": 7
+      },
+      {
+        "number": 8,
+        "par": 5,
+        "yardage": 461,
+        "handicapIndex": 13
+      },
+      {
+        "number": 9,
+        "par": 4,
+        "yardage": 339,
+        "handicapIndex": 3
+      },
+      {
+        "number": 10,
+        "par": 4,
+        "yardage": 346,
+        "handicapIndex": 12
+      },
+      {
+        "number": 11,
+        "par": 4,
+        "yardage": 383,
+        "handicapIndex": 10
+      },
+      {
+        "number": 12,
+        "par": 4,
+        "yardage": 368,
+        "handicapIndex": 8
+      },
+      {
+        "number": 13,
+        "par": 5,
+        "yardage": 522,
+        "handicapIndex": 14
+      },
+      {
+        "number": 14,
+        "par": 3,
+        "yardage": 183,
+        "handicapIndex": 6
+      },
+      {
+        "number": 15,
+        "par": 5,
+        "yardage": 502,
+        "handicapIndex": 16
+      },
+      {
+        "number": 16,
+        "par": 4,
+        "yardage": 415,
+        "handicapIndex": 2
+      },
+      {
+        "number": 17,
+        "par": 3,
+        "yardage": 167,
+        "handicapIndex": 18
+      },
+      {
+        "number": 18,
+        "par": 4,
+        "yardage": 385,
+        "handicapIndex": 4
+      }
+    ]
+  },
+  {
+    "id": "sh9s6p0v",
+    "name": "Poplar Creek Gc",
+    "city": "San Mateo",
+    "region": "Other",
+    "notes": "Imported via targeted script on 10/13/2026",
+    "tees": [
+      {
+        "id": "sh9s6p0v-tee-0",
+        "name": "Black",
+        "color": "#2563EB",
+        "rating": 69.7,
+        "slope": 115,
+        "totalYardage": 5988
+      },
+      {
+        "id": "sh9s6p0v-tee-1",
+        "name": "Gold",
+        "color": "#2563EB",
+        "rating": 67.6,
+        "slope": 112,
+        "totalYardage": 5574
+      },
+      {
+        "id": "sh9s6p0v-tee-2",
+        "name": "Silver",
+        "color": "#2563EB",
+        "rating": 65.3,
+        "slope": 109,
+        "totalYardage": 5158
+      },
+      {
+        "id": "sh9s6p0v-tee-3",
+        "name": "Yellow",
+        "color": "#2563EB",
+        "rating": 63.1,
+        "slope": 99,
+        "totalYardage": 4688
+      },
+      {
+        "id": "sh9s6p0v-tee-4",
+        "name": "Gold",
+        "color": "#2563EB",
+        "rating": 72.4,
+        "slope": 121,
+        "totalYardage": 5574
+      },
+      {
+        "id": "sh9s6p0v-tee-5",
+        "name": "Silver",
+        "color": "#2563EB",
+        "rating": 70,
+        "slope": 117,
+        "totalYardage": 5158
+      },
+      {
+        "id": "sh9s6p0v-tee-6",
+        "name": "Yellow",
+        "color": "#2563EB",
+        "rating": 67.3,
+        "slope": 112,
+        "totalYardage": 4688
+      }
+    ],
+    "holes": [
+      {
+        "number": 1,
+        "par": 5,
+        "yardage": 517,
+        "handicapIndex": 11
+      },
+      {
+        "number": 2,
+        "par": 4,
+        "yardage": 414,
+        "handicapIndex": 1
+      },
+      {
+        "number": 3,
+        "par": 3,
+        "yardage": 186,
+        "handicapIndex": 3
+      },
+      {
+        "number": 4,
+        "par": 4,
+        "yardage": 394,
+        "handicapIndex": 5
+      },
+      {
+        "number": 5,
+        "par": 3,
+        "yardage": 173,
+        "handicapIndex": 9
+      },
+      {
+        "number": 6,
+        "par": 4,
+        "yardage": 284,
+        "handicapIndex": 17
+      },
+      {
+        "number": 7,
+        "par": 3,
+        "yardage": 202,
+        "handicapIndex": 7
+      },
+      {
+        "number": 8,
+        "par": 4,
+        "yardage": 289,
+        "handicapIndex": 13
+      },
+      {
+        "number": 9,
+        "par": 5,
+        "yardage": 469,
+        "handicapIndex": 15
+      },
+      {
+        "number": 10,
+        "par": 4,
+        "yardage": 455,
+        "handicapIndex": 2
+      },
+      {
+        "number": 11,
+        "par": 4,
+        "yardage": 318,
+        "handicapIndex": 12
+      },
+      {
+        "number": 12,
+        "par": 3,
+        "yardage": 209,
+        "handicapIndex": 8
+      },
+      {
+        "number": 13,
+        "par": 4,
+        "yardage": 403,
+        "handicapIndex": 6
+      },
+      {
+        "number": 14,
+        "par": 5,
+        "yardage": 537,
+        "handicapIndex": 10
+      },
+      {
+        "number": 15,
+        "par": 3,
+        "yardage": 149,
+        "handicapIndex": 14
+      },
+      {
+        "number": 16,
+        "par": 5,
+        "yardage": 470,
+        "handicapIndex": 16
+      },
+      {
+        "number": 17,
+        "par": 3,
+        "yardage": 137,
+        "handicapIndex": 18
+      },
+      {
+        "number": 18,
+        "par": 4,
+        "yardage": 382,
+        "handicapIndex": 4
+      }
+    ]
+  },
+  {
+    "id": "g4sw91dz",
+    "name": "Deep Cliff Gc",
+    "city": "Cupertino",
+    "region": "Other",
+    "notes": "Imported via targeted script on 10/13/2026",
+    "tees": [
+      {
+        "id": "g4sw91dz-tee-0",
+        "name": "Blue",
+        "color": "#2563EB",
+        "rating": 57.9,
+        "slope": 88,
+        "totalYardage": 3305
+      },
+      {
+        "id": "g4sw91dz-tee-1",
+        "name": "White",
+        "color": "#2563EB",
+        "rating": 57.1,
+        "slope": 87,
+        "totalYardage": 3051
+      },
+      {
+        "id": "g4sw91dz-tee-2",
+        "name": "Red",
+        "color": "#2563EB",
+        "rating": 55.4,
+        "slope": 81,
+        "totalYardage": 2713
+      },
+      {
+        "id": "g4sw91dz-tee-3",
+        "name": "Gold",
+        "color": "#2563EB",
+        "rating": 54.5,
+        "slope": 80,
+        "totalYardage": 2501
+      },
+      {
+        "id": "g4sw91dz-tee-4",
+        "name": "Blue",
+        "color": "#2563EB",
+        "rating": 59.4,
+        "slope": 94,
+        "totalYardage": 3305
+      },
+      {
+        "id": "g4sw91dz-tee-5",
+        "name": "White",
+        "color": "#2563EB",
+        "rating": 58.8,
+        "slope": 92,
+        "totalYardage": 3051
+      },
+      {
+        "id": "g4sw91dz-tee-6",
+        "name": "Red",
+        "color": "#2563EB",
+        "rating": 57.3,
+        "slope": 88,
+        "totalYardage": 2713
+      },
+      {
+        "id": "g4sw91dz-tee-7",
+        "name": "Gold",
+        "color": "#2563EB",
+        "rating": 56.6,
+        "slope": 85,
+        "totalYardage": 2501
+      }
+    ],
+    "holes": [
+      {
+        "number": 1,
+        "par": 4,
+        "yardage": 273,
+        "handicapIndex": 3
+      },
+      {
+        "number": 2,
+        "par": 3,
+        "yardage": 135,
+        "handicapIndex": 11
+      },
+      {
+        "number": 3,
+        "par": 3,
+        "yardage": 121,
+        "handicapIndex": 13
+      },
+      {
+        "number": 4,
+        "par": 3,
+        "yardage": 160,
+        "handicapIndex": 17
+      },
+      {
+        "number": 5,
+        "par": 3,
+        "yardage": 172,
+        "handicapIndex": 9
+      },
+      {
+        "number": 6,
+        "par": 4,
+        "yardage": 226,
+        "handicapIndex": 1
+      },
+      {
+        "number": 7,
+        "par": 3,
+        "yardage": 130,
+        "handicapIndex": 5
+      },
+      {
+        "number": 8,
+        "par": 3,
+        "yardage": 90,
+        "handicapIndex": 15
+      },
+      {
+        "number": 9,
+        "par": 4,
+        "yardage": 258,
+        "handicapIndex": 7
+      },
+      {
+        "number": 10,
+        "par": 3,
+        "yardage": 140,
+        "handicapIndex": 14
+      },
+      {
+        "number": 11,
+        "par": 4,
+        "yardage": 284,
+        "handicapIndex": 2
+      },
+      {
+        "number": 12,
+        "par": 4,
+        "yardage": 282,
+        "handicapIndex": 10
+      },
+      {
+        "number": 13,
+        "par": 3,
+        "yardage": 188,
+        "handicapIndex": 4
+      },
+      {
+        "number": 14,
+        "par": 3,
+        "yardage": 152,
+        "handicapIndex": 12
+      },
+      {
+        "number": 15,
+        "par": 4,
+        "yardage": 281,
+        "handicapIndex": 6
+      },
+      {
+        "number": 16,
+        "par": 3,
+        "yardage": 123,
+        "handicapIndex": 16
+      },
+      {
+        "number": 17,
+        "par": 3,
+        "yardage": 116,
+        "handicapIndex": 18
+      },
+      {
+        "number": 18,
+        "par": 3,
+        "yardage": 174,
+        "handicapIndex": 8
+      }
+    ]
+  },
+  {
+    "id": "zjyvs97v",
+    "name": "Los Lagos",
+    "city": "Costa Mesa",
+    "region": "Other",
+    "notes": "Imported via targeted script on 10/13/2026",
+    "tees": [
+      {
+        "id": "zjyvs97v-tee-0",
+        "name": "Blue",
+        "color": "#2563EB",
+        "rating": 71.3,
+        "slope": 125,
+        "totalYardage": 6573
+      },
+      {
+        "id": "zjyvs97v-tee-1",
+        "name": "Blue/White",
+        "color": "#2563EB",
+        "rating": 70.6,
+        "slope": 123,
+        "totalYardage": 6425
+      },
+      {
+        "id": "zjyvs97v-tee-2",
+        "name": "White",
+        "color": "#2563EB",
+        "rating": 69.7,
+        "slope": 121,
+        "totalYardage": 6238
+      },
+      {
+        "id": "zjyvs97v-tee-3",
+        "name": "Silver",
+        "color": "#2563EB",
+        "rating": 68.2,
+        "slope": 117,
+        "totalYardage": 5925
+      },
+      {
+        "id": "zjyvs97v-tee-4",
+        "name": "Blue",
+        "color": "#2563EB",
+        "rating": 77.5,
+        "slope": 134,
+        "totalYardage": 6573
+      },
+      {
+        "id": "zjyvs97v-tee-5",
+        "name": "White",
+        "color": "#2563EB",
+        "rating": 75.7,
+        "slope": 130,
+        "totalYardage": 6238
+      },
+      {
+        "id": "zjyvs97v-tee-6",
+        "name": "Silver",
+        "color": "#2563EB",
+        "rating": 73.9,
+        "slope": 126,
+        "totalYardage": 5925
+      }
+    ],
+    "holes": [
+      {
+        "number": 1,
+        "par": 5,
+        "yardage": 530,
+        "handicapIndex": 11
+      },
+      {
+        "number": 2,
+        "par": 5,
+        "yardage": 533,
+        "handicapIndex": 5
+      },
+      {
+        "number": 3,
+        "par": 4,
+        "yardage": 412,
+        "handicapIndex": 1
+      },
+      {
+        "number": 4,
+        "par": 3,
+        "yardage": 176,
+        "handicapIndex": 9
+      },
+      {
+        "number": 5,
+        "par": 4,
+        "yardage": 354,
+        "handicapIndex": 13
+      },
+      {
+        "number": 6,
+        "par": 5,
+        "yardage": 544,
+        "handicapIndex": 7
+      },
+      {
+        "number": 7,
+        "par": 3,
+        "yardage": 208,
+        "handicapIndex": 3
+      },
+      {
+        "number": 8,
+        "par": 4,
+        "yardage": 312,
+        "handicapIndex": 17
+      },
+      {
+        "number": 9,
+        "par": 4,
+        "yardage": 348,
+        "handicapIndex": 15
+      },
+      {
+        "number": 10,
+        "par": 4,
+        "yardage": 373,
+        "handicapIndex": 14
+      },
+      {
+        "number": 11,
+        "par": 3,
+        "yardage": 165,
+        "handicapIndex": 12
+      },
+      {
+        "number": 12,
+        "par": 4,
+        "yardage": 359,
+        "handicapIndex": 16
+      },
+      {
+        "number": 13,
+        "par": 4,
+        "yardage": 378,
+        "handicapIndex": 6
+      },
+      {
+        "number": 14,
+        "par": 5,
+        "yardage": 567,
+        "handicapIndex": 4
+      },
+      {
+        "number": 15,
+        "par": 3,
+        "yardage": 194,
+        "handicapIndex": 8
+      },
+      {
+        "number": 16,
+        "par": 4,
+        "yardage": 419,
+        "handicapIndex": 2
+      },
+      {
+        "number": 17,
+        "par": 3,
+        "yardage": 181,
+        "handicapIndex": 10
+      },
+      {
+        "number": 18,
+        "par": 5,
+        "yardage": 520,
+        "handicapIndex": 18
+      }
+    ]
+  },
+  {
+    "id": "tq7659nk",
+    "name": "Tilden Park Gc",
+    "city": "Berkeley",
+    "region": "Other",
+    "notes": "Imported via targeted script on 10/13/2026",
+    "tees": [
+      {
+        "id": "tq7659nk-tee-0",
+        "name": "Blue",
+        "color": "#2563EB",
+        "rating": 71.2,
+        "slope": 125,
+        "totalYardage": 6258
+      },
+      {
+        "id": "tq7659nk-tee-1",
+        "name": "White",
+        "color": "#2563EB",
+        "rating": 69,
+        "slope": 122,
+        "totalYardage": 5764
+      },
+      {
+        "id": "tq7659nk-tee-2",
+        "name": "Red",
+        "color": "#2563EB",
+        "rating": 67.3,
+        "slope": 116,
+        "totalYardage": 5395
+      },
+      {
+        "id": "tq7659nk-tee-3",
+        "name": "Yellow",
+        "color": "#2563EB",
+        "rating": 57.1,
+        "slope": 91,
+        "totalYardage": 3113
+      },
+      {
+        "id": "tq7659nk-tee-4",
+        "name": "Blue",
+        "color": "#2563EB",
+        "rating": 76.2,
+        "slope": 134,
+        "totalYardage": 6258
+      },
+      {
+        "id": "tq7659nk-tee-5",
+        "name": "White",
+        "color": "#2563EB",
+        "rating": 73.5,
+        "slope": 129,
+        "totalYardage": 5764
+      },
+      {
+        "id": "tq7659nk-tee-6",
+        "name": "Red",
+        "color": "#2563EB",
+        "rating": 71.5,
+        "slope": 125,
+        "totalYardage": 5395
+      },
+      {
+        "id": "tq7659nk-tee-7",
+        "name": "Yellow",
+        "color": "#2563EB",
+        "rating": 59.3,
+        "slope": 94,
+        "totalYardage": 3113
+      }
+    ],
+    "holes": [
+      {
+        "number": 1,
+        "par": 4,
+        "yardage": 405,
+        "handicapIndex": 1
+      },
+      {
+        "number": 2,
+        "par": 4,
+        "yardage": 390,
+        "handicapIndex": 7
+      },
+      {
+        "number": 3,
+        "par": 4,
+        "yardage": 465,
+        "handicapIndex": 3
+      },
+      {
+        "number": 4,
+        "par": 3,
+        "yardage": 145,
+        "handicapIndex": 11
+      },
+      {
+        "number": 5,
+        "par": 4,
+        "yardage": 362,
+        "handicapIndex": 9
+      },
+      {
+        "number": 6,
+        "par": 4,
+        "yardage": 310,
+        "handicapIndex": 17
+      },
+      {
+        "number": 7,
+        "par": 3,
+        "yardage": 214,
+        "handicapIndex": 5
+      },
+      {
+        "number": 8,
+        "par": 5,
+        "yardage": 485,
+        "handicapIndex": 13
+      },
+      {
+        "number": 9,
+        "par": 4,
+        "yardage": 333,
+        "handicapIndex": 15
+      },
+      {
+        "number": 10,
+        "par": 4,
+        "yardage": 394,
+        "handicapIndex": 10
+      },
+      {
+        "number": 11,
+        "par": 3,
+        "yardage": 233,
+        "handicapIndex": 6
+      },
+      {
+        "number": 12,
+        "par": 4,
+        "yardage": 344,
+        "handicapIndex": 2
+      },
+      {
+        "number": 13,
+        "par": 5,
+        "yardage": 509,
+        "handicapIndex": 16
+      },
+      {
+        "number": 14,
+        "par": 4,
+        "yardage": 349,
+        "handicapIndex": 14
+      },
+      {
+        "number": 15,
+        "par": 4,
+        "yardage": 326,
+        "handicapIndex": 18
+      },
+      {
+        "number": 16,
+        "par": 3,
+        "yardage": 208,
+        "handicapIndex": 8
+      },
+      {
+        "number": 17,
+        "par": 4,
+        "yardage": 392,
+        "handicapIndex": 4
+      },
+      {
+        "number": 18,
+        "par": 4,
+        "yardage": 394,
+        "handicapIndex": 12
+      }
+    ]
+  },
+  {
+    "id": "xt716xwt",
+    "name": "Mission Hills Gc",
+    "city": "Hayward",
+    "region": "Other",
+    "notes": "Imported via targeted script on 10/13/2026",
+    "tees": [
+      {
+        "id": "xt716xwt-tee-0",
+        "name": "White",
+        "color": "#2563EB",
+        "rating": 56.8,
+        "slope": 85,
+        "totalYardage": 3184
+      },
+      {
+        "id": "xt716xwt-tee-1",
+        "name": "Red",
+        "color": "#2563EB",
+        "rating": 54.4,
+        "slope": 82,
+        "totalYardage": 2642
+      },
+      {
+        "id": "xt716xwt-tee-2",
+        "name": "White",
+        "color": "#2563EB",
+        "rating": 58.6,
+        "slope": 89,
+        "totalYardage": 3184
+      },
+      {
+        "id": "xt716xwt-tee-3",
+        "name": "Red",
+        "color": "#2563EB",
+        "rating": 56.6,
+        "slope": 84,
+        "totalYardage": 2642
+      }
+    ],
+    "holes": [
+      {
+        "number": 1,
+        "par": 3,
+        "yardage": 104,
+        "handicapIndex": 17
+      },
+      {
+        "number": 2,
+        "par": 3,
+        "yardage": 141,
+        "handicapIndex": 9
+      },
+      {
+        "number": 3,
+        "par": 4,
+        "yardage": 343,
+        "handicapIndex": 1
+      },
+      {
+        "number": 4,
+        "par": 3,
+        "yardage": 88,
+        "handicapIndex": 15
+      },
+      {
+        "number": 5,
+        "par": 3,
+        "yardage": 130,
+        "handicapIndex": 7
+      },
+      {
+        "number": 6,
+        "par": 4,
+        "yardage": 314,
+        "handicapIndex": 3
+      },
+      {
+        "number": 7,
+        "par": 3,
+        "yardage": 113,
+        "handicapIndex": 11
+      },
+      {
+        "number": 8,
+        "par": 4,
+        "yardage": 242,
+        "handicapIndex": 5
+      },
+      {
+        "number": 9,
+        "par": 3,
+        "yardage": 117,
+        "handicapIndex": 13
+      },
+      {
+        "number": 10,
+        "par": 3,
+        "yardage": 104,
+        "handicapIndex": 18
+      },
+      {
+        "number": 11,
+        "par": 3,
+        "yardage": 141,
+        "handicapIndex": 10
+      },
+      {
+        "number": 12,
+        "par": 4,
+        "yardage": 343,
+        "handicapIndex": 2
+      },
+      {
+        "number": 13,
+        "par": 3,
+        "yardage": 88,
+        "handicapIndex": 16
+      },
+      {
+        "number": 14,
+        "par": 3,
+        "yardage": 130,
+        "handicapIndex": 8
+      },
+      {
+        "number": 15,
+        "par": 4,
+        "yardage": 314,
+        "handicapIndex": 4
+      },
+      {
+        "number": 16,
+        "par": 3,
+        "yardage": 113,
+        "handicapIndex": 12
+      },
+      {
+        "number": 17,
+        "par": 4,
+        "yardage": 242,
+        "handicapIndex": 6
+      },
+      {
+        "number": 18,
+        "par": 3,
+        "yardage": 117,
+        "handicapIndex": 14
+      }
+    ]
+  }
+]

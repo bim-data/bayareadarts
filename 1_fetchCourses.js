@@ -5,14 +5,12 @@ const API_KEY = 'YWVWXINIAUWWFIZ6NTKQOHOUNE'; // Paste your fresh API key here
 
 // ⚠️ MAX 17 COURSES PER RUN (2 API calls used per course)
 const TARGET_COURSES = [
-  "San Ramon Golf Club",
-  "Redwood Canyon",
-  "Shoreline Golf Links",
-  "Canyon Lakes Golf Course",
-  "Poplar Creek Golf Course",
-  "Deep Cliff Golf Course",
-  "Los Lagos Golf Course",
-  "Tilden Park Golf Course",
+  "San Ramon",
+  "Poplar Creek",
+  "Deep Cliff",
+  "Los Lagos",
+  "Tilden Park",
+  "Mission Hills",
   // Add up to 9 more here...
 ];
 
