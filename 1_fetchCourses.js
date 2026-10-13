@@ -24,6 +24,14 @@ const fetchOptions = {
   }
 };
 
+// Helper function to create clean IDs (e.g., "Tilden Park Golf Course" -> "tilden-park")
+function createSlug(name) {
+  return name.toLowerCase()
+    .replace(/\s+(golf|course|club|country|links)\b/gi, '') // Strip common words
+    .replace(/[^a-z0-9]+/g, '-') // Replace spaces/special chars with hyphens
+    .replace(/(^-|-$)/g, ''); // Remove leading/trailing hyphens
+}
+
 async function runFetch() {
   console.log(`Starting targeted import for ${TARGET_COURSES.length} courses...`);
   const coursesToSave = [];
@@ -48,7 +56,8 @@ async function runFetch() {
         continue;
       }
 
-      console.log(`📥 Found match: ${firstResult.course_name || firstResult.club_name}. Fetching details...`);
+      const rawName = firstResult.course_name || firstResult.club_name || 'Unknown Course';
+      console.log(`📥 Found match: ${rawName}. Fetching details...`);
 
       const detailsUrl = `${DIRECT_URL}/courses/${firstResult.id}`;
       const detailsRes = await fetch(detailsUrl, fetchOptions);
@@ -61,10 +70,16 @@ async function runFetch() {
       const detailsData = await detailsRes.json();
       const rawCourse = detailsData.course || detailsData;
 
-      // Extract Tees
+      const cleanName = rawCourse.course_name || rawCourse.club_name || 'Unknown Course';
+      const city = rawCourse.location?.city || 'Bay Area';
+      
+      // Generate the clean slug ID
+      const customId = createSlug(cleanName);
+
+      // Extract Tees (using the new customId for tee IDs)
       const rawTees = [...(rawCourse.tees?.male || []), ...(rawCourse.tees?.female || [])];
       const mappedTees = rawTees.map((t, idx) => ({
-        id: `${firstResult.id}-tee-${idx}`,
+        id: `${customId}-tee-${idx}`,
         name: t.tee_name || 'Standard',
         color: '#2563EB',
         rating: Number(t.course_rating) || 72.0,
@@ -83,21 +98,18 @@ async function runFetch() {
           }))
         : Array.from({ length: 18 }, (_, i) => ({ number: i + 1, par: 4, yardage: 380, handicapIndex: i + 1 }));
 
-      const cleanName = rawCourse.course_name || rawCourse.club_name || 'Unknown Course';
-      const city = rawCourse.location?.city || 'Bay Area';
-
       const formattedCourse = {
-        id: String(firstResult.id),
+        id: customId,
         name: cleanName,
         city: city,
         region: 'Other', 
         notes: `Imported via targeted script on ${new Date().toLocaleDateString()}`,
-        tees: mappedTees.length > 0 ? mappedTees : [{ id: `${firstResult.id}-default`, name: 'Main', color: '#2563EB', rating: 72, slope: 113, totalYardage: 6200 }],
+        tees: mappedTees.length > 0 ? mappedTees : [{ id: `${customId}-default`, name: 'Main', color: '#2563EB', rating: 72, slope: 113, totalYardage: 6200 }],
         holes: mappedHoles,
       };
 
       coursesToSave.push(formattedCourse);
-      console.log(`✅ Successfully queued ${cleanName}`);
+      console.log(`✅ Successfully queued ${cleanName} as "${customId}"`);
 
       // Pause for 1.5 seconds to avoid tripping rate limiters
       await new Promise(resolve => setTimeout(resolve, 1500));
