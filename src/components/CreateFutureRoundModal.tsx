@@ -11,8 +11,9 @@ interface CreateFutureRoundModalProps {
   courses: Course[];
   members: MemberProfile[];
   activeUserId?: string;
-  onCourseAdded?: (newCourse: Course) => void;
-  onCreateFutureRound: (futureRound: Partial<FutureRound>) => void;
+  initialSelectedCourseId?: string; // Add this
+  onCourseAdded?: (course: Course) => void;
+  onCreateFutureRound: (roundData: Partial<FutureRound>) => void;
 }
 
 export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
@@ -57,6 +58,13 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
       setSelectedTeeId(findWhiteOrEquivalentTee(selectedCourse));
     }
   }, [courseId]);
+
+  // Set the course from the directory if provided
+  useEffect(() => {
+    if (isOpen && initialSelectedCourseId) {
+      setCourseId(initialSelectedCourseId);
+    }
+  }, [isOpen, initialSelectedCourseId]);
 
   // Set active user on open
   useEffect(() => {
