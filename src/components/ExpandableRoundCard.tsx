@@ -16,7 +16,24 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
 
   const handleStartEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setEditScores(round.holeScores || {});
+    
+    // Generate a full 18-hole scorecard if they are converting a Quick Total round
+    let startingScores: Record<number, HoleScore> = {};
+    if (round.holeScores) {
+      startingScores = JSON.parse(JSON.stringify(round.holeScores));
+    }
+    
+    if (Object.keys(startingScores).length < 18) {
+      const course = courses.find(c => c.id === round.courseId);
+      for (let i = 1; i <= 18; i++) {
+        if (!startingScores[i]) {
+          const par = course?.holes?.find(h => h.number === i)?.par || 4;
+          startingScores[i] = { strokes: par, putts: 2, fir: par === 3 ? 'none' : 'hit', gir: true };
+        }
+      }
+    }
+    
+    setEditScores(startingScores);
     setIsEditing(true);
     setIsExpanded(true);
   };
@@ -36,46 +53,43 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
   const handleSaveEdit = () => {
     if (!onUpdatePastRound) return;
     
-    // Find the course to recalculate differential
     const course = courses.find(c => c.id === round.courseId);
-    const tee = course?.tees.find(t => t.id === round.teeId);
+    const tee = course?.tees?.find(t => t.id === round.teeId);
     const rating = tee?.rating || 72;
     const slope = tee?.slope || 113;
 
     let gross = 0; let putts = 0; let firHits = 0; let firEligible = 0; let girHits = 0;
-    const finalScores = Object.keys(editScores).length > 0 ? editScores : round.holeScores;
 
-    if (finalScores) {
-      Object.entries(finalScores).forEach(([h, score]) => {
-        gross += (score.strokes || 4);
-        putts += (score.putts || 2);
-        if (score.fir !== 'none') {
-          firEligible++;
-          if (score.fir === 'hit') firHits++;
-        }
-        if (score.gir) girHits++;
-      });
-    } else {
-      gross = round.grossScore;
-      putts = round.totalPutts || 36;
-    }
+    Object.entries(editScores).forEach(([_, score]) => {
+      gross += (score.strokes || 4);
+      putts += (score.putts || 2);
+      if (score.fir !== 'none') {
+        firEligible++;
+        if (score.fir === 'hit') firHits++;
+      }
+      if (score.gir) girHits++;
+    });
 
     const firPercent = firEligible > 0 ? Math.round((firHits / firEligible) * 100) : 50;
     const girPercent = Math.round((girHits / 18) * 100);
-    const courseHandicap = Math.round(member.handicapIndex * (slope / 113) + (rating - 72));
+    const courseHandicap = Math.round((member.handicapIndex || 0) * (slope / 113) + (rating - 72));
     const netScore = gross - courseHandicap;
     const differential = Number((((gross - rating) * 113) / slope).toFixed(1));
 
-    onUpdatePastRound(round.id, {
-      holeScores: finalScores,
+    // Deep clean the data to remove any hidden undefined values that crash Firebase
+    const rawPayload = {
+      holeScores: editScores,
       grossScore: gross,
-      netScore,
-      differential,
+      netScore: netScore,
+      differential: differential,
       totalPutts: putts,
-      firPercent,
-      girPercent
-    });
+      firPercent: firPercent,
+      girPercent: girPercent
+    };
+    
+    const cleanPayload = JSON.parse(JSON.stringify(rawPayload));
 
+    onUpdatePastRound(round.id, cleanPayload);
     setIsEditing(false);
   };
 
