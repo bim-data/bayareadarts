@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Star } from 'lucide-react';
 import { MemberProfile, CompletedRoundRecord, TeamEventRecord } from '../types';
+import { ExpandableRoundCard } from './ExpandableRoundCard';
 
 interface PlayerHistoryModalProps {
   isOpen: boolean;
@@ -10,6 +11,8 @@ interface PlayerHistoryModalProps {
   teamEvents?: TeamEventRecord[];
   activeUserId?: string;
   onOpenEditProfile?: () => void;
+  courses: Course[];
+  onUpdatePastRound?: (roundId: string, data: Partial<CompletedRoundRecord>) => void;
 }
 
 export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
@@ -20,6 +23,8 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
   teamEvents = [],
   activeUserId,
   onOpenEditProfile,
+  courses,
+  onUpdatePastRound,
 }) => {
   const [activeTab, setActiveTab] = useState<'differentials' | 'rounds' | 'scrambles'>('differentials');
 
@@ -151,36 +156,26 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
             </div>
           )}
 
-          {activeTab === 'rounds' && (
-            <div className="space-y-3">
-              <div className="card-modern rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
-                {playerRounds.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-slate-400">No individual round cards saved yet for this player.</div>
-                ) : (
-                  playerRounds.map((r) => (
-                    <div key={r.id} className="p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100">{r.courseName} ({r.teeName})</span>
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-stats font-bold text-sm text-slate-900 dark:text-slate-100">{r.grossScore} Gross</span>
-                          <span className="text-xs text-slate-400 font-stats">({r.netScore} Net)</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        <span>{r.date} · {r.format.toUpperCase()}</span>
-                        <div className="flex items-center gap-2 font-stats">
-                          <span>Putts: {r.totalPutts}</span>
-                          <span>·</span>
-                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Diff: {r.differential}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+         {activeTab === 'rounds' && (
+            <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+              {playerRounds.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800">
+                  No individual round cards saved yet for this player.
+                </div>
+              ) : (
+                playerRounds.map((r) => (
+                  <ExpandableRoundCard
+                    key={r.id}
+                    round={r}
+                    member={member}
+                    courses={courses}
+                    onUpdatePastRound={onUpdatePastRound}
+                  />
+                ))
+              )}
             </div>
           )}
-
+          
           {activeTab === 'scrambles' && (
             <div className="space-y-3">
               <div className="card-modern rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
