@@ -22,6 +22,7 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
   courses,
   members,
   activeUserId,
+  initialSelectedCourseId,
   onCourseAdded,
   onCreateFutureRound,
 }) => {
