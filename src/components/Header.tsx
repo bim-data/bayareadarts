@@ -98,8 +98,14 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="px-1.5 py-0.2 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-mono text-[10px] font-bold">{activeUser.handicapIndex.toFixed(1)}</span>
                 <ChevronDown className="w-3 h-3 text-slate-400" />
               </button>
-              <button onClick={onLogout} title="Log Out" className="p-2 rounded-xl text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer">
+              
+              <button 
+                onClick={onLogout} 
+                title="Log Out" 
+                className="btn-modern px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 transition-colors"
+              >
                 <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Log Out</span>
               </button>
             </div>
           ) : (
