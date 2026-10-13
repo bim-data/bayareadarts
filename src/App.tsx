@@ -512,7 +512,7 @@ export default function App() {
         activeUserId={activeUserId}
         onOpenEditProfile={() => handleOpenClubhouseHub('profiles')}
         courses={courses}
-        onUpdatePastRound={handleUpdatePastRound
+        onUpdatePastRound={handleUpdatePastRound}
       />
 
       <TeamHistoryModal
