@@ -2,7 +2,6 @@ import React from 'react';
 import { dartsLogo } from '../assets';
 import { 
   Plus, 
-  Users, 
   Camera, 
   Sun, 
   Moon,
@@ -21,7 +20,6 @@ interface HeaderProps {
   darkMode: boolean;
   onToggleDarkMode: () => void;
   onOpenNewRound: () => void;
-  onOpenJoinRoom: () => void;
   onOpenOcr: () => void;
   onOpenEditNickname: () => void;
   onOpenProfile: () => void;
@@ -38,7 +36,6 @@ export const Header: React.FC<HeaderProps> = ({
   darkMode,
   onToggleDarkMode,
   onOpenNewRound,
-  onOpenJoinRoom,
   onOpenOcr,
   onOpenProfile,
   onOpenLogin,
@@ -125,11 +122,6 @@ export const Header: React.FC<HeaderProps> = ({
           <button onClick={onOpenOcr} className="hidden md:flex btn-modern px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 items-center gap-1.5 cursor-pointer">
             <Camera className="w-4 h-4 text-red-500" />
             <span>Scan Card</span>
-          </button>
-
-          <button onClick={onOpenJoinRoom} className="hidden sm:flex btn-modern px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 items-center gap-1.5 cursor-pointer">
-            <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span>Join PIN</span>
           </button>
 
           <button onClick={onOpenNewRound} className="btn-modern px-2.5 sm:px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0">
