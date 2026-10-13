@@ -1,455 +1,541 @@
-import React, { useState } from 'react';
-import { Course, TeeBox, HoleInfo } from '../types';
-import { Search, Plus, MapPin, Flag, Check, X, Globe, Download, Loader2 } from 'lucide-react';
-import { searchExternalCourses, fetchExternalCourseDetails, ApiSearchResult } from '../services/golfCourseApi';
+import React, { useState, useEffect, useRef } from 'react';
+import { Header } from './components/Header';
+import { ClubhouseDashboard } from './components/ClubhouseDashboard';
+import { LiveRoundScorer } from './components/LiveRoundScorer';
+import { FormatScorecardModal } from './components/FormatScorecardModal';
+import { LeaderboardModal } from './components/LeaderboardModal';
+import { ScorecardOcrModal } from './components/ScorecardOcrModal';
+import { NewRoundModal } from './components/NewRoundModal';
+import { JoinRoomModal } from './components/JoinRoomModal';
+import { CourseLibraryModal } from './components/CourseLibraryModal';
+import { HandicapLeaderboardModal } from './components/HandicapLeaderboardModal';
+import { TeamEventsModal } from './components/TeamEventsModal';
+import { ClubLogoCustomizer } from './components/ClubLogoCustomizer';
+import { CreateFutureRoundModal } from './components/CreateFutureRoundModal';
+import { EditNicknameModal } from './components/EditNicknameModal';
+import { PlayerHistoryModal } from './components/PlayerHistoryModal';
+import { TeamHistoryModal } from './components/TeamHistoryModal';
+import { UserProfileModal } from './components/UserProfileModal';
+import { ScrambleTeamManagerModal } from './components/ScrambleTeamManagerModal';
+import { ClubhouseHubModal } from './components/ClubhouseHubModal';
+import { AuthScreen } from './components/AuthScreen'; 
+import { useAuth } from './contexts/AuthContext';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from './firebase';
+import { X } from 'lucide-react';
+import { getAuth, signOut } from 'firebase/auth';
 
-interface CourseLibraryModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  courses: Course[];
-  onAddCourse: (course: Course) => Promise<void>;
-}
+import { subscribeToCollection, addRecord, updateRecord, deleteRecord } from './services/db';
 
-export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
-  isOpen,
-  onClose,
-  courses,
-  onAddCourse,
-}) => {
-  const [activeTab, setActiveTab] = useState<'local' | 'api' | 'manual'>('local');
-  const [searchTerm, setSearchTerm] = useState('');
+import { 
+  Course, 
+  MemberProfile, 
+  CompletedRoundRecord, 
+  TeamEventRecord, 
+  RoundSession, 
+  HoleScore,
+  FutureRound,
+  TeamGroup
+} from './types';
+
+export default function App() {
+  const [currentTab, setCurrentTab] = useState<'clubhouse' | 'live' | 'rankings' | 'courses' | 'events' | 'future'>('clubhouse');
   
-  // API State
-  const [apiQuery, setApiQuery] = useState('');
-  const [apiResults, setApiResults] = useState<ApiSearchResult[]>([]);
-  const [searchingApi, setSearchingApi] = useState(false);
-  const [importingId, setImportingId] = useState<string | null>(null);
-  const [apiError, setApiError] = useState('');
+  const { currentUser, memberProfile, loading: authLoading } = useAuth();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // Manual Add State
-  const [saving, setSaving] = useState(false);
-  const [name, setName] = useState('');
-  const [city, setCity] = useState('');
-  const [region, setRegion] = useState<'SF' | 'East Bay' | 'Peninsula' | 'North Bay' | 'South Bay' | 'Other'>('South Bay');
-  const [notes, setNotes] = useState('');
-  const [teeName, setTeeName] = useState('Blue');
-  const [teeColor, setTeeColor] = useState('#2563EB');
-  const [rating, setRating] = useState(72.0);
-  const [slope, setSlope] = useState(113);
+  useEffect(() => {
+    if (currentUser) setIsAuthModalOpen(false);
+  }, [currentUser]);
 
-  if (!isOpen) return null;
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('bad_dark_mode');
+    if (saved !== null) return saved === 'true';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
 
-  // Filter existing courses already in Firestore
-  const filteredLocalCourses = courses.filter((c) =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.region.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Trigger API search
-  const handleApiSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!apiQuery.trim()) return;
-
-    setSearchingApi(true);
-    setApiError('');
-    try {
-      const results = await searchExternalCourses(apiQuery);
-      setApiResults(results);
-      if (results.length === 0) setApiError('No matching courses found in GolfCourseAPI directory.');
-    } catch (err: any) {
-      setApiError(err.message || 'Failed to search GolfCourseAPI.');
-    } finally {
-      setSearchingApi(false);
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
+    localStorage.setItem('bad_dark_mode', String(darkMode));
+  }, [darkMode]);
+
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [members, setMembers] = useState<MemberProfile[]>([]);
+  const [completedRounds, setCompletedRounds] = useState<CompletedRoundRecord[]>([]);
+  const [teamEvents, setTeamEvents] = useState<TeamEventRecord[]>([]);
+  const [futureRounds, setFutureRounds] = useState<FutureRound[]>([]);
+  const [teams, setTeams] = useState<TeamGroup[]>([]);
+  const [activeSession, setActiveSession] = useState<RoundSession | null>(null);
+
+  useEffect(() => {
+    const unsubCourses = subscribeToCollection<Course>('courses', setCourses);
+    const unsubMembers = subscribeToCollection<MemberProfile>('members', setMembers);
+    const unsubRounds = subscribeToCollection<CompletedRoundRecord>('rounds', setCompletedRounds);
+    const unsubEvents = subscribeToCollection<TeamEventRecord>('events', setTeamEvents);
+    const unsubFuture = subscribeToCollection<FutureRound>('future_rounds', setFutureRounds);
+    const unsubTeams = subscribeToCollection<TeamGroup>('teams', setTeams);
+
+    return () => {
+      unsubCourses();
+      unsubMembers();
+      unsubRounds();
+      unsubEvents();
+      unsubFuture();
+      unsubTeams();
+    };
+  }, []);
+
+  const activeUserId = currentUser?.uid || '';
+  const activeUser = memberProfile || members.find(m => m.id === activeUserId);
+
+  const [isClubhouseHubOpen, setIsClubhouseHubOpen] = useState(false);
+  const [clubhouseHubInitialTab, setClubhouseHubInitialTab] = useState<'profiles' | 'teams'>('profiles');
+  const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
+  const [isNewRoundOpen, setIsNewRoundOpen] = useState(false);
+  const [preselectedTeamId, setPreselectedTeamId] = useState<string | undefined>(undefined);
+  const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
+  const [isJoinRoomOpen, setIsJoinRoomOpen] = useState(false);
+  const [isOcrOpen, setIsOcrOpen] = useState(false);
+  const [isScorecardMatrixOpen, setIsScorecardMatrixOpen] = useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [isCourseLibraryOpen, setIsCourseLibraryOpen] = useState(false);
+  const [isHandicapOpen, setIsHandicapOpen] = useState(false);
+  const [isTeamEventsOpen, setIsTeamEventsOpen] = useState(false);
+  const [isBadgeCustomizerOpen, setIsBadgeCustomizerOpen] = useState(false);
+  const [isCreateFutureRoundOpen, setIsCreateFutureRoundOpen] = useState(false);
+  const [isEditNicknameOpen, setIsEditNicknameOpen] = useState(false);
+
+  const [selectedMemberForHistory, setSelectedMemberForHistory] = useState<MemberProfile | null>(null);
+  const [isPlayerHistoryOpen, setIsPlayerHistoryOpen] = useState(false);
+  const [selectedTeamEventForHistory, setSelectedTeamEventForHistory] = useState<TeamEventRecord | null>(null);
+  const [selectedTeamNameForHistory, setSelectedTeamNameForHistory] = useState<string | null>(null);
+  const [isTeamHistoryOpen, setIsTeamHistoryOpen] = useState(false);
+
+  const handleOpenClubhouseHub = (tab: 'profiles' | 'teams' = 'profiles') => {
+    setClubhouseHubInitialTab(tab);
+    setIsClubhouseHubOpen(true);
   };
 
-  // Import course from API directly into Firestore
-  const handleImportApiCourse = async (apiCourseId: string) => {
-    setImportingId(apiCourseId);
-    setApiError('');
-    try {
-      const fullCourseData = await fetchExternalCourseDetails(apiCourseId);
-      await onAddCourse(fullCourseData);
-      
-      // Reset view to local list so user sees their new course
-      setActiveTab('local');
-      setSearchTerm(fullCourseData.name);
-    } catch (err: any) {
-      setApiError(err.message || 'Error importing course details.');
-    } finally {
-      setImportingId(null);
-    }
+  const handleUpdateProfile = async (updatedProfile: MemberProfile) => {
+    if (!updatedProfile.id) return;
+    await updateRecord('members', updatedProfile.id, updatedProfile);
   };
 
-  const handleCreateManualCourse = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !city) return;
+  const handleAddNewMember = async (newMember: MemberProfile) => {
+    await addRecord('members', newMember);
+  };
 
-    setSaving(true);
-    const courseId = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
-
-    const defaultHoles: HoleInfo[] = Array.from({ length: 18 }, (_, i) => {
-      const num = i + 1;
-      const par = [3, 7, 12, 16].includes(num) ? 3 : [5, 9, 14, 18].includes(num) ? 5 : 4;
-      return {
-        number: num,
-        par,
-        yardage: par === 3 ? 165 : par === 5 ? 510 : 380,
-        handicapIndex: num,
+  const handleTeamCreated = async (newTeam: TeamGroup) => {
+    try {
+      const teamId = newTeam.id || `team-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      const teamToSave = {
+        ...newTeam,
+        id: teamId,
+        notes: newTeam.notes || '',
+        createdAt: Date.now()
       };
-    });
-
-    const defaultTee: TeeBox = {
-      id: `${courseId}-default`,
-      name: teeName,
-      color: teeColor,
-      rating: Number(rating),
-      slope: Number(slope),
-      totalYardage: defaultHoles.reduce((acc, h) => acc + h.yardage, 0),
-    };
-
-    const newCourse: Course = {
-      id: courseId,
-      name,
-      city,
-      region,
-      notes: notes || 'Custom user course.',
-      tees: [defaultTee],
-      holes: defaultHoles,
-    };
-
-    try {
-      await onAddCourse(newCourse);
-      setActiveTab('local');
-      setSearchTerm(name);
-      setName('');
-      setCity('');
-      setNotes('');
+      const cleanTeamToSave = Object.fromEntries(
+        Object.entries(teamToSave).filter(([_, v]) => v !== undefined)
+      );
+      await setDoc(doc(db, 'teams', teamId), cleanTeamToSave);
     } catch (err) {
-      console.error('Failed to add course manually', err);
-    } finally {
-      setSaving(false);
+      console.error("Error saving team to Firebase:", err);
     }
   };
+
+  const handleTeamUpdated = async (updatedTeam: TeamGroup) => {
+    if (!updatedTeam.id) return;
+    await updateRecord('teams', updatedTeam.id, updatedTeam);
+  };
+
+  const handleTeamDeleted = async (teamId: string) => {
+    await deleteRecord('teams', teamId);
+  };
+
+  const handleAddCourse = async (course: Course) => {
+    await addRecord('courses', course);
+  };
+
+  const handleSaveMemberNickname = async (memberId: string, nickname: string, avatarEmoji: string, badgeTitle: string) => {
+    await updateRecord('members', memberId, { nickname, avatarEmoji, badgeTitle });
+  };
+
+  const handleCreateFutureRound = async (futureRoundData: Partial<FutureRound>) => {
+    const newRound = {
+      ...futureRoundData,
+      id: `future-${Date.now()}`,
+      status: futureRoundData.status || 'placeholder',
+      registeredPlayerIds: futureRoundData.registeredPlayerIds || [],
+    };
+    await addRecord('future_rounds', newRound);
+  };
+
+  const handleRsvpPlayer = async (futureRoundId: string, memberId: string, action: 'join' | 'leave') => {
+    const round = futureRounds.find(r => r.id === futureRoundId);
+    if (!round) return;
+
+    let updatedIds = [...round.registeredPlayerIds];
+    if (action === 'join' && !updatedIds.includes(memberId)) {
+      updatedIds.push(memberId);
+    } else if (action === 'leave') {
+      updatedIds = updatedIds.filter(id => id !== memberId);
+    }
+    await updateRecord('future_rounds', futureRoundId, { registeredPlayerIds: updatedIds });
+  };
+
+  const handleDeleteFutureRound = async (futureRoundId: string) => {
+    await deleteRecord('future_rounds', futureRoundId);
+  };
+
+  const handleSaveIndividualRound = async (roundData: any) => {
+    await addRecord('rounds', roundData);
+  };
+
+  const handleSaveTeamEvent = async (eventData: any) => {
+    await addRecord('events', eventData);
+  };
+
+  useEffect(() => {
+    const saved = localStorage.getItem('bad_active_session');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.status === 'active') setActiveSession(parsed);
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeSession) {
+      localStorage.setItem('bad_active_session', JSON.stringify(activeSession));
+    } else {
+      localStorage.removeItem('bad_active_session');
+    }
+  }, [activeSession]);
+
+  const handleCreateSession = async (partialData: Partial<RoundSession>) => {
+    const roomCode = `DART-${Math.floor(10 + Math.random() * 90)}`;
+    const newSession: RoundSession = {
+      id: `sess-${Date.now()}`,
+      roomCode,
+      courseId: partialData.courseId || courses[0]?.id || '',
+      courseName: partialData.courseName || courses[0]?.name || '',
+      teeId: partialData.teeId || '',
+      teeName: partialData.teeName || '',
+      rating: partialData.rating || 72,
+      slope: partialData.slope || 113,
+      date: partialData.date || new Date().toISOString().split('T')[0],
+      format: partialData.format || 'stroke',
+      isTeamRound: partialData.format === 'scramble' || partialData.format === 'best_ball',
+      status: 'active',
+      players: partialData.players || [],
+      updatedAt: Date.now(),
+    };
+    setActiveSession(newSession);
+    setCurrentTab('live');
+  };
+
+  const handleUpdateScore = async (playerId: string, holeNumber: number, score: HoleScore) => {
+    if (!activeSession) return;
+    const updatedPlayers = activeSession.players.map((p) => {
+      if (p.playerId === playerId) {
+        return { ...p, scores: { ...p.scores, [holeNumber]: score } };
+      }
+      return p;
+    });
+    setActiveSession({ ...activeSession, players: updatedPlayers, updatedAt: Date.now() });
+  };
+
+  const handleFinishRound = async () => {
+    setActiveSession(null);
+    setCurrentTab('clubhouse');
+  };
+
+  const handleJoinRoom = async (_roomCode: string, _playerName: string, _handicapIndex: number, _memberId?: string) => { return false; };
+  const handleStartFutureRound = async (_futureRoundId: string) => {};
+  const handleManualRoundLogged = (_data: Record<string, string | number | boolean | object | undefined>) => {};
+
+  const handleOpenMemberHistory = (member: MemberProfile) => {
+    setSelectedMemberForHistory(member);
+    setIsPlayerHistoryOpen(true);
+  };
+
+  const handleOpenTeamHistory = (event: TeamEventRecord, teamName?: string) => {
+    setSelectedTeamEventForHistory(event);
+    setSelectedTeamNameForHistory(teamName || null);
+    setIsTeamHistoryOpen(true);
+  };
+
+  const activeCourse = activeSession
+    ? courses.find((c) => c.id === activeSession.courseId) || courses[0]
+    : courses[0];
+
+  if (authLoading) return <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-emerald-500 font-bold">Loading Clubhouse...</div>;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-      <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl relative my-8">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-4">
-          <div>
-            <h2 className="font-heading font-extrabold text-xl text-slate-900 dark:text-white flex items-center gap-2">
-              <Flag className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-              <span>Course Directory & API Importer</span>
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Browse saved courses or fetch new ones via GolfCourseAPI
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
+      <Header
+        currentTab={currentTab}
+        setCurrentTab={(tab) => {
+          if (tab === 'rankings') setIsHandicapOpen(true);
+          else if (tab === 'courses') setIsCourseLibraryOpen(true);
+          else if (tab === 'events') setIsTeamEventsOpen(true);
+          else if (tab === 'future') {
+            setCurrentTab('clubhouse');
+            const el = document.getElementById('future-rounds-section');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          } else {
+            setCurrentTab(tab);
+          }
+        }}
+        activeSession={activeSession}
+        activeUser={activeUser}
+        darkMode={darkMode}
+        onToggleDarkMode={() => setDarkMode(!darkMode)}
+        onOpenNewRound={() => {
+          if (!currentUser) return setIsAuthModalOpen(true);
+          setIsNewRoundOpen(true);
+        }}
+        onOpenOcr={() => setIsOcrOpen(true)}
+        onOpenEditNickname={() => setIsEditNicknameOpen(true)}
+        onOpenProfile={() => {
+          if (!currentUser) return setIsAuthModalOpen(true);
+          handleOpenClubhouseHub('profiles');
+        }}
+        onOpenLogin={() => setIsAuthModalOpen(true)}
+        onLogout={async () => {
+          const auth = getAuth();
+          await signOut(auth);
+        }}
+      />
+
+      <main className="flex-1 pb-16">
+        {currentTab === 'clubhouse' && (
+          <ClubhouseDashboard
+            members={members}
+            completedRounds={completedRounds}
+            teamEvents={teamEvents}
+            futureRounds={futureRounds}
+            courses={courses}
+            teams={teams}
+            activeSession={activeSession}
+            activeUser={activeUser}
+            onOpenProfile={() => {
+              if (!currentUser) return setIsAuthModalOpen(true);
+              handleOpenClubhouseHub('profiles');
+            }}
+            onStartRound={() => {
+              if (!currentUser) return setIsAuthModalOpen(true);
+              setIsNewRoundOpen(true);
+            }}
+            onLogPastRound={() => {
+              if (!currentUser) return setIsAuthModalOpen(true);
+              setIsNewRoundOpen(true);
+            }}
+            onOpenTeamManager={() => handleOpenClubhouseHub('teams')}
+            onJoinRoom={() => setIsNewRoundOpen(true)}
+            onScanScorecard={() => setIsOcrOpen(true)}
+            onViewRankings={() => setIsHandicapOpen(true)}
+            onViewCourses={() => setIsCourseLibraryOpen(true)}
+            onResumeLiveRound={() => setCurrentTab('live')}
+            onOpenBadgeCustomizer={() => setIsBadgeCustomizerOpen(true)}
+            onOpenCreateFutureRound={() => setIsCreateFutureRoundOpen(true)}
+            onRsvpPlayer={handleRsvpPlayer}
+            onStartFutureRound={handleStartFutureRound}
+            onDeleteFutureRound={handleDeleteFutureRound}
+            onOpenEditNickname={() => setIsEditNicknameOpen(true)}
+            onSelectMemberForHistory={handleOpenMemberHistory}
+            onSelectTeamForHistory={handleOpenTeamHistory}
+          />
+        )}
+
+        {currentTab === 'live' && activeSession && (
+          <LiveRoundScorer
+            session={activeSession}
+            course={activeCourse}
+            onUpdateScore={handleUpdateScore}
+            onOpenScorecardMatrix={() => setIsScorecardMatrixOpen(true)}
+            onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
+            onFinishRound={handleFinishRound}
+            onExitRound={() => setCurrentTab('clubhouse')}
+          />
+        )}
+      </main>
+
+      <ClubhouseHubModal
+        isOpen={isClubhouseHubOpen}
+        onClose={() => setIsClubhouseHubOpen(false)}
+        initialTab={clubhouseHubInitialTab}
+        members={members}
+        activeUserId={activeUserId}
+        onSelectActiveUser={() => {}}
+        onUpdateProfile={handleUpdateProfile}
+        onAddNewMember={handleAddNewMember}
+        completedRounds={completedRounds}
+        teams={teams}
+        onTeamCreated={handleTeamCreated}
+        onTeamUpdated={handleTeamUpdated}
+        onTeamDeleted={handleTeamDeleted}
+        onSelectTeamForRound={(team) => {
+          setPreselectedTeamId(team.id);
+          setIsNewRoundOpen(true);
+        }}
+      />
+
+      <NewRoundModal
+        isOpen={isNewRoundOpen}
+        onClose={() => {
+          setIsNewRoundOpen(false);
+          setPreselectedTeamId(undefined);
+        }}
+        courses={courses}
+        members={members}
+        teams={teams}
+        activeUserId={activeUserId}
+        initialSelectedTeamId={preselectedTeamId}
+        onCourseAdded={handleAddCourse}
+        onCreateSession={handleCreateSession}
+        onOpenTeamManager={() => handleOpenClubhouseHub('teams')}
+        onManualRoundLogged={handleManualRoundLogged}
+        onJoinRoom={handleJoinRoom}
+      />
+
+      <ScrambleTeamManagerModal
+        isOpen={isTeamManagerOpen}
+        onClose={() => setIsTeamManagerOpen(false)}
+        teams={teams}
+        members={members}
+        onTeamCreated={handleTeamCreated}
+        onTeamUpdated={handleTeamUpdated}
+        onTeamDeleted={handleTeamDeleted}
+        onSelectTeamForRound={(_team) => setIsNewRoundOpen(true)}
+      />
+
+      <JoinRoomModal
+        isOpen={isJoinRoomOpen}
+        onClose={() => setIsJoinRoomOpen(false)}
+        members={members}
+        onJoinRoom={handleJoinRoom}
+      />
+
+      <ScorecardOcrModal
+        isOpen={isOcrOpen}
+        onClose={() => setIsOcrOpen(false)}
+        courses={courses}
+        members={members}
+        onSaveIndividualRound={handleSaveIndividualRound}
+        onSaveTeamEvent={handleSaveTeamEvent}
+      />
+
+      {activeSession && (
+        <>
+          <FormatScorecardModal
+            isOpen={isScorecardMatrixOpen}
+            onClose={() => setIsScorecardMatrixOpen(false)}
+            session={activeSession}
+            course={activeCourse}
+          />
+          <LeaderboardModal
+            isOpen={isLeaderboardOpen}
+            onClose={() => setIsLeaderboardOpen(false)}
+            session={activeSession}
+            course={activeCourse}
+          />
+        </>
+      )}
+
+      <CourseLibraryModal
+        isOpen={isCourseLibraryOpen}
+        onClose={() => setIsCourseLibraryOpen(false)}
+        courses={courses}
+        onAddCourse={handleAddCourse}
+        onPlanFutureRound={(courseId) => {
+          setIsCourseLibraryOpen(false);
+          setIsCreateFutureRoundOpen(true);
+        }}
+      />
+
+      <HandicapLeaderboardModal
+        isOpen={isHandicapOpen}
+        onClose={() => setIsHandicapOpen(false)}
+        members={members}
+        onSelectMemberForHistory={handleOpenMemberHistory}
+      />
+
+      <TeamEventsModal
+        isOpen={isTeamEventsOpen}
+        onClose={() => setIsTeamEventsOpen(false)}
+        events={teamEvents}
+        onSelectTeamForHistory={handleOpenTeamHistory}
+      />
+
+      <PlayerHistoryModal
+        isOpen={isPlayerHistoryOpen}
+        onClose={() => setIsPlayerHistoryOpen(false)}
+        member={selectedMemberForHistory}
+        rounds={completedRounds}
+        teamEvents={teamEvents}
+        activeUserId={activeUserId}
+        onOpenEditProfile={() => handleOpenClubhouseHub('profiles')}
+      />
+
+      <TeamHistoryModal
+        isOpen={isTeamHistoryOpen}
+        onClose={() => setIsTeamHistoryOpen(false)}
+        event={selectedTeamEventForHistory}
+        selectedTeamName={selectedTeamNameForHistory}
+      />
+
+      <ClubLogoCustomizer
+        isOpen={isBadgeCustomizerOpen}
+        onClose={() => setIsBadgeCustomizerOpen(false)}
+        members={members}
+        onUpdateMemberNickname={(id, nick, badge) => handleSaveMemberNickname(id, nick, '🎯', badge)}
+      />
+
+      <CreateFutureRoundModal
+        isOpen={isCreateFutureRoundOpen}
+        onClose={() => setIsCreateFutureRoundOpen(false)}
+        courses={courses}
+        members={members}
+        activeUserId={activeUserId}
+        onCourseAdded={handleAddCourse}
+        onCreateFutureRound={handleCreateFutureRound}
+      />
+
+      <EditNicknameModal
+        isOpen={isEditNicknameOpen}
+        onClose={() => setIsEditNicknameOpen(false)}
+        members={members}
+        onSaveMemberNickname={handleSaveMemberNickname}
+      />
+
+      <UserProfileModal
+        isOpen={isUserProfileOpen}
+        onClose={() => setIsUserProfileOpen(false)}
+        members={members}
+        activeUserId={activeUserId}
+        onSelectActiveUser={() => {}}
+        onUpdateProfile={handleUpdateProfile}
+        onAddNewMember={handleAddNewMember}
+        completedRounds={completedRounds}
+      />
+
+      {(!currentUser && isAuthModalOpen) && (
+        <div className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950 overflow-y-auto">
+          <button 
+            onClick={() => setIsAuthModalOpen(false)} 
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-full text-slate-900 dark:text-white z-50 transition-colors shadow-lg cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-6 h-6" />
           </button>
+          <AuthScreen />
         </div>
-
-        {/* Tab Switcher */}
-        <div className="flex bg-slate-100 dark:bg-slate-800/60 p-1 rounded-2xl mb-6">
-          <button
-            onClick={() => setActiveTab('local')}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
-              activeTab === 'local'
-                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            Saved Courses ({courses.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('api')}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-              activeTab === 'api'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30'
-            }`}
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span>Search GolfCourseAPI</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('manual')}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
-              activeTab === 'manual'
-                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            + Manual Add
-          </button>
-        </div>
-
-        {/* TAB 1: LOCAL FIRESTORE COURSES */}
-        {activeTab === 'local' && (
-          <div className="space-y-4">
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-              <input
-                type="text"
-                placeholder="Filter saved courses..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white"
-              />
-            </div>
-
-            <div className="max-h-96 overflow-y-auto space-y-3 pr-1">
-              {filteredLocalCourses.length === 0 ? (
-                <div className="text-center py-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
-                    No saved courses match "{searchTerm}"
-                  </p>
-                  <button
-                    onClick={() => {
-                      setApiQuery(searchTerm);
-                      setActiveTab('api');
-                    }}
-                    className="mt-3 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 mx-auto"
-                  >
-                    <Globe className="w-3.5 h-3.5" />
-                    <span>Search GolfCourseAPI for "{searchTerm}"</span>
-                  </button>
-                </div>
-              ) : (
-                filteredLocalCourses.map((c) => (
-                  <div
-                    key={c.id}
-                    className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-between gap-4"
-                  >
-                    <div>
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">
-                        {c.name}
-                      </h4>
-                      <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-slate-400" />
-                          {c.city}
-                        </span>
-                        <span>·</span>
-                        <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-semibold text-[10px]">
-                          {c.region}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 block">
-                        {c.tees.length} Tees
-                      </span>
-                      <span className="text-[10px] text-slate-400">
-                        {c.holes.length} Holes
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: GOLFCOURSEAPI SEARCH & IMPORT */}
-        {activeTab === 'api' && (
-          <div className="space-y-4">
-            <form onSubmit={handleApiSearch} className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                <input
-                  type="text"
-                  placeholder="Search 30,000+ courses (e.g., San Ramon Golf Club)..."
-                  value={apiQuery}
-                  onChange={(e) => setApiQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={searchingApi}
-                className="py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50 shrink-0"
-              >
-                {searchingApi ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                <span>Search API</span>
-              </button>
-            </form>
-
-            {apiError && (
-              <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs rounded-xl">
-                {apiError}
-              </div>
-            )}
-
-            <div className="max-h-96 overflow-y-auto space-y-3 pr-1">
-              {apiResults.length === 0 && !searchingApi && (
-                <div className="text-center py-10 text-xs text-slate-400 border border-slate-100 dark:border-slate-800 rounded-2xl">
-                  Search GolfCourseAPI to import official layouts directly into your database.
-                </div>
-              )}
-
-              {apiResults.map((item) => {
-                const isAlreadySaved = courses.some((c) => c.id === item.id);
-                const isImporting = importingId === item.id;
-
-                return (
-                  <div
-                    key={item.id}
-                    className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-between gap-4"
-                  >
-                    <div>
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">
-                        {item.course_name || item.club_name}
-                      </h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        {item.location?.address || `${item.location?.city || ''}, ${item.location?.state || ''}`}
-                      </p>
-                    </div>
-
-                    <div>
-                      {isAlreadySaved ? (
-                        <span className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-xl flex items-center gap-1">
-                          <Check className="w-3.5 h-3.5" /> Saved
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => handleImportApiCourse(item.id)}
-                          disabled={isImporting}
-                          className="py-1.5 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                        >
-                          {isImporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                          <span>{isImporting ? 'Importing...' : 'Import'}</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: MANUAL FORM */}
-        {activeTab === 'manual' && (
-          <form onSubmit={handleCreateManualCourse} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Course Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. San Ramon Golf Club"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  City, State *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. San Ramon, CA"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Region
-                </label>
-                <select
-                  value={region}
-                  onChange={(e) => setRegion(e.target.value as any)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
-                >
-                  <option value="SF">SF</option>
-                  <option value="East Bay">East Bay</option>
-                  <option value="Peninsula">Peninsula</option>
-                  <option value="North Bay">North Bay</option>
-                  <option value="South Bay">South Bay</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Default Tee Name & Color
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={teeName}
-                    onChange={(e) => setTeeName(e.target.value)}
-                    placeholder="Blue"
-                    className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
-                  />
-                  <input
-                    type="color"
-                    value={teeColor}
-                    onChange={(e) => setTeeColor(e.target.value)}
-                    className="w-10 h-9 p-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Course Rating
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={rating}
-                  onChange={(e) => setRating(parseFloat(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Slope Rating
-                </label>
-                <input
-                  type="number"
-                  value={slope}
-                  onChange={(e) => setSlope(parseInt(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm dark:text-white"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-              <button
-                type="submit"
-                disabled={saving}
-                className="py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 disabled:opacity-50"
-              >
-                <Check className="w-4 h-4" />
-                <span>{saving ? 'Saving...' : 'Save Manual Course'}</span>
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
+      )}
     </div>
   );
-};
+}
