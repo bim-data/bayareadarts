@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Star } from 'lucide-react';
-import { MemberProfile, CompletedRoundRecord, TeamEventRecord } from '../types';
+import { MemberProfile, CompletedRoundRecord, TeamEventRecord, Course } from '../types';
 import { ExpandableRoundCard } from './ExpandableRoundCard';
 
 interface PlayerHistoryModalProps {
@@ -156,7 +156,7 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
             </div>
           )}
 
-         {activeTab === 'rounds' && (
+          {activeTab === 'rounds' && (
             <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
               {playerRounds.length === 0 ? (
                 <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800">
