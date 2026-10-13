@@ -123,7 +123,7 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
                 : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
             }`}
           >
-            WHS Differentials ({member.differentials.length})
+            WHS Differentials ({(member.differentials || []).length})
           </button>
           <button
             onClick={() => setActiveTab('rounds')}
@@ -161,10 +161,10 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
             </div>
 
             <div className="card-modern rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
-              {member.differentials.length === 0 ? (
+              {(member.differentials || []).length === 0 ? (
                 <div className="p-6 text-center text-xs text-slate-400">No differentials recorded yet.</div>
               ) : (
-                member.differentials.map((diff, idx) => (
+                (member.differentials || []).map((diff, idx) => (
                   <div
                     key={diff.roundId || idx}
                     className={`p-3.5 flex items-center justify-between text-xs transition-colors ${
