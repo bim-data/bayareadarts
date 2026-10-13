@@ -152,7 +152,7 @@ export const HandicapLeaderboardModal: React.FC<HandicapLeaderboardModalProps> =
                   </div>
 
                   <div className="card-modern rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                    {selectedMember.differentials.map((diff, index) => (
+                    {selectedMember.(member.differentials || []).map((diff, index) => (
                       <div
                         key={diff.roundId || index}
                         className={`p-3 flex items-center justify-between text-xs transition-colors ${
