@@ -123,7 +123,13 @@ export default function App() {
 
   const handleUpdateProfile = async (updatedProfile: MemberProfile) => {
     if (!updatedProfile.id) return;
-    await updateRecord('members', updatedProfile.id, updatedProfile);
+    
+    // Strip out undefined values (like empty phones or goals) so Firebase doesn't crash
+    const cleanProfile = Object.fromEntries(
+      Object.entries(updatedProfile).filter(([_, v]) => v !== undefined)
+    );
+
+    await updateRecord('members', cleanProfile.id, cleanProfile);
   };
 
   const handleAddNewMember = async (newMember: MemberProfile) => {
