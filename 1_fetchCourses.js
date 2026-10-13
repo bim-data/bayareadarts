@@ -8,7 +8,6 @@ const TARGET_COURSES = [
   "San Ramon",
   "Poplar Creek",
   "Deep Cliff",
-  "Los Lagos",
   "Tilden Park",
   "Mission Hills",
   // Add up to 9 more here...
@@ -24,12 +23,30 @@ const fetchOptions = {
   }
 };
 
-// Helper function to create clean IDs (e.g., "Tilden Park Golf Course" -> "tilden-park")
+// Helper: Create clean IDs (e.g., "Tilden Park Golf Course" -> "tilden-park")
 function createSlug(name) {
   return name.toLowerCase()
     .replace(/\s+(golf|course|club|country|links)\b/gi, '') // Strip common words
     .replace(/[^a-z0-9]+/g, '-') // Replace spaces/special chars with hyphens
     .replace(/(^-|-$)/g, ''); // Remove leading/trailing hyphens
+}
+
+// Helper: Map tee names to Hex Colors
+function getTeeColor(name) {
+  const n = name.toLowerCase();
+  if (n.includes('black')) return '#1E293B'; // Slate 800
+  if (n.includes('blue')) return '#2563EB';  // Blue 600
+  if (n.includes('white')) return '#F8FAFC'; // Slate 50
+  if (n.includes('red')) return '#DC2626';   // Red 600
+  if (n.includes('gold')) return '#D97706';  // Amber 600
+  if (n.includes('yellow')) return '#FACC15';// Yellow 400
+  if (n.includes('silver')) return '#94A3B8';// Slate 400
+  if (n.includes('green')) return '#16A34A'; // Green 600
+  if (n.includes('orange')) return '#EA580C';// Orange 600
+  if (n.includes('purple')) return '#9333EA';// Purple 600
+  if (n.includes('burgundy')) return '#881337'; // Rose 900
+  if (n.includes('brown')) return '#78350F'; // Amber 900
+  return '#94A3B8'; // Default Slate
 }
 
 async function runFetch() {
@@ -72,23 +89,34 @@ async function runFetch() {
 
       const cleanName = rawCourse.course_name || rawCourse.club_name || 'Unknown Course';
       const city = rawCourse.location?.city || 'Bay Area';
-      
-      // Generate the clean slug ID
       const customId = createSlug(cleanName);
 
-      // Extract Tees (using the new customId for tee IDs)
+      // Extract & Deduplicate Tees
+      // The API returns men's and women's ratings separately. This Map ensures we only keep one entry per physical tee box.
       const rawTees = [...(rawCourse.tees?.male || []), ...(rawCourse.tees?.female || [])];
-      const mappedTees = rawTees.map((t, idx) => ({
+      const uniqueTeesMap = new Map();
+      
+      rawTees.forEach(t => {
+        const tName = t.tee_name || 'Standard';
+        // If we haven't seen this tee name yet, save it. This naturally prioritizes the male ratings since they were spread first.
+        if (!uniqueTeesMap.has(tName)) {
+          uniqueTeesMap.set(tName, t);
+        }
+      });
+
+      const uniqueTees = Array.from(uniqueTeesMap.values());
+      
+      const mappedTees = uniqueTees.map((t, idx) => ({
         id: `${customId}-tee-${idx}`,
         name: t.tee_name || 'Standard',
-        color: '#2563EB',
+        color: getTeeColor(t.tee_name || ''),
         rating: Number(t.course_rating) || 72.0,
         slope: Number(t.slope_rating) || 113,
         totalYardage: Number(t.total_yards) || 6000,
       }));
 
       // Extract Holes
-      const sampleTeeWithHoles = rawTees.find(t => Array.isArray(t.holes) && t.holes.length > 0);
+      const sampleTeeWithHoles = uniqueTees.find(t => Array.isArray(t.holes) && t.holes.length > 0);
       const mappedHoles = sampleTeeWithHoles
         ? sampleTeeWithHoles.holes.map((h, i) => ({
             number: i + 1,

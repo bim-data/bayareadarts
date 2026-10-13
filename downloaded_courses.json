@@ -1,13 +1,13 @@
 [
   {
-    "id": "san-ramon",
-    "name": "San Ramon Golf Club",
+    "id": "san-ramon-gc",
+    "name": "San Ramon Gc",
     "city": "San Ramon",
-    "region": "East Bay",
-    "notes": "Public course 18 holes through San Ramon neighborhood",
+    "region": "Easy Bay",
+    "notes": "18 Holes through San Ramon Neighborhood",
     "tees": [
       {
-        "id": "yrx5zm70-tee-0",
+        "id": "san-ramon-gc-tee-0",
         "name": "Blue",
         "color": "#2563EB",
         "rating": 71.3,
@@ -15,51 +15,27 @@
         "totalYardage": 6417
       },
       {
-        "id": "yrx5zm70-tee-1",
+        "id": "san-ramon-gc-tee-1",
         "name": "White",
-        "color": "#2563EB",
+        "color": "#F8FAFC",
         "rating": 69.8,
         "slope": 124,
         "totalYardage": 6072
       },
       {
-        "id": "yrx5zm70-tee-2",
+        "id": "san-ramon-gc-tee-2",
         "name": "Red",
-        "color": "#2563EB",
+        "color": "#DC2626",
         "rating": 67.9,
         "slope": 119,
         "totalYardage": 5678
       },
       {
-        "id": "yrx5zm70-tee-3",
+        "id": "san-ramon-gc-tee-3",
         "name": "Silver",
-        "color": "#2563EB",
+        "color": "#94A3B8",
         "rating": 64.1,
         "slope": 101,
-        "totalYardage": 4748
-      },
-      {
-        "id": "yrx5zm70-tee-4",
-        "name": "White",
-        "color": "#2563EB",
-        "rating": 75.2,
-        "slope": 135,
-        "totalYardage": 6072
-      },
-      {
-        "id": "yrx5zm70-tee-5",
-        "name": "Red",
-        "color": "#2563EB",
-        "rating": 72.9,
-        "slope": 132,
-        "totalYardage": 5678
-      },
-      {
-        "id": "yrx5zm70-tee-6",
-        "name": "Silver",
-        "color": "#2563EB",
-        "rating": 68.1,
-        "slope": 115,
         "totalYardage": 4748
       }
     ],
@@ -175,66 +151,42 @@
     ]
   },
   {
-    "id": "poplar-creek",
-    "name": "Poplar Creek Golf Course",
+    "id": "poplar-creek-gc",
+    "name": "Poplar Creek Gc",
     "city": "San Mateo",
     "region": "Penninsula",
-    "notes": "18 hole public course at the foot of the SFO runways on the bay",
+    "notes": "18 hole course on the bay at the foot of SFO approach",
     "tees": [
       {
-        "id": "sh9s6p0v-tee-0",
+        "id": "poplar-creek-gc-tee-0",
         "name": "Black",
-        "color": "#2563EB",
+        "color": "#1E293B",
         "rating": 69.7,
         "slope": 115,
         "totalYardage": 5988
       },
       {
-        "id": "sh9s6p0v-tee-1",
+        "id": "poplar-creek-gc-tee-1",
         "name": "Gold",
-        "color": "#2563EB",
+        "color": "#D97706",
         "rating": 67.6,
         "slope": 112,
         "totalYardage": 5574
       },
       {
-        "id": "sh9s6p0v-tee-2",
+        "id": "poplar-creek-gc-tee-2",
         "name": "Silver",
-        "color": "#2563EB",
+        "color": "#94A3B8",
         "rating": 65.3,
         "slope": 109,
         "totalYardage": 5158
       },
       {
-        "id": "sh9s6p0v-tee-3",
+        "id": "poplar-creek-gc-tee-3",
         "name": "Yellow",
-        "color": "#2563EB",
+        "color": "#FACC15",
         "rating": 63.1,
         "slope": 99,
-        "totalYardage": 4688
-      },
-      {
-        "id": "sh9s6p0v-tee-4",
-        "name": "Gold",
-        "color": "#2563EB",
-        "rating": 72.4,
-        "slope": 121,
-        "totalYardage": 5574
-      },
-      {
-        "id": "sh9s6p0v-tee-5",
-        "name": "Silver",
-        "color": "#2563EB",
-        "rating": 70,
-        "slope": 117,
-        "totalYardage": 5158
-      },
-      {
-        "id": "sh9s6p0v-tee-6",
-        "name": "Yellow",
-        "color": "#2563EB",
-        "rating": 67.3,
-        "slope": 112,
         "totalYardage": 4688
       }
     ],
@@ -350,14 +302,14 @@
     ]
   },
   {
-    "id": "deep-cliff",
-    "name": "Deep Cliff Golf Course",
+    "id": "deep-cliff-gc",
+    "name": "Deep Cliff Gc",
     "city": "Cupertino",
-    "region": "South Bay",
-    "notes": "9 Hole executive course through small foothill woods and homes",
+    "region": "South bay",
+    "notes": "9 hole executive course",
     "tees": [
       {
-        "id": "g4sw91dz-tee-0",
+        "id": "deep-cliff-gc-tee-0",
         "name": "Blue",
         "color": "#2563EB",
         "rating": 57.9,
@@ -365,59 +317,27 @@
         "totalYardage": 3305
       },
       {
-        "id": "g4sw91dz-tee-1",
+        "id": "deep-cliff-gc-tee-1",
         "name": "White",
-        "color": "#2563EB",
+        "color": "#F8FAFC",
         "rating": 57.1,
         "slope": 87,
         "totalYardage": 3051
       },
       {
-        "id": "g4sw91dz-tee-2",
+        "id": "deep-cliff-gc-tee-2",
         "name": "Red",
-        "color": "#2563EB",
+        "color": "#DC2626",
         "rating": 55.4,
         "slope": 81,
         "totalYardage": 2713
       },
       {
-        "id": "g4sw91dz-tee-3",
+        "id": "deep-cliff-gc-tee-3",
         "name": "Gold",
-        "color": "#2563EB",
+        "color": "#D97706",
         "rating": 54.5,
         "slope": 80,
-        "totalYardage": 2501
-      },
-      {
-        "id": "g4sw91dz-tee-4",
-        "name": "Blue",
-        "color": "#2563EB",
-        "rating": 59.4,
-        "slope": 94,
-        "totalYardage": 3305
-      },
-      {
-        "id": "g4sw91dz-tee-5",
-        "name": "White",
-        "color": "#2563EB",
-        "rating": 58.8,
-        "slope": 92,
-        "totalYardage": 3051
-      },
-      {
-        "id": "g4sw91dz-tee-6",
-        "name": "Red",
-        "color": "#2563EB",
-        "rating": 57.3,
-        "slope": 88,
-        "totalYardage": 2713
-      },
-      {
-        "id": "g4sw91dz-tee-7",
-        "name": "Gold",
-        "color": "#2563EB",
-        "rating": 56.6,
-        "slope": 85,
         "totalYardage": 2501
       }
     ],
@@ -533,14 +453,14 @@
     ]
   },
   {
-    "id": "tilden-park",
-    "name": "Tilden Park Golf Course",
+    "id": "tilden-park-gc",
+    "name": "Tilden Park Gc",
     "city": "Berkeley",
-    "region": "Easy Bay",
-    "notes": "Hilly course through Tilden Park",
+    "region": "East Bay",
+    "notes": "18 holes through Tilden Park in the Berkeley hills",
     "tees": [
       {
-        "id": "tq7659nk-tee-0",
+        "id": "tilden-park-gc-tee-0",
         "name": "Blue",
         "color": "#2563EB",
         "rating": 71.2,
@@ -548,59 +468,27 @@
         "totalYardage": 6258
       },
       {
-        "id": "tq7659nk-tee-1",
+        "id": "tilden-park-gc-tee-1",
         "name": "White",
-        "color": "#2563EB",
+        "color": "#F8FAFC",
         "rating": 69,
         "slope": 122,
         "totalYardage": 5764
       },
       {
-        "id": "tq7659nk-tee-2",
+        "id": "tilden-park-gc-tee-2",
         "name": "Red",
-        "color": "#2563EB",
+        "color": "#DC2626",
         "rating": 67.3,
         "slope": 116,
         "totalYardage": 5395
       },
       {
-        "id": "tq7659nk-tee-3",
+        "id": "tilden-park-gc-tee-3",
         "name": "Yellow",
-        "color": "#2563EB",
+        "color": "#FACC15",
         "rating": 57.1,
         "slope": 91,
-        "totalYardage": 3113
-      },
-      {
-        "id": "tq7659nk-tee-4",
-        "name": "Blue",
-        "color": "#2563EB",
-        "rating": 76.2,
-        "slope": 134,
-        "totalYardage": 6258
-      },
-      {
-        "id": "tq7659nk-tee-5",
-        "name": "White",
-        "color": "#2563EB",
-        "rating": 73.5,
-        "slope": 129,
-        "totalYardage": 5764
-      },
-      {
-        "id": "tq7659nk-tee-6",
-        "name": "Red",
-        "color": "#2563EB",
-        "rating": 71.5,
-        "slope": 125,
-        "totalYardage": 5395
-      },
-      {
-        "id": "tq7659nk-tee-7",
-        "name": "Yellow",
-        "color": "#2563EB",
-        "rating": 59.3,
-        "slope": 94,
         "totalYardage": 3113
       }
     ],
@@ -716,42 +604,26 @@
     ]
   },
   {
-    "id": "mission-hills",
-    "name": "Mission Hills Golf Course",
+    "id": "mission-hills-gc",
+    "name": "Mission Hills Gc",
     "city": "Hayward",
-    "region": "East Bay",
-    "notes": "9 Hole executive course",
+    "region": "Easy Bay",
+    "notes": "9 hole executive course",
     "tees": [
       {
-        "id": "xt716xwt-tee-0",
+        "id": "mission-hills-gc-tee-0",
         "name": "White",
-        "color": "#2563EB",
+        "color": "#F8FAFC",
         "rating": 56.8,
         "slope": 85,
         "totalYardage": 3184
       },
       {
-        "id": "xt716xwt-tee-1",
+        "id": "mission-hills-gc-tee-1",
         "name": "Red",
-        "color": "#2563EB",
+        "color": "#DC2626",
         "rating": 54.4,
         "slope": 82,
-        "totalYardage": 2642
-      },
-      {
-        "id": "xt716xwt-tee-2",
-        "name": "White",
-        "color": "#2563EB",
-        "rating": 58.6,
-        "slope": 89,
-        "totalYardage": 3184
-      },
-      {
-        "id": "xt716xwt-tee-3",
-        "name": "Red",
-        "color": "#2563EB",
-        "rating": 56.6,
-        "slope": 84,
         "totalYardage": 2642
       }
     ],
