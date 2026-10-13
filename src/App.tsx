@@ -22,8 +22,8 @@ import { AuthScreen } from './components/AuthScreen';
 import { useAuth } from './contexts/AuthContext';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import { X } from 'lucide-react';
 
-// --- NEW FIREBASE IMPORT ---
 import { subscribeToCollection, addRecord, updateRecord, deleteRecord } from './services/db';
 
 import { 
@@ -42,6 +42,12 @@ export default function App() {
   
   // --- AUTHENTICATION STATE ---
   const { currentUser, memberProfile, loading: authLoading } = useAuth();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Automatically close auth modal when user successfully logs in
+  useEffect(() => {
+    if (currentUser) setIsAuthModalOpen(false);
+  }, [currentUser]);
 
   // Dark Mode State
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -88,7 +94,6 @@ export default function App() {
   }, []);
 
   // --- ACTIVE LOGGED-IN GOLFER PROFILE ---
-  // Replaced localStorage with the secure Firebase Auth ID
   const activeUserId = currentUser?.uid || '';
   const activeUser = memberProfile || members.find(m => m.id === activeUserId);
 
@@ -134,25 +139,17 @@ export default function App() {
 
   const handleTeamCreated = async (newTeam: TeamGroup) => {
     try {
-      // 1. Ensure the team has a unique ID
       const teamId = newTeam.id || `team-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      
       const teamToSave = {
         ...newTeam,
         id: teamId,
-        notes: newTeam.notes || '', // <-- Explicitly default to empty string
+        notes: newTeam.notes || '',
         createdAt: Date.now()
       };
-
-      // 2. Strip out ANY remaining undefined values so Firestore doesn't crash
       const cleanTeamToSave = Object.fromEntries(
         Object.entries(teamToSave).filter(([_, v]) => v !== undefined)
       );
-
-      // 3. Write directly to Firestore
       await setDoc(doc(db, 'teams', teamId), cleanTeamToSave);
-      
-      console.log("Team successfully saved to Firebase:", cleanTeamToSave);
     } catch (err) {
       console.error("Error saving team to Firebase:", err);
     }
@@ -263,7 +260,6 @@ export default function App() {
   };
 
   const handleFinishRound = async () => {
-    // In a full implementation, you would write the activeSession scores to Firebase here.
     setActiveSession(null);
     setCurrentTab('clubhouse');
   };
@@ -287,12 +283,7 @@ export default function App() {
     ? courses.find((c) => c.id === activeSession.courseId) || courses[0]
     : courses[0];
 
-  // --- AUTHENTICATION GUARDS ---
-  // If Firebase is checking login status, show a blank screen or loader
   if (authLoading) return <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-emerald-500 font-bold">Loading Clubhouse...</div>;
-
-  // If they aren't logged in, show the login screen!
-  if (!currentUser) return <AuthScreen />;
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
@@ -314,11 +305,18 @@ export default function App() {
         activeUser={activeUser}
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode(!darkMode)}
-        onOpenNewRound={() => setIsNewRoundOpen(true)}
+        onOpenNewRound={() => {
+          if (!currentUser) return setIsAuthModalOpen(true);
+          setIsNewRoundOpen(true);
+        }}
         onOpenJoinRoom={() => setIsNewRoundOpen(true)}
         onOpenOcr={() => setIsOcrOpen(true)}
         onOpenEditNickname={() => setIsEditNicknameOpen(true)}
-        onOpenProfile={() => handleOpenClubhouseHub('profiles')}
+        onOpenProfile={() => {
+          if (!currentUser) return setIsAuthModalOpen(true);
+          handleOpenClubhouseHub('profiles');
+        }}
+        onOpenLogin={() => setIsAuthModalOpen(true)}
       />
 
       <main className="flex-1 pb-16">
@@ -332,9 +330,18 @@ export default function App() {
             teams={teams}
             activeSession={activeSession}
             activeUser={activeUser}
-            onOpenProfile={() => handleOpenClubhouseHub('profiles')}
-            onStartRound={() => setIsNewRoundOpen(true)}
-            onLogPastRound={() => setIsNewRoundOpen(true)}
+            onOpenProfile={() => {
+              if (!currentUser) return setIsAuthModalOpen(true);
+              handleOpenClubhouseHub('profiles');
+            }}
+            onStartRound={() => {
+              if (!currentUser) return setIsAuthModalOpen(true);
+              setIsNewRoundOpen(true);
+            }}
+            onLogPastRound={() => {
+              if (!currentUser) return setIsAuthModalOpen(true);
+              setIsNewRoundOpen(true);
+            }}
             onOpenTeamManager={() => handleOpenClubhouseHub('teams')}
             onJoinRoom={() => setIsNewRoundOpen(true)}
             onScanScorecard={() => setIsOcrOpen(true)}
@@ -520,6 +527,19 @@ export default function App() {
         onAddNewMember={handleAddNewMember}
         completedRounds={completedRounds}
       />
+
+      {/* Auth Screen Overlay for Guests */}
+      {(!currentUser && isAuthModalOpen) && (
+        <div className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950 overflow-y-auto">
+          <button 
+            onClick={() => setIsAuthModalOpen(false)} 
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-full text-slate-900 dark:text-white z-50 transition-colors shadow-lg cursor-pointer"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <AuthScreen />
+        </div>
+      )}
     </div>
   );
 }
