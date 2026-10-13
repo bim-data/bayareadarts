@@ -28,6 +28,7 @@ interface HeaderProps {
   onOpenOcr: () => void;
   onOpenEditNickname: () => void;
   onOpenProfile: () => void;
+  onOpenLogin: () => void;
   onOpenYamlBackup?: () => void;
 }
 
@@ -43,6 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenOcr,
   onOpenEditNickname,
   onOpenProfile,
+  onOpenLogin,
   onOpenYamlBackup,
 }) => {
   return (
@@ -169,8 +171,8 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           ) : (
             <button
-              onClick={onOpenProfile}
-              className="btn-modern px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer"
+              onClick={onOpenLogin}
+              className="btn-modern px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               <User className="w-4 h-4 text-emerald-600" />
               <span>Log In</span>
