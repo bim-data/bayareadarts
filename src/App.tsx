@@ -199,11 +199,13 @@ export default function App() {
   };
 
   const handleSaveIndividualRound = async (roundData: any) => {
-    await addRecord('rounds', roundData);
+    const roundId = roundData.id || `round-${Date.now()}`;
+    await setDoc(doc(db, 'rounds', roundId), { ...roundData, id: roundId });
   };
 
   const handleSaveTeamEvent = async (eventData: any) => {
-    await addRecord('events', eventData);
+    const eventId = eventData.id || `event-${Date.now()}`;
+    await setDoc(doc(db, 'events', eventId), { ...eventData, id: eventId });
   };
 
   useEffect(() => {
@@ -266,12 +268,13 @@ export default function App() {
   const handleStartFutureRound = async (_futureRoundId: string) => {};
   const handleManualRoundLogged = async (data: Record<string, any>) => {
     try {
+      const roundId = `round-${Date.now()}`;
       const newRound = {
-        id: `round-${Date.now()}`,
+        id: roundId,
         ...data,
         createdAt: Date.now()
       };
-      await addRecord('rounds', newRound);
+      await setDoc(doc(db, 'rounds', roundId), newRound);
       console.log("Successfully saved past round:", newRound);
     } catch (error) {
       console.error("Failed to save past round to Firebase:", error);
