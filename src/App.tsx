@@ -614,6 +614,7 @@ export default function App() {
         courses={courses}
         members={members}
         teams={teams}
+        activeUserId={activeUserId}
         onSaveIndividualRound={handleSaveIndividualRound}
         onSaveTeamEvent={handleSaveTeamEvent}
       />
