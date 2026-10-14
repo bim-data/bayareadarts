@@ -47,7 +47,6 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
 
   const hasTeams = Boolean(session.teams && session.teams.length > 0);
 
-  // Active Team ID (if team round)
   const [activeTeamId, setActiveTeamId] = useState<string>(() => {
     if (session.teams && session.teams.length > 0) return session.teams[0].id;
     return '';
@@ -55,7 +54,6 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
 
   const activeTeam = session.teams?.find((t) => t.id === activeTeamId) || session.teams?.[0];
 
-  // Map active team to lead player or individual active player
   const [activePlayerId, setActivePlayerId] = useState<string>(() => {
     if (hasTeams && activeTeam) {
       const p = session.players.find((pl) => activeTeam.playerIds.includes(pl.playerId));
@@ -64,7 +62,6 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
     return session.players[0]?.playerId || '';
   });
 
-  // Switch team handler
   const handleSelectTeam = (team: TeamGroup) => {
     setActiveTeamId(team.id);
     const p = session.players.find((pl) => team.playerIds.includes(pl.playerId)) || session.players[0];
@@ -76,21 +73,20 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
   const currentHole = course.holes.find((h) => h.number === currentHoleNum) || course.holes[0];
   const activePlayer = session.players.find((p) => p.playerId === activePlayerId) || session.players[0];
   
-  const currentScore: HoleScore = activePlayer?.scores[currentHoleNum] || {
+  const currentScore: HoleScore & { drinks?: number } = activePlayer?.scores[currentHoleNum] || {
     strokes: 0,
     putts: 0,
     fir: 'none',
     gir: false,
+    drinks: 0
   };
 
-  // Players belonging to the currently active team (up to 4 members!)
   const currentTeamPlayers = useMemo(() => {
     if (!hasTeams || !activeTeam) return session.players;
     return session.players.filter((p) => activeTeam.playerIds.includes(p.playerId));
   }, [hasTeams, activeTeam, session.players]);
 
-  // Update hole score
-  const updateHoleScore = (partial: Partial<HoleScore>) => {
+  const updateHoleScore = (partial: Partial<HoleScore & { drinks?: number }>) => {
     if (!activePlayer) return;
     const newStrokes = partial.strokes !== undefined ? partial.strokes : currentScore.strokes;
     const newPutts = partial.putts !== undefined ? partial.putts : currentScore.putts;
@@ -105,7 +101,7 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
       autoGir = partial.gir;
     }
 
-    const updated: HoleScore = {
+    const updated: HoleScore & { drinks?: number } = {
       ...currentScore,
       ...partial,
       strokes: Math.max(0, newStrokes),
@@ -115,7 +111,6 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
 
     onUpdateScore(activePlayer.playerId, currentHoleNum, updated);
 
-    // If scramble or team round, sync score across all players on the same team so the whole squad shares the hole score!
     if (session.format === 'scramble' || (hasTeams && activeTeam)) {
       currentTeamPlayers.forEach((tp) => {
         if (tp.playerId !== activePlayer.playerId) {
@@ -124,7 +119,6 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
       });
     }
 
-    // Celebratory confetti for birdies or better
     if (partial.strokes !== undefined && partial.strokes > 0) {
       const diff = partial.strokes - currentHole.par;
       if (diff === -1) {
@@ -158,7 +152,6 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
   const netScore = currentScore.strokes > 0 ? Math.max(1, currentScore.strokes - hcpStrokesOnHole) : 0;
   const stablefordPts = currentScore.strokes > 0 ? calculateStablefordPoints(netScore, currentHole.par) : 0;
 
-  // Real-Time 2-Team Match Play Status Calculation
   const matchPlayStatus = useMemo(() => {
     if (session.format !== 'match_play') return null;
     const teams = session.teams;
@@ -277,7 +270,7 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
         </div>
       </div>
 
-      {/* Real-time Match Play Status Banner (if 2v2 Match Play) */}
+      {/* Real-time Match Play Status Banner */}
       {matchPlayStatus && (
         <div className="p-3 bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-amber-500/10 dark:from-amber-950/40 dark:to-emerald-950/40 border border-amber-300 dark:border-amber-700/60 rounded-2xl flex items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2">
@@ -489,25 +482,56 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
 
         {/* Putts, FIR, GIR Details */}
         <div className="space-y-4 pt-3 border-t border-slate-100 dark:border-slate-800">
-          {/* Putts */}
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Putts on Hole
-            </span>
-            <div className="flex items-center gap-1.5">
-              {[0, 1, 2, 3, 4].map((p) => (
+          
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Putts */}
+            <div className="flex-1 space-y-1.5">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                Putts on Hole
+              </span>
+              <div className="flex items-center gap-1.5">
+                {[0, 1, 2, 3, 4].map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => updateHoleScore({ putts: p })}
+                    className={`w-8 h-8 rounded-lg text-xs font-bold border cursor-pointer transition-colors flex-1 sm:flex-none ${
+                      currentScore.putts === p
+                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Live Drink Tracker */}
+            <div className="flex-1 space-y-1.5">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span>Drinks on Hole</span>
+                <span className="text-[10px] text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">
+                  Round Total: {Object.values(activePlayer?.scores || {}).reduce((acc, s) => acc + (s.drinks || 0), 0)}
+                </span>
+              </span>
+              <div className="flex items-center gap-1.5">
                 <button
-                  key={p}
-                  onClick={() => updateHoleScore({ putts: p })}
-                  className={`w-8 h-8 rounded-lg text-xs font-bold border cursor-pointer transition-colors ${
-                    currentScore.putts === p
-                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900'
-                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                  }`}
+                  onClick={() => updateHoleScore({ drinks: Math.max(0, (currentScore.drinks || 0) - 1) })}
+                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold flex items-center justify-center cursor-pointer"
                 >
-                  {p}
+                  -
                 </button>
-              ))}
+                <div className="flex-1 h-8 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/20 flex items-center justify-center gap-1.5 font-stats font-bold text-amber-700 dark:text-amber-500">
+                  <span>🍹</span>
+                  <span>{currentScore.drinks || 0}</span>
+                </div>
+                <button
+                  onClick={() => updateHoleScore({ drinks: (currentScore.drinks || 0) + 1 })}
+                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold flex items-center justify-center cursor-pointer"
+                >
+                  +
+                </button>
+              </div>
             </div>
           </div>
 
