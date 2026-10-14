@@ -292,13 +292,13 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                     <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                       {member.avatarEmoji}
                     </div>
-                    <div className="min-w-0">
+                   <div className="min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                           {member.name}
                         </span>
                         {member.nickname && (
-                          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
                             "{member.nickname}"
                           </span>
                         )}
