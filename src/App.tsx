@@ -118,6 +118,8 @@ export default function App() {
 
   const [selectedMemberForHistory, setSelectedMemberForHistory] = useState<MemberProfile | null>(null);
   const [isPlayerHistoryOpen, setIsPlayerHistoryOpen] = useState(false);
+  const [selectedHistoryRoundId, setSelectedHistoryRoundId] = useState<string | undefined>(undefined);
+  
   const [selectedTeamEventForHistory, setSelectedTeamEventForHistory] = useState<TeamEventRecord | null>(null);
   const [selectedTeamNameForHistory, setSelectedTeamNameForHistory] = useState<string | null>(null);
   const [isTeamHistoryOpen, setIsTeamHistoryOpen] = useState(false);
@@ -433,8 +435,9 @@ export default function App() {
     }
   };
 
-  const handleOpenMemberHistory = (member: MemberProfile) => {
+  const handleOpenMemberHistory = (member: MemberProfile, roundId?: string) => {
     setSelectedMemberForHistory(member);
+    setSelectedHistoryRoundId(roundId);
     setIsPlayerHistoryOpen(true);
   };
 
@@ -653,7 +656,10 @@ export default function App() {
 
       <PlayerHistoryModal
         isOpen={isPlayerHistoryOpen}
-        onClose={() => setIsPlayerHistoryOpen(false)}
+        onClose={() => {
+          setIsPlayerHistoryOpen(false);
+          setSelectedHistoryRoundId(undefined);
+        }}
         member={selectedMemberForHistory}
         rounds={completedRounds}
         teamEvents={teamEvents}
@@ -661,6 +667,7 @@ export default function App() {
         onOpenEditProfile={() => handleOpenClubhouseHub('profiles')}
         courses={courses}
         onUpdatePastRound={handleUpdatePastRound}
+        initialExpandedRoundId={selectedHistoryRoundId}
       />
 
       <TeamHistoryModal
