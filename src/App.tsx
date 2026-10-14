@@ -610,16 +610,12 @@ export default function App() {
 
       <ScorecardOcrModal
         isOpen={isOcrOpen}
-        onClose={() => setIsOcrModalOpen(false)}
+        onClose={() => setIsOcrOpen(false)}
         courses={courses}
         members={members}
         teams={teams}
-        onSaveIndividualRound={async (roundData) => {
-          await addRecord('rounds', { ...roundData, id: `round-${Date.now()}` });
-        }}
-        onSaveTeamEvent={async (eventData) => {
-          await addRecord('team_events', { ...eventData, id: `event-${Date.now()}` });
-        }}
+        onSaveIndividualRound={handleSaveIndividualRound}
+        onSaveTeamEvent={handleSaveTeamEvent}
       />
 
       {activeSession && (
