@@ -45,10 +45,11 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
   );
 
   const safeDifferentials = member.differentials || [];
+  const totalDrinks = playerRounds.reduce((acc, r) => acc + (r.buzzballCount || 0), 0);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
-      <div className="w-full sm:max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:rounded-3xl bg-white dark:bg-slate-900 border-0 sm:border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden text-slate-900 dark:text-slate-100 transition-colors">
+      <div className="w-full sm:max-w-3xl h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:rounded-3xl bg-white dark:bg-slate-900 border-0 sm:border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden text-slate-900 dark:text-slate-100 transition-colors">
         
         <div className="shrink-0 p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3.5 min-w-0">
@@ -89,7 +90,7 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Scoring Avg</span>
               <span className="font-stats font-bold text-lg text-slate-900 dark:text-slate-100">{member.scoringAverage || 0}</span>
@@ -99,12 +100,16 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
               <span className="font-stats font-bold text-lg text-emerald-600 dark:text-emerald-400">{member.avgPutts || 0}</span>
             </div>
             <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Greens Hit (GIR)</span>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Greens Hit</span>
               <span className="font-stats font-bold text-lg text-red-500">{member.girPercent || 0}%</span>
             </div>
             <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Career Low</span>
               <span className="font-stats font-bold text-lg text-amber-500">{member.bestRound || 0}</span>
+            </div>
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-center border border-amber-200/80 dark:border-amber-800/60">
+              <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-500 uppercase tracking-wide block">🍹 Drinks</span>
+              <span className="font-stats font-bold text-lg text-amber-600 dark:text-amber-400">{totalDrinks}</span>
             </div>
           </div>
 
