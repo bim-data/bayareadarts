@@ -259,16 +259,21 @@ export default function App() {
       else playerRounds.push(extraRound);
     }
 
-    if (playerRounds.length === 0) return;
-
     // Force string-based sorting for YYYY-MM-DD dates to ensure order
     playerRounds.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-    const roundsCount = playerRounds.length;
+    // PROTECT HANDICAP: Filter out scrambles and team events from individual stats
+    const individualRounds = playerRounds.filter(r => 
+      r.format !== 'scramble' && 
+      r.format !== 'best_ball' && 
+      !r.isTeamRound
+    );
+
+    const roundsCount = individualRounds.length;
     
     // Strictly isolate 18-hole vs 9-hole rounds
-    const rounds18 = playerRounds.filter(r => r.holesPlayed === '18' || !r.holesPlayed);
-    const rounds9 = playerRounds.filter(r => r.holesPlayed === 'front_9' || r.holesPlayed === 'back_9');
+    const rounds18 = individualRounds.filter(r => r.holesPlayed === '18' || !r.holesPlayed);
+    const rounds9 = individualRounds.filter(r => r.holesPlayed === 'front_9' || r.holesPlayed === 'back_9');
 
     const bestRound = rounds18.length > 0 ? Math.min(...rounds18.map(r => Number(r.grossScore) || 999)) : 0;
     const bestRound9 = rounds9.length > 0 ? Math.min(...rounds9.map(r => Number(r.grossScore) || 999)) : 0;
