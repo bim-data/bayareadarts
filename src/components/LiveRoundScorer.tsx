@@ -42,7 +42,11 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
   onFinishRound,
   onExitRound,
 }) => {
-  const [currentHoleNum, setCurrentHoleNum] = useState<number>(1);
+  const startHole = session.holesPlayed === 'back_9' ? 10 : 1;
+  const endHole = session.holesPlayed === 'front_9' ? 9 : 18;
+  const totalHoles = session.holesPlayed === '18' || !session.holesPlayed ? 18 : 9;
+
+  const [currentHoleNum, setCurrentHoleNum] = useState<number>(startHole);
   const [copiedPin, setCopiedPin] = useState(false);
 
   const hasTeams = Boolean(session.teams && session.teams.length > 0);
@@ -168,7 +172,8 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
     let winsB = 0;
     let completedHoles = 0;
 
-    for (let h = 1; h <= 18; h++) {
+    // Only iterate over the holes actually being played
+    for (let h = startHole; h <= endHole; h++) {
       const sA = playerA.scores[h]?.strokes || 0;
       const sB = playerB.scores[h]?.strokes || 0;
       if (sA > 0 && sB > 0) {
@@ -179,7 +184,7 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
     }
 
     const diff = winsA - winsB;
-    const remainingHoles = 18 - completedHoles;
+    const remainingHoles = totalHoles - completedHoles;
 
     let leadText = 'All Square';
     let leadTeam = null;
@@ -206,7 +211,7 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
       teamAName: teamA.name,
       teamBName: teamB.name,
     };
-  }, [session, currentHoleNum]);
+  }, [session, startHole, endHole, totalHoles]);
 
   const getBadgeStyle = (strokes: number, par: number, isSelected: boolean) => {
     let base = `btn-modern flex flex-col items-center justify-center min-w-[46px] h-13 rounded-xl border text-center cursor-pointer transition-all ${isSelected ? 'ring-2 ring-emerald-500 scale-105 z-10 shadow-sm' : ''}`;
@@ -271,11 +276,14 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
                     : 'TEAM DUEL'}
                 </span>
               )}
+              <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded font-stats">
+                {session.holesPlayed === 'front_9' ? 'FRONT 9' : session.holesPlayed === 'back_9' ? 'BACK 9' : '18 HOLES'}
+              </span>
               <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
                 {session.teeName}
               </span>
             </div>
-            <h2 className="font-heading font-bold text-base sm:text-lg text-slate-900 dark:text-slate-100 truncate">
+            <h2 className="font-heading font-bold text-base sm:text-lg text-slate-900 dark:text-slate-100 truncate mt-1">
               {session.courseName}
             </h2>
           </div>
@@ -304,15 +312,15 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
             </span>
           </div>
           <span className="text-slate-500 dark:text-slate-400 font-stats font-semibold">
-            Thru Hole {matchPlayStatus.completedHoles} of 18
+            Thru Hole {matchPlayStatus.completedHoles} of {totalHoles}
           </span>
         </div>
       )}
 
-      {/* 2. Hole Selector Strip (1 - 18) */}
+      {/* 2. Hole Selector Strip (1 - 18, bounded by 9s) */}
       <div className="overflow-x-auto pb-1">
         <div className="flex items-center gap-2 min-w-max p-1">
-          {course.holes.map((h) => {
+          {course.holes.filter((h) => h.number >= startHole && h.number <= endHole).map((h) => {
             const isSelected = h.number === currentHoleNum;
             const scoreForHole = activePlayer?.scores[h.number]?.strokes || 0;
             const badgeStyle = getBadgeStyle(scoreForHole, h.par, isSelected);
@@ -356,8 +364,9 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
             {session.teams.map((t) => {
               const isActive = t.id === activeTeamId;
               const samplePlayer = session.players.find((p) => t.playerIds.includes(p.playerId)) || session.players[0];
-              const totalScore = Object.values(samplePlayer?.scores || {}).reduce((acc, s) => acc + (s.strokes || 0), 0);
-              const isFullFoursome = t.playerIds.length >= 4;
+              const totalScore = Object.entries(samplePlayer?.scores || {})
+                .filter(([hNum]) => Number(hNum) >= startHole && Number(hNum) <= endHole)
+                .reduce((acc, [_, s]) => acc + (s.strokes || 0), 0);
 
               return (
                 <button
@@ -391,7 +400,10 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
           {session.players.map((p) => {
             const isActive = p.playerId === activePlayerId;
-            const totalScore = Object.values(p.scores).reduce((acc, s) => acc + (s.strokes || 0), 0);
+            const totalScore = Object.entries(p.scores)
+              .filter(([hNum]) => Number(hNum) >= startHole && Number(hNum) <= endHole)
+              .reduce((acc, [_, s]) => acc + (s.strokes || 0), 0);
+              
             return (
               <button
                 key={p.playerId}
@@ -525,7 +537,12 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
                 <span>Drinks on Hole</span>
                 <span className="text-[10px] text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">
-                  Round Total: {Object.values(activePlayer?.scores || {}).reduce((acc, s) => acc + (s.drinks || 0), 0)}
+                  Round Total: {Object.values(activePlayer?.scores || {})
+                    .filter((_, idx) => {
+                      const hNum = Number(Object.keys(activePlayer.scores)[idx]);
+                      return hNum >= startHole && hNum <= endHole;
+                    })
+                    .reduce((acc, s) => acc + (s.drinks || 0), 0)}
                 </span>
               </span>
               <div className="flex items-center gap-1.5">
@@ -769,8 +786,8 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
         {/* Prev / Next Hole Controls */}
         <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
           <button
-            onClick={() => setCurrentHoleNum(Math.max(1, currentHoleNum - 1))}
-            disabled={currentHoleNum === 1}
+            onClick={() => setCurrentHoleNum(Math.max(startHole, currentHoleNum - 1))}
+            disabled={currentHoleNum === startHole}
             className="btn-modern px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1 disabled:opacity-40 cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -778,12 +795,12 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
           </button>
 
           <span className="text-xs text-slate-400 font-medium">
-            Hole {currentHoleNum} of 18
+            Hole {currentHoleNum} of {endHole}
           </span>
 
           <button
-            onClick={() => setCurrentHoleNum(Math.min(18, currentHoleNum + 1))}
-            disabled={currentHoleNum === 18}
+            onClick={() => setCurrentHoleNum(Math.min(endHole, currentHoleNum + 1))}
+            disabled={currentHoleNum === endHole}
             className="btn-modern px-3.5 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-semibold flex items-center gap-1 disabled:opacity-40 cursor-pointer"
           >
             <span>Next Hole</span>
