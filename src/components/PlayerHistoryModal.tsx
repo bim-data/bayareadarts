@@ -47,7 +47,12 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
   const safeDifferentials = member.differentials || [];
   
   const totalDrinks = playerRounds.reduce((acc, r) => acc + (r.buzzballCount || 0), 0);
-  const avgDrinks = playerRounds.length > 0 ? (totalDrinks / playerRounds.length).toFixed(1) : 0;
+  const avgDrinks = playerRounds.length > 0 ? (totalDrinks / playerRounds.length).toFixed(1) : '0';
+
+  // Calculate Average Greens Hit per round (out of 18)
+  const avgGirCount = playerRounds.length > 0
+    ? (playerRounds.reduce((acc, r) => acc + Math.round(((r.girPercent || 0) / 100) * 18), 0) / playerRounds.length).toFixed(1)
+    : '0';
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
@@ -92,7 +97,6 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5">
-          {/* Aligned Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Scoring Avg</span>
@@ -103,8 +107,8 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
               <span className="font-stats font-bold text-lg text-emerald-600 dark:text-emerald-400">{member.avgPutts || 0}</span>
             </div>
             <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Greens Hit</span>
-              <span className="font-stats font-bold text-lg text-red-500">{member.girPercent || 0}%</span>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Avg GIR</span>
+              <span className="font-stats font-bold text-lg text-emerald-600 dark:text-emerald-400">{avgGirCount} / 18</span>
             </div>
             <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Career Low</span>
