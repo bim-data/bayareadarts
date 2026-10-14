@@ -247,16 +247,21 @@ export default function App() {
     return Math.floor(finalIndex * 10) / 10;
   };
 
-  // Helper to recalculate a player's stats after a round is saved/edited
+  // Helper to recalculate a player's stats after a round is saved/edited/deleted
   const recalculatePlayerStats = async (playerId: string, extraRound?: any) => {
     const member = members.find(m => m.id === playerId);
     if (!member) return;
 
     let playerRounds = completedRounds.filter(r => r.playerId === playerId);
+    
     if (extraRound) {
-      const idx = playerRounds.findIndex(r => r.id === extraRound.id);
-      if (idx >= 0) playerRounds[idx] = extraRound;
-      else playerRounds.push(extraRound);
+      if (extraRound._deleted) {
+        playerRounds = playerRounds.filter(r => r.id !== extraRound.id);
+      } else {
+        const idx = playerRounds.findIndex(r => r.id === extraRound.id);
+        if (idx >= 0) playerRounds[idx] = extraRound;
+        else playerRounds.push(extraRound);
+      }
     }
 
     // Force string-based sorting for YYYY-MM-DD dates to ensure order
@@ -281,12 +286,12 @@ export default function App() {
     const totalGross18 = rounds18.reduce((acc, r) => acc + (Number(r.grossScore) || 0), 0);
     const scoringAverage = rounds18.length > 0 ? Number((totalGross18 / rounds18.length).toFixed(1)) : 0;
     
-    const roundsWithPutts = playerRounds.filter(r => r.totalPutts && Number(r.totalPutts) > 0);
+    const roundsWithPutts = individualRounds.filter(r => r.totalPutts && Number(r.totalPutts) > 0);
     const avgPutts = roundsWithPutts.length > 0 
       ? Number((roundsWithPutts.reduce((acc, r) => acc + Number(r.totalPutts), 0) / roundsWithPutts.length).toFixed(1)) 
       : 0;
 
-    const roundsWithGir = playerRounds.filter(r => r.girPercent !== undefined);
+    const roundsWithGir = individualRounds.filter(r => r.girPercent !== undefined);
     const girPercent = roundsWithGir.length > 0 
       ? Math.round(roundsWithGir.reduce((acc, r) => acc + Number(r.girPercent || 0), 0) / roundsWithGir.length) 
       : 0;
@@ -342,6 +347,11 @@ export default function App() {
     };
 
     await updateRecord('members', playerId, updatedProfile);
+  };
+
+  const handleDeletePastRound = async (roundId: string, playerId: string) => {
+    await deleteRecord('rounds', roundId);
+    await recalculatePlayerStats(playerId, { id: roundId, _deleted: true });
   };
 
   const handleSaveIndividualRound = async (roundData: any) => {
@@ -681,6 +691,7 @@ export default function App() {
         onOpenEditProfile={() => handleOpenClubhouseHub('profiles')}
         courses={courses}
         onUpdatePastRound={handleUpdatePastRound}
+        onDeletePastRound={handleDeletePastRound}
         initialExpandedRoundId={selectedHistoryRoundId}
       />
 
