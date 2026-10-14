@@ -507,11 +507,28 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                         const isSelected = selectedTeamIds.includes(t.id);
                         const teamHcp = calculateTeamScrambleHandicap(t.playerIds, members);
                         
+                        // Check for player overlap with already selected teams
+                        const selectedTeamsList = teams.filter(selected => selectedTeamIds.includes(selected.id));
+                        const activePlayerIds = new Set(selectedTeamsList.flatMap(selected => selected.playerIds));
+                        const hasOverlap = t.playerIds.some(id => activePlayerIds.has(id));
+                        const isDisabled = !isSelected && hasOverlap;
+                        
                         // Map the player IDs to actual Member profiles so we can get their names
                         const roster = t.playerIds.map(id => members.find(m => m.id === id)).filter(Boolean) as MemberProfile[];
 
                         return (
-                          <button key={t.id} onClick={() => handleToggleTeam(t.id)} className={`p-3 rounded-xl border text-left flex items-start justify-between transition-all cursor-pointer ${isSelected ? 'border-emerald-500 ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 shadow-2xs' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'}`}>
+                          <button 
+                            key={t.id} 
+                            onClick={() => !isDisabled && handleToggleTeam(t.id)} 
+                            disabled={isDisabled}
+                            className={`p-3 rounded-xl border text-left flex items-start justify-between transition-all ${
+                              isSelected 
+                                ? 'border-emerald-500 ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 shadow-2xs cursor-pointer' 
+                                : isDisabled
+                                  ? 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-40 cursor-not-allowed grayscale'
+                                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 cursor-pointer'
+                            }`}
+                          >
                             <div className="min-w-0 pr-2">
                               <div className="flex items-center gap-2">
                                 <span className="text-xl">{t.avatarEmoji || '🎯'}</span>
