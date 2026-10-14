@@ -7,10 +7,11 @@ interface ExpandableRoundCardProps {
   member: MemberProfile;
   courses: Course[];
   onUpdatePastRound?: (roundId: string, data: Partial<CompletedRoundRecord>) => void;
+  defaultExpanded?: boolean;
 }
 
-export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round, member, courses, onUpdatePastRound }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round, member, courses, onUpdatePastRound, defaultExpanded = false }) => {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isEditing, setIsEditing] = useState(false);
   const [editScores, setEditScores] = useState<Record<number, HoleScore>>(round.holeScores || {});
   const [editBuzzballs, setEditBuzzballs] = useState<number>(round.buzzballCount || 0);
