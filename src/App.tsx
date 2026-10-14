@@ -592,6 +592,7 @@ export default function App() {
         onCreateSession={handleCreateSession}
         onOpenTeamManager={() => handleOpenClubhouseHub('teams')}
         onManualRoundLogged={handleManualRoundLogged}
+        onManualTeamEventLogged={handleSaveTeamEvent}
         onJoinRoom={handleJoinRoom}
       />
 
