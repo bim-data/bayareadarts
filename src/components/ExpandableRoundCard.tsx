@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
 import { CompletedRoundRecord, MemberProfile, Course, HoleScore } from '../types';
-import { ChevronDown, Edit3, Check } from 'lucide-react';
+import { ChevronDown, Edit3, Check, Trash2 } from 'lucide-react';
 
 interface ExpandableRoundCardProps {
   round: CompletedRoundRecord;
   member: MemberProfile;
   courses: Course[];
   onUpdatePastRound?: (roundId: string, data: Partial<CompletedRoundRecord>) => void;
+  onDeletePastRound?: (roundId: string, playerId: string) => void;
   defaultExpanded?: boolean;
 }
 
-export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round, member, courses, onUpdatePastRound, defaultExpanded = false }) => {
+export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round, member, courses, onUpdatePastRound, onDeletePastRound, defaultExpanded = false }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isEditing, setIsEditing] = useState(false);
   const [editScores, setEditScores] = useState<Record<number, HoleScore>>(round.holeScores || {});
   const [editBuzzballs, setEditBuzzballs] = useState<number>(round.buzzballCount || 0);
+  const [editDate, setEditDate] = useState<string>(round.date || '');
 
   const course = courses.find(c => c.id === round.courseId);
   const getPar = (hNum: number) => course?.holes?.find((h) => h.number === hNum)?.par || 4;
@@ -44,6 +46,7 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
     
     setEditScores(startingScores);
     setEditBuzzballs(round.buzzballCount || 0);
+    setEditDate(round.date || '');
     setIsEditing(true);
     setIsExpanded(true);
   };
@@ -52,6 +55,7 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
     setIsEditing(false);
     setEditScores(round.holeScores || {});
     setEditBuzzballs(round.buzzballCount || 0);
+    setEditDate(round.date || '');
   };
 
   const updateHole = (holeNum: number, field: keyof HoleScore, value: any) => {
@@ -96,6 +100,7 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
     const differential = Number((((gross - rating) * 113) / slope).toFixed(1));
 
     const rawPayload = {
+      date: editDate,
       holeScores: editScores,
       grossScore: gross,
       netScore: netScore,
@@ -130,7 +135,7 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
           <div className="font-heading font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
             {round.courseName}
             {!isEditing && onUpdatePastRound && (
-              <button onClick={handleStartEdit} className="p-1 text-slate-400 hover:text-emerald-600 transition-colors" title="Edit Scorecard">
+              <button onClick={handleStartEdit} className="p-1 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer" title="Edit Scorecard">
                 <Edit3 className="w-3.5 h-3.5" />
               </button>
             )}
@@ -162,18 +167,24 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
         <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 animate-fadeIn overflow-x-auto">
           {isEditing ? (
             <div className="space-y-3 min-w-max">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Edit Scores</span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2 border-b border-slate-200 dark:border-slate-700/60 pb-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Edit Round</span>
+                  <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-900 dark:text-slate-100" />
                   <div className="flex items-center gap-1.5 bg-amber-100/50 dark:bg-amber-900/30 px-2 py-1 rounded-lg border border-amber-200/50 dark:border-amber-800/50">
                     <span className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-500">🍹 Drinks</span>
-                    <button type="button" onClick={() => setEditBuzzballs(Math.max(0, editBuzzballs - 1))} className="w-5 h-5 rounded bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs">-</button>
+                    <button type="button" onClick={() => setEditBuzzballs(Math.max(0, editBuzzballs - 1))} className="w-5 h-5 rounded bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs cursor-pointer">-</button>
                     <span className="font-stats font-bold text-xs w-4 text-center text-slate-900 dark:text-slate-100">{editBuzzballs}</span>
-                    <button type="button" onClick={() => setEditBuzzballs(editBuzzballs + 1)} className="w-5 h-5 rounded bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs">+</button>
+                    <button type="button" onClick={() => setEditBuzzballs(editBuzzballs + 1)} className="w-5 h-5 rounded bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs cursor-pointer">+</button>
                   </div>
                 </div>
                 <div className="flex gap-2 self-end sm:self-auto">
-                  <button onClick={handleCancelEdit} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 cursor-pointer">Cancel</button>
+                  {onDeletePastRound && (
+                    <button onClick={() => { if(window.confirm('Are you sure you want to permanently delete this round?')) onDeletePastRound(round.id, round.playerId); }} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 cursor-pointer flex items-center gap-1 transition-colors">
+                      <Trash2 className="w-3.5 h-3.5"/> Delete
+                    </button>
+                  )}
+                  <button onClick={handleCancelEdit} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700">Cancel</button>
                   <button onClick={handleSaveEdit} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 cursor-pointer"><Check className="w-3 h-3"/> Save</button>
                 </div>
               </div>
