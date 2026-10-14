@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { fairwayBanner } from '../assets';
 import { 
   X, 
@@ -8,6 +8,7 @@ import {
   AlertCircle, 
   Sparkles, 
   RefreshCw,
+  Crop
 } from 'lucide-react';
 import { Course, GameFormat, MemberProfile, OcrScorecardResponse, Team } from '../types';
 
@@ -16,7 +17,7 @@ interface ScorecardOcrModalProps {
   onClose: () => void;
   courses: Course[];
   members: MemberProfile[];
-  teams?: Team[]; // Added the teams prop!
+  teams?: Team[];
   onSaveIndividualRound: (roundData: any) => void;
   onSaveTeamEvent: (eventData: any) => void;
 }
@@ -35,6 +36,12 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrResult, setOcrResult] = useState<OcrScorecardResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Bounding Box Cropper State
+  const imageRef = useRef<HTMLImageElement>(null);
+  const [cropStart, setCropStart] = useState<{ x: number; y: number } | null>(null);
+  const [cropEnd, setCropEnd] = useState<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Player Disambiguation & Mapping state
   const [selectedPlayerRowId, setSelectedPlayerRowId] = useState<string>('');
@@ -56,6 +63,9 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
       setIsProcessing(false);
       setOcrResult(null);
       setErrorMsg(null);
+      setCropStart(null);
+      setCropEnd(null);
+      setIsDragging(false);
       setSelectedPlayerRowId('');
       setSelectedCourseId(courses[0]?.id || '');
       setCustomDate(new Date().toISOString().split('T')[0]);
@@ -75,23 +85,81 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
       reader.onload = () => {
         setSelectedImage(reader.result as string);
         setErrorMsg(null);
+        setCropStart(null);
+        setCropEnd(null);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Sample scorecard photo fallback
   const handleLoadSampleCard = () => {
     setSelectedImage(fairwayBanner);
     setErrorMsg(null);
+    setCropStart(null);
+    setCropEnd(null);
   };
 
-  // Process scorecard (With fallback for static GitHub Pages hosting)
+  // --- Cropper Mouse Events ---
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setCropStart({ x, y });
+    setCropEnd({ x, y });
+    setIsDragging(true);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging || !cropStart) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
+    setCropEnd({ x, y });
+  };
+
+  const handlePointerUp = () => {
+    setIsDragging(false);
+  };
+
+  const getCropStyle = () => {
+    if (!cropStart || !cropEnd) return { display: 'none' };
+    const left = Math.min(cropStart.x, cropEnd.x);
+    const top = Math.min(cropStart.y, cropEnd.y);
+    const width = Math.abs(cropStart.x - cropEnd.x);
+    const height = Math.abs(cropStart.y - cropEnd.y);
+    return { left, top, width, height };
+  };
+
+  // Process scorecard (Extracts cropped area if one exists)
   const handleProcessOcr = async () => {
     if (!selectedImage) return;
-
     setIsProcessing(true);
     setErrorMsg(null);
+
+    let finalBase64 = selectedImage;
+
+    // If the user drew a bounding box, crop the image via a hidden canvas
+    if (cropStart && cropEnd && imageRef.current) {
+      const img = imageRef.current;
+      const scaleX = img.naturalWidth / img.width;
+      const scaleY = img.naturalHeight / img.height;
+
+      const sx = Math.min(cropStart.x, cropEnd.x) * scaleX;
+      const sy = Math.min(cropStart.y, cropEnd.y) * scaleY;
+      const sWidth = Math.abs(cropStart.x - cropEnd.x) * scaleX;
+      const sHeight = Math.abs(cropStart.y - cropEnd.y) * scaleY;
+
+      if (sWidth > 10 && sHeight > 10) {
+        const canvas = document.createElement('canvas');
+        canvas.width = sWidth;
+        canvas.height = sHeight;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
+          finalBase64 = canvas.toDataURL('image/jpeg', 0.9);
+        }
+      }
+    }
 
     try {
       let response;
@@ -100,7 +168,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            imageBase64: selectedImage,
+            imageBase64: finalBase64,
             format: selectedFormat,
           }),
         });
@@ -113,35 +181,21 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
       }
     } catch (err: any) {
       if (err.message === 'STATIC_FALLBACK') {
-        // Simulate AI Processing time
+        // Simulate AI Processing time for GitHub Pages
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Generate simulated mock data so the UI continues working
         const mockData: OcrScorecardResponse = {
           courseName: courses.find(c => c.id === selectedCourseId)?.name || courses[0]?.name || "Unknown Course",
           date: customDate,
           detectedPlayers: [
             {
               id: "mock-1",
-              cardName: "Player 1",
+              cardName: "Cropped Player",
               totalStrokes: 82,
               front9: 41,
               back9: 41,
               holes: Array.from({ length: 18 }, (_, i) => ({
                 holeNumber: i + 1,
                 strokes: [3,4,5][Math.floor(Math.random()*3)] + 1, 
-                putts: 2
-              }))
-            },
-            {
-              id: "mock-2",
-              cardName: "Player 2",
-              totalStrokes: 95,
-              front9: 48,
-              back9: 47,
-              holes: Array.from({ length: 18 }, (_, i) => ({
-                holeNumber: i + 1,
-                strokes: [4,5,6][Math.floor(Math.random()*3)] + 1,
                 putts: 2
               }))
             }
@@ -158,13 +212,10 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
 
   const applyOcrData = (data: OcrScorecardResponse) => {
     setOcrResult(data);
-    
-    // Select first detected player by default
     if (data.detectedPlayers && data.detectedPlayers.length > 0) {
       const firstPlayer = data.detectedPlayers[0];
       setSelectedPlayerRowId(firstPlayer.id);
 
-      // Pre-fill editable holes
       const initialHoles: Record<number, { strokes: number; putts: number }> = {};
       firstPlayer.holes.forEach((h) => {
         initialHoles[h.holeNumber] = {
@@ -176,7 +227,6 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
     }
   };
 
-  // Switch selected player row
   const handleSelectPlayerRow = (playerId: string) => {
     setSelectedPlayerRowId(playerId);
     const player = ocrResult?.detectedPlayers.find((p) => p.id === playerId);
@@ -192,7 +242,6 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
     }
   };
 
-  // Update hole score manually
   const handleHoleChange = (holeNum: number, field: 'strokes' | 'putts', value: number) => {
     setEditableHoles((prev) => ({
       ...prev,
@@ -203,7 +252,6 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
     }));
   };
 
-  // Save the digitized round
   const handleSaveRound = () => {
     const totalGross = Object.values(editableHoles).reduce((acc, h) => acc + h.strokes, 0);
     const totalPutts = Object.values(editableHoles).reduce((acc, h) => acc + h.putts, 0);
@@ -212,11 +260,9 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
     const tee = matchedCourse?.tees?.[0] || { name: 'White', rating: 70.0, slope: 125 };
 
     if (selectedFormat === 'scramble' || selectedFormat === 'best_ball') {
-      // Save to Team Events Store
       const selectedTeam = teams.find(t => t.id === selectedTeamId);
       const displayTeamName = selectedTeam?.name || 'Custom Squad';
       
-      // Pull actual member names from the squad roster!
       const playerNames = selectedTeam 
         ? selectedTeam.playerIds.map(id => members.find(m => m.id === id)?.name || 'Unknown Golfer')
         : ['Scanned Player 1', 'Scanned Player 2'];
@@ -231,14 +277,13 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
           {
             teamName: displayTeamName,
             grossScore: totalGross,
-            netScore: totalGross - 4, // Placeholder net
+            netScore: totalGross - 4,
             playerNames: playerNames, 
           },
         ],
         notes: `Digitized via AI Scorecard OCR.`,
       });
     } else {
-      // Save to Individual WHS Handicap Store
       const member = members.find((m) => m.id === assignedMemberId) || members[0];
       const diff = Math.round(((113 / tee.slope) * (totalGross - tee.rating)) * 10) / 10;
 
@@ -309,7 +354,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
           {!ocrResult && (
             <div className="space-y-6">
               
-              {/* Core Details (Moved to Step 1) */}
+              {/* Core Details */}
               <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-xl space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
@@ -354,7 +399,6 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
                     >
                       {teams.length > 0 ? (
                         teams.map((t) => {
-                          // Compile a quick list of nicknames/first names for the dropdown
                           const rosterNames = t.playerIds.map(id => {
                             const m = members.find(m => m.id === id);
                             return m?.nickname || m?.name.split(' ')[0] || 'Unknown';
@@ -415,23 +459,49 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
                 </div>
               </div>
 
-              {/* Upload Dropzone */}
+              {/* Upload Dropzone & Bounding Box Cropper */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300 block">
-                  Upload Scorecard Photo
+                <label className="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                  <span>Upload Scorecard Photo</span>
+                  {selectedImage && (
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <Crop className="w-3 h-3" /> Optional: Drag box to isolate row
+                    </span>
+                  )}
                 </label>
-                <div className="p-6 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 text-center space-y-3">
+
+                <div className="p-4 sm:p-6 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 text-center space-y-4">
                   {selectedImage ? (
-                    <div className="space-y-3">
-                      <div className="max-h-56 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 mx-auto inline-block shadow-sm">
+                    <div className="space-y-4 flex flex-col items-center">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Drag a box over the player's scores to help the AI focus.
+                      </p>
+                      
+                      {/* Interactive Bounding Box Wrapper */}
+                      <div 
+                        className="relative inline-block border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm touch-none select-none cursor-crosshair bg-white dark:bg-slate-900"
+                        onPointerDown={handlePointerDown}
+                        onPointerMove={handlePointerMove}
+                        onPointerUp={handlePointerUp}
+                        onPointerLeave={handlePointerUp}
+                      >
                         <img
+                          ref={imageRef}
                           src={selectedImage}
                           alt="Scorecard preview"
-                          className="max-h-56 object-contain"
+                          className="max-h-64 sm:max-h-80 w-auto pointer-events-none block"
+                          draggable={false}
                         />
+                        {cropStart && cropEnd && (
+                          <div 
+                            className="absolute border-2 border-emerald-500 bg-emerald-500/20 pointer-events-none"
+                            style={getCropStyle()}
+                          />
+                        )}
                       </div>
+
                       <div className="flex items-center justify-center gap-3">
-                        <label className="btn-modern px-4 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg cursor-pointer text-slate-700 dark:text-slate-300">
+                        <label className="btn-modern px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-lg cursor-pointer text-slate-700 dark:text-slate-300">
                           Change Photo
                           <input
                             type="file"
@@ -440,6 +510,15 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
                             className="hidden"
                           />
                         </label>
+                        {cropStart && cropEnd && (
+                          <button
+                            type="button"
+                            onClick={() => { setCropStart(null); setCropEnd(null); }}
+                            className="btn-modern px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold rounded-lg cursor-pointer"
+                          >
+                            Clear Selection
+                          </button>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -502,7 +581,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4 text-amber-300" />
-                      <span>Process Scorecard with Gemini Vision</span>
+                      <span>Process {cropStart ? 'Cropped Selection' : 'Full Scorecard'} with Gemini Vision</span>
                     </>
                   )}
                 </button>
