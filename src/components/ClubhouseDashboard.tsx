@@ -582,6 +582,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                 round={selectedAccoladeRound.round} 
                 member={selectedAccoladeRound.member} 
                 courses={courses} 
+                defaultExpanded={true}
               />
             </div>
             <div className="shrink-0 p-3.5 sm:p-4 bg-white dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex justify-end">
