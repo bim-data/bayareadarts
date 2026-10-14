@@ -156,7 +156,13 @@ export default function App() {
 
   const handleTeamUpdated = async (updatedTeam: TeamGroup) => {
     if (!updatedTeam.id) return;
-    await updateRecord('teams', updatedTeam.id, updatedTeam);
+    
+    // Strip out undefined values so Firebase doesn't silently crash
+    const cleanTeam = Object.fromEntries(
+      Object.entries(updatedTeam).filter(([_, v]) => v !== undefined)
+    );
+    
+    await updateRecord('teams', cleanTeam.id, cleanTeam);
   };
 
   const handleTeamDeleted = async (teamId: string) => {
