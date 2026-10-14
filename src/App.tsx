@@ -198,9 +198,50 @@ export default function App() {
     await deleteRecord('future_rounds', futureRoundId);
   };
 
+  // Helper to recalculate a player's stats after a round is saved/edited
+  const recalculatePlayerStats = async (playerId: string) => {
+    const member = members.find(m => m.id === playerId);
+    if (!member) return;
+
+    // Get all rounds for this player
+    const playerRounds = completedRounds.filter(r => r.playerId === playerId);
+    if (playerRounds.length === 0) return;
+
+    const roundsCount = playerRounds.length;
+    const bestRound = Math.min(...playerRounds.map(r => r.grossScore || 999));
+    
+    // Averages
+    const totalGross = playerRounds.reduce((acc, r) => acc + (r.grossScore || 0), 0);
+    const scoringAverage = Number((totalGross / roundsCount).toFixed(1));
+    
+    // Only count putts/GIR if they were recorded
+    const roundsWithPutts = playerRounds.filter(r => r.totalPutts && r.totalPutts > 0);
+    const avgPutts = roundsWithPutts.length > 0 
+      ? Number((roundsWithPutts.reduce((acc, r) => acc + r.totalPutts, 0) / roundsWithPutts.length).toFixed(1)) 
+      : 0;
+
+    const roundsWithGir = playerRounds.filter(r => r.girPercent !== undefined);
+    const girPercent = roundsWithGir.length > 0 
+      ? Math.round(roundsWithGir.reduce((acc, r) => acc + (r.girPercent || 0), 0) / roundsWithGir.length) 
+      : 0;
+
+    const updatedProfile = {
+      ...member,
+      roundsCount,
+      bestRound: bestRound === 999 ? 0 : bestRound,
+      scoringAverage,
+      avgPutts,
+      girPercent
+    };
+
+    await updateRecord('members', playerId, updatedProfile);
+  };
+
   const handleSaveIndividualRound = async (roundData: any) => {
     const roundId = roundData.id || `round-${Date.now()}`;
     await setDoc(doc(db, 'rounds', roundId), { ...roundData, id: roundId });
+    // Recalculate stats for the player!
+    if (roundData.playerId) await recalculatePlayerStats(roundData.playerId);
   };
 
   const handleSaveTeamEvent = async (eventData: any) => {
@@ -276,6 +317,8 @@ export default function App() {
       };
       await setDoc(doc(db, 'rounds', roundId), newRound);
       console.log("Successfully saved past round:", newRound);
+      // Recalculate stats!
+      if (data.playerId) await recalculatePlayerStats(data.playerId);
     } catch (error) {
       console.error("Failed to save past round to Firebase:", error);
     }
@@ -285,6 +328,12 @@ export default function App() {
     try {
       const cleanData = JSON.parse(JSON.stringify(updatedData));
       await updateRecord('rounds', roundId, cleanData);
+      
+      // Look up the round we just edited to see whose stats we need to recalculate
+      const targetRound = completedRounds.find(r => r.id === roundId);
+      if (targetRound && targetRound.playerId) {
+        await recalculatePlayerStats(targetRound.playerId);
+      }
     } catch (error) {
       console.error("Failed to update past round:", error);
     }
