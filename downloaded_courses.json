@@ -1,160 +1,168 @@
 [
   {
-    "id": "shoreline",
-    "name": "Shoreline Golf Links",
-    "city": "Mountain View",
-    "region": "South Bay",
-    "notes": "On the bay 18 holes near Google Campus and Shoreline Amphitheater",
+    "id": "redwood-canyon-gc",
+    "name": "Redwood Canyon Golf Course",
+    "city": "Castro Valley",
+    "region": "Easy Bay",
+    "notes": "In the hills of Castro Valley. No cell reception",
     "tees": [
       {
-        "id": "shoreline-tee-0",
-        "name": "Black",
-        "color": "#1E293B",
-        "rating": 74,
-        "slope": 126,
-        "totalYardage": 7000
-      },
-      {
-        "id": "shoreline-tee-1",
+        "id": "redwood-canyon-gc-tee-0",
         "name": "Blue",
         "color": "#2563EB",
-        "rating": 72.1,
-        "slope": 124,
-        "totalYardage": 6621
+        "rating": 69.2,
+        "slope": 123,
+        "totalYardage": 5990
       },
       {
-        "id": "shoreline-tee-2",
-        "name": "Diamond Combo",
-        "color": "#94A3B8",
-        "rating": 70.7,
-        "slope": 124,
-        "totalYardage": 6327
+        "id": "redwood-canyon-gc-tee-1",
+        "name": "Blue/White Combo",
+        "color": "#2563EB",
+        "rating": 67.8,
+        "slope": 120,
+        "totalYardage": 5664
       },
       {
-        "id": "shoreline-tee-3",
+        "id": "redwood-canyon-gc-tee-2",
         "name": "White",
         "color": "#F8FAFC",
-        "rating": 69.5,
-        "slope": 123,
-        "totalYardage": 6080
+        "rating": 67.1,
+        "slope": 117,
+        "totalYardage": 5519
       },
       {
-        "id": "shoreline-tee-4",
-        "name": "Red",
-        "color": "#DC2626",
-        "rating": 66,
-        "slope": 117,
-        "totalYardage": 5447
+        "id": "redwood-canyon-gc-tee-3",
+        "name": "White/Gold Combo",
+        "color": "#F8FAFC",
+        "rating": 66.1,
+        "slope": 115,
+        "totalYardage": 5331
+      },
+      {
+        "id": "redwood-canyon-gc-tee-4",
+        "name": "Gold",
+        "color": "#D97706",
+        "rating": 65.5,
+        "slope": 114,
+        "totalYardage": 5228
+      },
+      {
+        "id": "redwood-canyon-gc-tee-5",
+        "name": "Gold Combo",
+        "color": "#D97706",
+        "rating": 70.1,
+        "slope": 120,
+        "totalYardage": 5183
       }
     ],
     "holes": [
       {
         "number": 1,
-        "par": 5,
-        "yardage": 579,
-        "handicapIndex": 12
+        "par": 4,
+        "yardage": 411,
+        "handicapIndex": 1
       },
       {
         "number": 2,
         "par": 4,
-        "yardage": 400,
-        "handicapIndex": 2
+        "yardage": 366,
+        "handicapIndex": 5
       },
       {
         "number": 3,
-        "par": 4,
-        "yardage": 413,
-        "handicapIndex": 16
+        "par": 3,
+        "yardage": 137,
+        "handicapIndex": 17
       },
       {
         "number": 4,
-        "par": 3,
-        "yardage": 186,
-        "handicapIndex": 6
+        "par": 5,
+        "yardage": 478,
+        "handicapIndex": 3
       },
       {
         "number": 5,
-        "par": 4,
-        "yardage": 402,
-        "handicapIndex": 14
+        "par": 3,
+        "yardage": 171,
+        "handicapIndex": 13
       },
       {
         "number": 6,
         "par": 4,
-        "yardage": 429,
-        "handicapIndex": 18
+        "yardage": 358,
+        "handicapIndex": 7
       },
       {
         "number": 7,
-        "par": 4,
-        "yardage": 403,
-        "handicapIndex": 8
+        "par": 3,
+        "yardage": 180,
+        "handicapIndex": 9
       },
       {
         "number": 8,
-        "par": 3,
-        "yardage": 203,
-        "handicapIndex": 10
+        "par": 4,
+        "yardage": 313,
+        "handicapIndex": 15
       },
       {
         "number": 9,
         "par": 5,
-        "yardage": 519,
-        "handicapIndex": 4
-      },
-      {
-        "number": 10,
-        "par": 5,
-        "yardage": 525,
-        "handicapIndex": 17
-      },
-      {
-        "number": 11,
-        "par": 3,
-        "yardage": 173,
+        "yardage": 564,
         "handicapIndex": 11
       },
       {
-        "number": 12,
+        "number": 10,
         "par": 4,
-        "yardage": 406,
-        "handicapIndex": 1
+        "yardage": 386,
+        "handicapIndex": 4
+      },
+      {
+        "number": 11,
+        "par": 4,
+        "yardage": 268,
+        "handicapIndex": 18
+      },
+      {
+        "number": 12,
+        "par": 5,
+        "yardage": 479,
+        "handicapIndex": 10
       },
       {
         "number": 13,
-        "par": 4,
-        "yardage": 378,
-        "handicapIndex": 3
+        "par": 3,
+        "yardage": 133,
+        "handicapIndex": 14
       },
       {
         "number": 14,
         "par": 4,
-        "yardage": 399,
-        "handicapIndex": 7
+        "yardage": 296,
+        "handicapIndex": 16
       },
       {
         "number": 15,
         "par": 4,
-        "yardage": 416,
-        "handicapIndex": 15
+        "yardage": 387,
+        "handicapIndex": 2
       },
       {
         "number": 16,
-        "par": 5,
-        "yardage": 523,
-        "handicapIndex": 9
+        "par": 3,
+        "yardage": 169,
+        "handicapIndex": 8
       },
       {
         "number": 17,
-        "par": 3,
-        "yardage": 207,
-        "handicapIndex": 13
+        "par": 4,
+        "yardage": 356,
+        "handicapIndex": 6
       },
       {
         "number": 18,
-        "par": 4,
-        "yardage": 439,
-        "handicapIndex": 5
+        "par": 5,
+        "yardage": 538,
+        "handicapIndex": 12
       }
     ]
   }
