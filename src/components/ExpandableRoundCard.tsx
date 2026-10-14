@@ -15,6 +15,9 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
   const [editScores, setEditScores] = useState<Record<number, HoleScore>>(round.holeScores || {});
   const [editBuzzballs, setEditBuzzballs] = useState<number>(round.buzzballCount || 0);
 
+  const course = courses.find(c => c.id === round.courseId);
+  const getPar = (hNum: number) => course?.holes?.find((h) => h.number === hNum)?.par || 4;
+
   const handleStartEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     
@@ -24,10 +27,9 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
     }
     
     if (Object.keys(startingScores).length < 18) {
-      const course = courses.find(c => c.id === round.courseId);
       for (let i = 1; i <= 18; i++) {
         if (!startingScores[i]) {
-          const par = course?.holes?.find(h => h.number === i)?.par || 4;
+          const par = getPar(i);
           startingScores[i] = { strokes: par, putts: 2, fir: par === 3 ? 'none' : 'hit', gir: true };
         }
       }
@@ -55,7 +57,6 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
   const handleSaveEdit = () => {
     if (!onUpdatePastRound) return;
     
-    const course = courses.find(c => c.id === round.courseId);
     const tee = course?.tees?.find(t => t.id === round.teeId);
     const rating = tee?.rating || 72;
     const slope = tee?.slope || 113;
@@ -151,16 +152,16 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {Array.from({length: 18}, (_, i) => i + 1).map(hNum => {
-                  const score = editScores[hNum] || { strokes: 4, putts: 2, fir: 'none', gir: false };
+                  const score = editScores[hNum] || { strokes: getPar(hNum), putts: 2, fir: 'none', gir: false };
                   return (
                     <div key={hNum} className="p-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900">
-                      <div className="text-[10px] font-bold text-slate-500 mb-1.5 text-center">Hole {hNum}</div>
+                      <div className="text-[10px] font-bold text-slate-500 mb-1.5 text-center">Hole {hNum} (Par {getPar(hNum)})</div>
                       <div className="flex items-center justify-between text-xs mb-1.5">
                         <span className="font-semibold text-slate-700 dark:text-slate-300">Score</span>
                         <div className="flex items-center gap-1.5">
-                          <button type="button" onClick={() => updateHole(hNum, 'strokes', Math.max(1, (score.strokes||4)-1))} className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700">-</button>
-                          <span className="w-4 text-center font-bold text-slate-900 dark:text-slate-100">{score.strokes || 4}</span>
-                          <button type="button" onClick={() => updateHole(hNum, 'strokes', (score.strokes||4)+1)} className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700">+</button>
+                          <button type="button" onClick={() => updateHole(hNum, 'strokes', Math.max(1, (score.strokes||getPar(hNum))-1))} className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700">-</button>
+                          <span className="w-4 text-center font-bold text-slate-900 dark:text-slate-100">{score.strokes || getPar(hNum)}</span>
+                          <button type="button" onClick={() => updateHole(hNum, 'strokes', (score.strokes||getPar(hNum))+1)} className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700">+</button>
                         </div>
                       </div>
                       <div className="flex items-center justify-between text-xs">
@@ -182,9 +183,12 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
                 <div className="space-y-2">
                   <div className="grid grid-cols-9 gap-1">
                     {Array.from({length: 9}, (_, i) => i + 1).map(h => (
-                      <div key={h} className="text-center">
-                        <div className="text-[9px] font-bold text-slate-400 mb-1">#{h}</div>
-                        <div className="text-xs font-bold text-slate-900 dark:text-white py-1.5 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 shadow-2xs">
+                      <div key={h} className="text-center bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden shadow-2xs">
+                        <div className="bg-slate-100 dark:bg-slate-800 py-1 border-b border-slate-200 dark:border-slate-700">
+                          <div className="text-[9px] font-extrabold text-slate-500">#{h}</div>
+                          <div className="text-[8px] font-bold text-slate-400">P{getPar(h)}</div>
+                        </div>
+                        <div className="text-xs font-bold text-slate-900 dark:text-white py-1.5">
                           {round.holeScores![h]?.strokes || '-'}
                         </div>
                       </div>
@@ -192,9 +196,12 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
                   </div>
                   <div className="grid grid-cols-9 gap-1">
                     {Array.from({length: 9}, (_, i) => i + 10).map(h => (
-                      <div key={h} className="text-center">
-                        <div className="text-[9px] font-bold text-slate-400 mb-1">#{h}</div>
-                        <div className="text-xs font-bold text-slate-900 dark:text-white py-1.5 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 shadow-2xs">
+                      <div key={h} className="text-center bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden shadow-2xs">
+                        <div className="bg-slate-100 dark:bg-slate-800 py-1 border-b border-slate-200 dark:border-slate-700">
+                          <div className="text-[9px] font-extrabold text-slate-500">#{h}</div>
+                          <div className="text-[8px] font-bold text-slate-400">P{getPar(h)}</div>
+                        </div>
+                        <div className="text-xs font-bold text-slate-900 dark:text-white py-1.5">
                           {round.holeScores![h]?.strokes || '-'}
                         </div>
                       </div>
