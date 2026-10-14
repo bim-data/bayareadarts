@@ -434,22 +434,32 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
 
                   {participantMode === 'golfers' ? (
                     <div className="space-y-2">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {selectedPlayers.map((player) => {
                           const memberObj = members.find((m) => m.id === player.playerId);
                           return (
                             <div key={player.playerId} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-between gap-2 shadow-2xs">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-base">{memberObj?.avatarEmoji || '🏌️‍♂️'}</span>
-                                <div className="flex flex-col min-w-0">
-                                  <span className="font-heading font-bold text-xs truncate leading-tight">{player.name}</span>
-                                  {memberObj?.nickname && (
-                                    <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 truncate leading-tight">"{memberObj.nickname}"</span>
-                                  )}
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-lg shrink-0">
+                                  {memberObj?.avatarEmoji || '🏌️‍♂️'}
                                 </div>
-                                <span className="text-[10px] text-slate-400 font-stats shrink-0 ml-1">Idx: {player.handicapIndex.toFixed(1)}</span>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100 truncate">
+                                      {player.name}
+                                    </span>
+                                    {memberObj?.nickname && (
+                                      <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 truncate">
+                                        "{memberObj.nickname}"
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-slate-500 block font-stats mt-0.5">
+                                    Index: {player.handicapIndex.toFixed(1)}
+                                  </span>
+                                </div>
                               </div>
-                              <button onClick={() => handleRemovePlayer(player.playerId)} className="p-1 text-slate-400 hover:text-red-500 cursor-pointer shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => handleRemovePlayer(player.playerId)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg cursor-pointer shrink-0 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                             </div>
                           );
                         })}
