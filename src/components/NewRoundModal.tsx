@@ -20,6 +20,7 @@ interface NewRoundModalProps {
   onCreateSession: (sessionData: Partial<RoundSession>) => void;
   onOpenTeamManager?: () => void;
   onManualRoundLogged?: (data: Record<string, any>) => void;
+  onManualTeamEventLogged?: (data: Record<string, any>) => void;
   onJoinRoom?: (roomCode: string, playerName: string, handicapIndex: number, memberId?: string) => Promise<boolean>;
 }
 
@@ -35,6 +36,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
   onCreateSession,
   onOpenTeamManager,
   onManualRoundLogged,
+  onManualTeamEventLogged,
   onJoinRoom,
 }) => {
   const [modalTab, setModalTab] = useState<'live' | 'join' | 'manual'>('live');
@@ -79,7 +81,6 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      // Pre-select the active user by default
       if (activeUser) {
         const courseHandicap = Math.round(activeUser.handicapIndex * ((selectedTee?.slope || 124) / 113) + ((selectedTee?.rating || 70.2) - 72));
         setSelectedPlayers([{ 
@@ -210,7 +211,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
       teams: finalTeams, 
       isTeamRound: participantMode === 'teams' || format === 'scramble', 
       date: roundDate,
-      holesPlayed // Save length of round
+      holesPlayed
     });
     onClose();
   };
@@ -242,6 +243,42 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
     const netScore = gross - courseHandicap;
     const differential = Number((((gross - rating) * 113) / slope).toFixed(1));
 
+    // TEAM EVENT ROUTING (Scrambles & Best Ball)
+    if ((format === 'scramble' || format === 'best_ball') && participantMode === 'teams' && selectedTeamIds.length > 0) {
+      const selectedSquad = teams.find(t => t.id === selectedTeamIds[0]);
+      const displayTeamName = selectedSquad?.name || 'Custom Squad';
+      const playerNames = selectedSquad 
+        ? selectedSquad.playerIds.map(id => members.find(m => m.id === id)?.name || 'Unknown Golfer')
+        : [activeUser.name];
+
+      const teamPayload = {
+        date: roundDate,
+        courseName: selectedCourse.name,
+        eventName: `${selectedCourse.name} ${format === 'scramble' ? 'Scramble' : 'Best Ball'}`,
+        format: format,
+        winningTeamName: displayTeamName,
+        teamLeaderboard: [
+          {
+            teamName: displayTeamName,
+            grossScore: gross,
+            netScore: netScore,
+            playerNames: playerNames,
+          },
+        ],
+        notes: `Manually logged past team round.`,
+      };
+
+      try {
+        if (onManualTeamEventLogged) onManualTeamEventLogged(teamPayload);
+        setManualSuccessMessage(`Team Event successfully recorded!`);
+        setTimeout(() => { setIsSubmittingManual(false); onClose(); }, 1200);
+      } catch (err) {
+        setIsSubmittingManual(false);
+      }
+      return; // Stop here so it doesn't save to individual records!
+    }
+
+    // INDIVIDUAL RECORD ROUTING
     const payload: Record<string, any> = {
       playerId: activeUser.id, 
       playerName: activeUser.name, 
@@ -262,13 +299,6 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
       buzzballCount: manualBuzzballs,
       holeScores: manualEntryMode === 'hole_by_hole' ? manualHoleScores : undefined,
     };
-
-    if (format === 'scramble' && participantMode === 'teams' && selectedTeamIds.length > 0) {
-      const selectedSquad = teams.find(t => t.id === selectedTeamIds[0]);
-      payload.teamId = selectedSquad?.id;
-      payload.teamName = selectedSquad?.name;
-      payload.isTeamEvent = true;
-    }
 
     try {
       if (onManualRoundLogged) onManualRoundLogged(payload);
@@ -407,7 +437,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                       { id: 'stroke', label: 'Stroke Play', desc: 'Total Score' },
                       { id: 'match_play', label: 'Match Play', desc: 'Hole-by-Hole' },
                       { id: 'stableford', label: 'Stableford', desc: 'Points Based' },
-                      { id: 'skins', label: 'Skins', desc: 'Per-Hole Pot' }
+                      { id: 'scramble', label: 'Team Scramble', desc: 'Team Events' }
                     ].map((f) => (
                       <button key={f.id} onClick={() => setFormat(f.id as any)} className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${format === f.id ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}>
                         <span className="font-heading font-bold text-xs block leading-tight">{f.label}</span>
