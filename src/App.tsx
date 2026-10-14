@@ -467,6 +467,7 @@ export default function App() {
         onUpdateProfile={handleUpdateProfile}
         onAddNewMember={handleAddNewMember}
         completedRounds={completedRounds}
+        teamEvents={teamEvents}
         teams={teams}
         onTeamCreated={handleTeamCreated}
         onTeamUpdated={handleTeamUpdated}
