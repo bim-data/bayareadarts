@@ -19,6 +19,10 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
   const course = courses.find(c => c.id === round.courseId);
   const getPar = (hNum: number) => course?.holes?.find((h) => h.number === hNum)?.par || 4;
 
+  const isFront9 = round.holesPlayed !== 'back_9';
+  const isBack9 = round.holesPlayed !== 'front_9';
+  const is18 = isFront9 && isBack9;
+
   const handleStartEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     
@@ -27,13 +31,15 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
       startingScores = JSON.parse(JSON.stringify(round.holeScores));
     }
     
-    if (Object.keys(startingScores).length < 18) {
-      for (let i = 1; i <= 18; i++) {
-        if (!startingScores[i]) {
-          const par = getPar(i);
-          startingScores[i] = { strokes: par, putts: 2, fir: par === 3 ? 'none' : 'hit', gir: true };
+    if (Object.keys(startingScores).length < (is18 ? 18 : 9)) {
+      Array.from({length: 18}, (_, i) => i + 1).forEach((i) => {
+        if (is18 || (isFront9 && i <= 9) || (isBack9 && i >= 10)) {
+          if (!startingScores[i]) {
+            const par = getPar(i);
+            startingScores[i] = { strokes: par, putts: 2, fir: par === 3 ? 'none' : 'hit', gir: true };
+          }
         }
-      }
+      });
     }
     
     setEditScores(startingScores);
@@ -59,12 +65,21 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
     if (!onUpdatePastRound) return;
     
     const tee = course?.tees?.find(t => t.id === round.teeId);
-    const rating = tee?.rating || 72;
+    
+    const is9Hole = !is18;
+    const baseRating = tee?.rating || 72;
+    const rating = is9Hole ? baseRating / 2 : baseRating;
     const slope = tee?.slope || 113;
 
     let gross = 0; let putts = 0; let firHits = 0; let firEligible = 0; let girHits = 0;
 
-    Object.entries(editScores).forEach(([_, score]) => {
+    Object.entries(editScores).forEach(([h, score]) => {
+      const hNum = Number(h);
+      if (is9Hole) {
+        if (round.holesPlayed === 'front_9' && hNum > 9) return;
+        if (round.holesPlayed === 'back_9' && hNum < 10) return;
+      }
+      
       gross += (score.strokes || 4);
       putts += (score.putts || 2);
       if (score.fir !== 'none') {
@@ -75,8 +90,8 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
     });
 
     const firPercent = firEligible > 0 ? Math.round((firHits / firEligible) * 100) : 50;
-    const girPercent = Math.round((girHits / 18) * 100);
-    const courseHandicap = Math.round((member.handicapIndex || 0) * (slope / 113) + (rating - 72));
+    const girPercent = Math.round((girHits / (is9Hole ? 9 : 18)) * 100);
+    const courseHandicap = Math.round(((member.handicapIndex || 0) / (is9Hole ? 2 : 1)) * (slope / 113) + (rating - (is9Hole ? 36 : 72)));
     const netScore = gross - courseHandicap;
     const differential = Number((((gross - rating) * 113) / slope).toFixed(1));
 
@@ -144,9 +159,9 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
       </div>
 
       {isExpanded && (
-        <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 animate-fadeIn">
+        <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 animate-fadeIn overflow-x-auto">
           {isEditing ? (
-            <div className="space-y-3">
+            <div className="space-y-3 min-w-max">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Edit Scores</span>
@@ -163,7 +178,9 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
                 </div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {Array.from({length: 18}, (_, i) => i + 1).map(hNum => {
+                {Array.from({length: 18}, (_, i) => i + 1)
+                  .filter(hNum => is18 ? true : isFront9 ? hNum <= 9 : hNum >= 10)
+                  .map(hNum => {
                   const score = editScores[hNum] || { strokes: getPar(hNum), putts: 2, fir: 'none', gir: false };
                   return (
                     <div key={hNum} className="p-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900">
@@ -190,27 +207,29 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto w-full pb-1">
-              <div className="min-w-[480px] flex flex-col gap-3">
-                {round.holeScores ? (
-                  <>
-                    {/* Front 9 */}
-                    <div className="overflow-hidden border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">
+            <div className="min-w-max border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
+              {round.holeScores ? (
+                <>
+                  {/* Front 9 */}
+                  {isFront9 && (
+                    <div className="overflow-hidden border-b border-slate-200 dark:border-slate-800 last:border-b-0">
                       {/* Header */}
                       <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/80">
                         <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Hole</div>
                         {Array.from({length: 9}, (_, i) => i + 1).map(h => (
-                          <div key={h} className="w-9 sm:w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700">{h}</div>
+                          <div key={h} className="w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700">{h}</div>
                         ))}
-                        <div className="w-12 flex-1 p-2 text-center text-[11px] font-extrabold text-slate-700 dark:text-white bg-slate-200 dark:bg-slate-700">OUT</div>
+                        <div className={`w-12 flex-1 p-2 text-center text-[11px] font-extrabold ${!isBack9 ? 'text-white bg-emerald-600' : 'text-slate-700 dark:text-white bg-slate-200 dark:bg-slate-700'}`}>
+                          {!isBack9 ? 'TOT' : 'OUT'}
+                        </div>
                       </div>
                       {/* Par */}
                       <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
                         <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Par</div>
                         {Array.from({length: 9}, (_, i) => i + 1).map(h => (
-                          <div key={h} className="w-9 sm:w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 dark:border-slate-700">{getPar(h)}</div>
+                          <div key={h} className="w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 dark:border-slate-700">{getPar(h)}</div>
                         ))}
-                        <div className="w-12 flex-1 p-2 text-center text-[11px] font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80">
+                        <div className={`w-12 flex-1 p-2 text-center text-[11px] font-extrabold ${!isBack9 ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20' : 'text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80'}`}>
                           {Array.from({length: 9}, (_, i) => getPar(i + 1)).reduce((a, b) => a + b, 0)}
                         </div>
                       </div>
@@ -220,38 +239,44 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
                           <span className="text-[11px] font-bold text-slate-900 dark:text-white leading-tight truncate">{round.playerName.split(' ')[0]}</span>
                         </div>
                         {Array.from({length: 9}, (_, i) => i + 1).map(h => (
-                          <div key={h} className="w-9 sm:w-10 h-10 shrink-0 flex items-center justify-center font-stats text-sm border-r border-slate-100 dark:border-slate-800/50">
+                          <div key={h} className="w-10 h-10 shrink-0 flex items-center justify-center font-stats text-sm border-r border-slate-100 dark:border-slate-800/50">
                             {renderScore(round.holeScores![h]?.strokes, getPar(h))}
                           </div>
                         ))}
-                        <div className="w-12 flex-1 h-10 flex items-center justify-center font-stats text-sm font-bold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/30">
+                        <div className={`w-12 flex-1 h-10 flex items-center justify-center font-stats text-sm ${!isBack9 ? 'font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/10' : 'font-bold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/30'}`}>
                           {Array.from({length: 9}, (_, i) => round.holeScores![i + 1]?.strokes || 0).reduce((a, b) => a + b, 0) || '-'}
                         </div>
                       </div>
                     </div>
+                  )}
 
-                    {/* Back 9 */}
-                    <div className="overflow-hidden border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">
+                  {/* Back 9 */}
+                  {isBack9 && (
+                    <div className="overflow-hidden">
                       {/* Header */}
                       <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/80">
                         <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Hole</div>
                         {Array.from({length: 9}, (_, i) => i + 10).map(h => (
-                          <div key={h} className="w-9 sm:w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700">{h}</div>
+                          <div key={h} className="w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700">{h}</div>
                         ))}
-                        <div className="w-10 sm:w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-slate-700 dark:text-white border-r border-slate-300 dark:border-slate-600 bg-slate-200 dark:bg-slate-700">IN</div>
+                        {isFront9 && (
+                           <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-slate-700 dark:text-white border-r border-slate-300 dark:border-slate-600 bg-slate-200 dark:bg-slate-700">IN</div>
+                        )}
                         <div className="w-12 flex-1 p-2 text-center text-[11px] font-extrabold text-white bg-emerald-600">TOT</div>
                       </div>
                       {/* Par */}
                       <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
                         <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Par</div>
                         {Array.from({length: 9}, (_, i) => i + 10).map(h => (
-                          <div key={h} className="w-9 sm:w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 dark:border-slate-700">{getPar(h)}</div>
+                          <div key={h} className="w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 dark:border-slate-700">{getPar(h)}</div>
                         ))}
-                        <div className="w-10 sm:w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-slate-600 dark:text-slate-400 border-r border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800/80">
-                          {Array.from({length: 9}, (_, i) => getPar(i + 10)).reduce((a, b) => a + b, 0)}
-                        </div>
+                        {isFront9 && (
+                          <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-slate-600 dark:text-slate-400 border-r border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800/80">
+                            {Array.from({length: 9}, (_, i) => getPar(i + 10)).reduce((a, b) => a + b, 0)}
+                          </div>
+                        )}
                         <div className="w-12 flex-1 p-2 text-center text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20">
-                          {Array.from({length: 18}, (_, i) => getPar(i + 1)).reduce((a, b) => a + b, 0)}
+                          {Array.from({length: isFront9 ? 18 : 9}, (_, i) => getPar(isFront9 ? i + 1 : i + 10)).reduce((a, b) => a + b, 0)}
                         </div>
                       </div>
                       {/* Score */}
@@ -260,25 +285,27 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
                           <span className="text-[11px] font-bold text-slate-900 dark:text-white leading-tight truncate">{round.playerName.split(' ')[0]}</span>
                         </div>
                         {Array.from({length: 9}, (_, i) => i + 10).map(h => (
-                          <div key={h} className="w-9 sm:w-10 h-10 shrink-0 flex items-center justify-center font-stats text-sm border-r border-slate-100 dark:border-slate-800/50">
+                          <div key={h} className="w-10 h-10 shrink-0 flex items-center justify-center font-stats text-sm border-r border-slate-100 dark:border-slate-800/50">
                             {renderScore(round.holeScores![h]?.strokes, getPar(h))}
                           </div>
                         ))}
-                        <div className="w-10 sm:w-12 h-10 shrink-0 flex items-center justify-center font-stats text-sm font-bold text-slate-800 dark:text-slate-200 border-r border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/30">
-                          {Array.from({length: 9}, (_, i) => round.holeScores![i + 10]?.strokes || 0).reduce((a, b) => a + b, 0) || '-'}
-                        </div>
+                        {isFront9 && (
+                          <div className="w-12 h-10 shrink-0 flex items-center justify-center font-stats text-sm font-bold text-slate-800 dark:text-slate-200 border-r border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/30">
+                            {Array.from({length: 9}, (_, i) => round.holeScores![i + 10]?.strokes || 0).reduce((a, b) => a + b, 0) || '-'}
+                          </div>
+                        )}
                         <div className="w-12 flex-1 h-10 flex items-center justify-center font-stats text-sm font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/10">
                           {round.grossScore}
                         </div>
                       </div>
                     </div>
-                  </>
-                ) : (
-                  <div className="text-xs text-slate-500 text-center italic py-4">
-                    No hole-by-hole scorecard was saved for this round. Click the edit icon to add scores!
-                  </div>
-                )}
-              </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-xs text-slate-500 text-center italic py-4">
+                  No hole-by-hole scorecard was saved for this round. Click the edit icon to add scores!
+                </div>
+              )}
             </div>
           )}
         </div>
