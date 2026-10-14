@@ -19,6 +19,7 @@ interface ScorecardOcrModalProps {
   courses: Course[];
   members: MemberProfile[];
   teams?: Team[];
+  activeUserId?: string;
   onSaveIndividualRound: (roundData: any) => void;
   onSaveTeamEvent: (eventData: any) => void;
 }
@@ -29,6 +30,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
   courses,
   members,
   teams = [],
+  activeUserId,
   onSaveIndividualRound,
   onSaveTeamEvent,
 }) => {
@@ -76,18 +78,19 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
       setSelectedTeeId(firstCourse ? findWhiteOrEquivalentTee(firstCourse) : '');
       
       setCustomDate(new Date().toISOString().split('T')[0]);
-      setAssignedMemberId(members[0]?.id || '');
+      
+      // Default to logged-in user!
+      setAssignedMemberId(activeUserId || members[0]?.id || '');
       setSelectedTeamId(teams[0]?.id || '');
       setEditableHoles({});
     }
-  }, [isOpen, courses, members, teams]);
+  }, [isOpen, courses, members, teams, activeUserId]);
 
   // Update tee selection when course changes
   useEffect(() => {
     if (selectedCourseId) {
       const course = courses.find(c => c.id === selectedCourseId);
       if (course && course.tees.length > 0) {
-        // Force the selection to the White or equivalent tee when a new course is picked
         setSelectedTeeId(findWhiteOrEquivalentTee(course));
       } else {
         setSelectedTeeId('');
