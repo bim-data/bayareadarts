@@ -26,7 +26,7 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
   courses,
   onUpdatePastRound,
 }) => {
-  const [activeTab, setActiveTab] = useState<'differentials' | 'rounds' | 'scrambles'>('differentials');
+  const [activeTab, setActiveTab] = useState<'rounds' | 'differentials' | 'scrambles'>('rounds');
 
   if (!isOpen || !member) return null;
 
@@ -45,7 +45,9 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
   );
 
   const safeDifferentials = member.differentials || [];
+  
   const totalDrinks = playerRounds.reduce((acc, r) => acc + (r.buzzballCount || 0), 0);
+  const avgDrinks = playerRounds.length > 0 ? (totalDrinks / playerRounds.length).toFixed(1) : 0;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
@@ -90,6 +92,7 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5">
+          {/* Aligned Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Scoring Avg</span>
@@ -108,22 +111,42 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
               <span className="font-stats font-bold text-lg text-amber-500">{member.bestRound || 0}</span>
             </div>
             <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-center border border-amber-200/80 dark:border-amber-800/60">
-              <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-500 uppercase tracking-wide block">🍹 Drinks</span>
-              <span className="font-stats font-bold text-lg text-amber-600 dark:text-amber-400">{totalDrinks}</span>
+              <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-500 uppercase tracking-wide block">🍹 Avg Drinks</span>
+              <span className="font-stats font-bold text-lg text-amber-600 dark:text-amber-400">{avgDrinks}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-            <button onClick={() => setActiveTab('differentials')} className={`btn-modern px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${activeTab === 'differentials' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'}`}>
-              WHS Differentials ({safeDifferentials.length})
-            </button>
             <button onClick={() => setActiveTab('rounds')} className={`btn-modern px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${activeTab === 'rounds' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'}`}>
               Round Records ({playerRounds.length})
+            </button>
+            <button onClick={() => setActiveTab('differentials')} className={`btn-modern px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${activeTab === 'differentials' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'}`}>
+              WHS Differentials ({safeDifferentials.length})
             </button>
             <button onClick={() => setActiveTab('scrambles')} className={`btn-modern px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${activeTab === 'scrambles' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'}`}>
               Team Events ({playerTeamEvents.length})
             </button>
           </div>
+
+          {activeTab === 'rounds' && (
+            <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+              {playerRounds.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800">
+                  No individual round cards saved yet for this player.
+                </div>
+              ) : (
+                playerRounds.map((r) => (
+                  <ExpandableRoundCard
+                    key={r.id}
+                    round={r}
+                    member={member}
+                    courses={courses}
+                    onUpdatePastRound={onUpdatePastRound}
+                  />
+                ))
+              )}
+            </div>
+          )}
 
           {activeTab === 'differentials' && (
             <div className="space-y-3">
@@ -158,26 +181,6 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
                   ))
                 )}
               </div>
-            </div>
-          )}
-
-          {activeTab === 'rounds' && (
-            <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-              {playerRounds.length === 0 ? (
-                <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800">
-                  No individual round cards saved yet for this player.
-                </div>
-              ) : (
-                playerRounds.map((r) => (
-                  <ExpandableRoundCard
-                    key={r.id}
-                    round={r}
-                    member={member}
-                    courses={courses}
-                    onUpdatePastRound={onUpdatePastRound}
-                  />
-                ))
-              )}
             </div>
           )}
           
