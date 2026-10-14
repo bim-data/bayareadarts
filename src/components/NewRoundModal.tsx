@@ -19,7 +19,7 @@ interface NewRoundModalProps {
   onCourseAdded?: (newCourse: Course) => void;
   onCreateSession: (sessionData: Partial<RoundSession>) => void;
   onOpenTeamManager?: () => void;
-  onManualRoundLogged?: (data: Record<string, string | number | boolean | object | undefined>) => void;
+  onManualRoundLogged?: (data: Record<string, any>) => void;
   onJoinRoom?: (roomCode: string, playerName: string, handicapIndex: number, memberId?: string) => Promise<boolean>;
 }
 
@@ -69,6 +69,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
   const [manualPuttsTotal, setManualPuttsTotal] = useState<number>(32);
   const [manualFirPercent, setManualFirPercent] = useState<number>(55);
   const [manualGirPercent, setManualGirPercent] = useState<number>(50);
+  const [manualBuzzballs, setManualBuzzballs] = useState<number>(0);
 
   const [manualHoleScores, setManualHoleScores] = useState<Record<number, HoleScore>>({});
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
@@ -76,14 +77,15 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      // 1. Reset all the basic fields
       setSelectedPlayers([]);
       setManualSuccessMessage('');
       setRoundDate(new Date().toISOString().split('T')[0]);
       setManualGrossScore(82);
       setManualPuttsTotal(32);
+      setManualFirPercent(55);
+      setManualGirPercent(50);
+      setManualBuzzballs(0);
       
-      // 2. Force reset the 18 holes back to default par/putts
       if (selectedCourse && selectedCourse.holes) {
         const resetScores: Record<number, any> = {};
         selectedCourse.holes.forEach((h) => {
@@ -98,24 +100,10 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
         setFormat('scramble');
       }
     }
-  }, [isOpen, initialSelectedTeamId]);
+  }, [isOpen, initialSelectedTeamId, selectedCourse]);
 
   useEffect(() => {
     if (selectedCourse) setSelectedTeeId(findWhiteOrEquivalentTee(selectedCourse));
-  }, [selectedCourseId]);
-
-  useEffect(() => {
-    if (selectedCourse && selectedCourse.holes.length === 18) {
-      setManualHoleScores((prev) => {
-        const updated: Record<number, HoleScore> = { ...prev };
-        selectedCourse.holes.forEach((h) => {
-          if (!updated[h.number] || updated[h.number].strokes === 0) {
-            updated[h.number] = { strokes: h.par, putts: 2, fir: h.par === 3 ? 'none' : 'hit', gir: true };
-          }
-        });
-        return updated;
-      });
-    }
   }, [selectedCourseId]);
 
   if (!isOpen) return null;
@@ -199,11 +187,10 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
     onClose();
   };
 
- const handleSubmitManualRound = async () => {
+  const handleSubmitManualRound = async () => {
     setIsSubmittingManual(true);
     let gross = manualGrossScore, putts = manualPuttsTotal, fir = manualFirPercent, gir = manualGirPercent;
 
-    // 1. Get exact totals if using Hole-by-Hole
     if (manualEntryMode === 'hole_by_hole') {
       gross = Object.values(manualHoleScores).reduce((acc, h) => acc + (h.strokes || 4), 0);
       putts = Object.values(manualHoleScores).reduce((acc, h) => acc + (h.putts || 2), 0);
@@ -212,14 +199,12 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
       gir = Math.round((Object.values(manualHoleScores).filter((h) => h.gir).length / 18) * 100);
     }
 
-    // 2. Calculate Handicap Differential & Net Score
     const rating = selectedTee?.rating || 72;
     const slope = selectedTee?.slope || 113;
     const courseHandicap = Math.round(activeUser.handicapIndex * (slope / 113) + (rating - 72));
     const netScore = gross - courseHandicap;
     const differential = Number((((gross - rating) * 113) / slope).toFixed(1));
 
-    // 3. Build the full payload
     const payload: Record<string, any> = {
       playerId: activeUser.id, 
       playerName: activeUser.name, 
@@ -236,6 +221,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
       totalPutts: putts, 
       firPercent: fir, 
       girPercent: gir,
+      buzzballCount: manualBuzzballs,
       holeScores: manualEntryMode === 'hole_by_hole' ? manualHoleScores : undefined,
     };
 
@@ -255,7 +241,6 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
     }
   };
 
-  // 4. Calculate display score for the button
   const displayGross = manualEntryMode === 'hole_by_hole' 
     ? Object.values(manualHoleScores).reduce((acc, h) => acc + (h.strokes || 4), 0)
     : manualGrossScore;
@@ -470,48 +455,60 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                     </div>
 
                     {manualEntryMode === 'quick_total' ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
-                        {['Gross Score', 'Total Putts', 'FIR %', 'GIR %'].map((lbl, i) => (
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
+                        {['Gross Score', 'Total Putts', 'FIR %', 'GIR %', '🍹 Drinks'].map((lbl, i) => (
                           <div key={lbl}>
-                            <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1">{lbl}</label>
-                            <input type="number" value={[manualGrossScore, manualPuttsTotal, manualFirPercent, manualGirPercent][i]} onChange={(e) => [setManualGrossScore, setManualPuttsTotal, setManualFirPercent, setManualGirPercent][i](parseInt(e.target.value) || 0)} className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-stats font-bold text-lg text-slate-900 dark:text-slate-100 text-center" />
+                            <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1 truncate">{lbl}</label>
+                            <input type="number" value={[manualGrossScore, manualPuttsTotal, manualFirPercent, manualGirPercent, manualBuzzballs][i]} onChange={(e) => [setManualGrossScore, setManualPuttsTotal, setManualFirPercent, setManualGirPercent, setManualBuzzballs][i](parseInt(e.target.value) || 0)} className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-stats font-bold text-lg text-slate-900 dark:text-slate-100 text-center" />
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                        {Array.from({ length: 18 }, (_, idx) => idx + 1).map((hNum) => {
-                          const par = selectedCourse?.holes.find((h) => h.number === hNum)?.par || 4;
-                          const score = manualHoleScores[hNum]?.strokes || par;
-                          const putts = manualHoleScores[hNum]?.putts || 2;
-                          const diff = score - par;
-                          return (
-                            <div key={hNum} className={`p-2 rounded-xl border text-center transition-all ${diff < 0 ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800' : diff === 0 ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700'}`}>
-                              <div className="flex items-center justify-between text-[11px] text-slate-400 font-bold mb-1">
-                                <span>#{hNum}</span>
-                                <span>P{par}</span>
-                              </div>
-                              
-                              {/* Strokes Row */}
-                              <div className="flex justify-center gap-1 mb-1.5">
-                                <button onClick={() => handleUpdateManualHole(hNum, score - 1, putts)} className="w-6 h-6 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs cursor-pointer">-</button>
-                                <span className="font-stats font-extrabold text-sm w-5 text-slate-900 dark:text-slate-100">{score}</span>
-                                <button onClick={() => handleUpdateManualHole(hNum, score + 1, putts)} className="w-6 h-6 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs cursor-pointer">+</button>
-                              </div>
-
-                              {/* Putts Row */}
-                              <div className="flex justify-center gap-1 pt-1.5 border-t border-slate-200/50 dark:border-slate-700/50">
-                                <button onClick={() => handleUpdateManualHole(hNum, score, putts - 1)} className="w-5 h-5 rounded bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold text-[10px] shadow-2xs cursor-pointer">-</button>
-                                <div className="flex flex-col items-center justify-center w-6">
-                                  <span className="text-[8px] uppercase font-bold text-slate-400 leading-none">Putts</span>
-                                  <span className="font-stats font-bold text-xs text-emerald-600 dark:text-emerald-400 leading-tight">{putts}</span>
+                      <>
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                          {Array.from({ length: 18 }, (_, idx) => idx + 1).map((hNum) => {
+                            const par = selectedCourse?.holes.find((h) => h.number === hNum)?.par || 4;
+                            const score = manualHoleScores[hNum]?.strokes || par;
+                            const putts = manualHoleScores[hNum]?.putts || 2;
+                            const diff = score - par;
+                            return (
+                              <div key={hNum} className={`p-2 rounded-xl border text-center transition-all ${diff < 0 ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800' : diff === 0 ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700'}`}>
+                                <div className="flex items-center justify-between text-[11px] text-slate-400 font-bold mb-1">
+                                  <span>#{hNum}</span>
+                                  <span>P{par}</span>
                                 </div>
-                                <button onClick={() => handleUpdateManualHole(hNum, score, putts + 1)} className="w-5 h-5 rounded bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold text-[10px] shadow-2xs cursor-pointer">+</button>
+                                <div className="flex justify-center gap-1 mb-1.5">
+                                  <button onClick={() => handleUpdateManualHole(hNum, score - 1, putts)} className="w-6 h-6 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs cursor-pointer">-</button>
+                                  <span className="font-stats font-extrabold text-sm w-5 text-slate-900 dark:text-slate-100">{score}</span>
+                                  <button onClick={() => handleUpdateManualHole(hNum, score + 1, putts)} className="w-6 h-6 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs cursor-pointer">+</button>
+                                </div>
+                                <div className="flex justify-center gap-1 pt-1.5 border-t border-slate-200/50 dark:border-slate-700/50">
+                                  <button onClick={() => handleUpdateManualHole(hNum, score, putts - 1)} className="w-5 h-5 rounded bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold text-[10px] shadow-2xs cursor-pointer">-</button>
+                                  <div className="flex flex-col items-center justify-center w-6">
+                                    <span className="text-[8px] uppercase font-bold text-slate-400 leading-none">Putts</span>
+                                    <span className="font-stats font-bold text-xs text-emerald-600 dark:text-emerald-400 leading-tight">{putts}</span>
+                                  </div>
+                                  <button onClick={() => handleUpdateManualHole(hNum, score, putts + 1)} className="w-5 h-5 rounded bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold text-[10px] shadow-2xs cursor-pointer">+</button>
+                                </div>
                               </div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl mt-4">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl drop-shadow-sm">🍹</span>
+                            <div>
+                              <div className="text-xs font-bold text-amber-900 dark:text-amber-100">Round Drinks</div>
+                              <div className="text-[10px] text-amber-600 dark:text-amber-400/80">Buzzballs, beers, or shots</div>
                             </div>
-                          );
-                        })}
-                      </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => setManualBuzzballs(Math.max(0, manualBuzzballs - 1))} className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-500 font-bold shadow-sm">-</button>
+                            <span className="font-stats font-bold text-lg w-8 text-center text-amber-900 dark:text-amber-100">{manualBuzzballs}</span>
+                            <button onClick={() => setManualBuzzballs(manualBuzzballs + 1)} className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-500 font-bold shadow-sm">+</button>
+                          </div>
+                        </div>
+                      </>
                     )}
                   </div>
                 )}
