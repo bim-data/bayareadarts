@@ -264,6 +264,11 @@ export default function App() {
       }
     }
 
+    const handleDeletePastRound = async (roundId: string, playerId: string) => {
+      await deleteRecord('rounds', roundId);
+      await recalculatePlayerStats(playerId, { id: roundId, _deleted: true });
+    };
+
     // Force string-based sorting for YYYY-MM-DD dates to ensure order
     playerRounds.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
