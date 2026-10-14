@@ -808,22 +808,18 @@ app.post('/api/scorecard-ocr', async (req: Request, res: Response) => {
     const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z+]+;base64,/, '');
 
     const promptText = `
-You are an expert golf scorecard OCR digitizer for the "Bay Area Darts" golf group.
-Carefully examine this photo of a golf scorecard.
+You are an expert golf scorecard OCR digitizer. Carefully examine this photo of a golf scorecard.
 
 CRITICAL TASKS:
-1. Identify the Course Name (match to known Northern California or Bay Area courses if applicable, e.g. Harding Park, Presidio, Sharp Park, Corica Park, Half Moon Bay, Peacock Gap, etc., or transcribe accurately).
-2. Identify the Date of the round (if written) or leave empty if not present.
-3. Identify the Tee Name (e.g., Black, Blue, White, Gold, Red).
-4. Identify the par for each hole (1 to 18).
-5. IDENTIFY EVERY PLAYER ROW WRITTEN ON THE SCORECARD:
-   - Carefully extract each golfer's name or initials (e.g., "Dave", "Mike", "Player 1", "Team 1").
+1. IDENTIFY EVERY PLAYER ROW WRITTEN ON THE SCORECARD:
+   - Carefully extract each golfer's name, initials, or team name (e.g., 'Dave', 'Mike', 'Player 1', 'The OGs').
    - Extract hole-by-hole scores (holes 1 through 18) for EACH player row found.
-   - If putts are recorded (often written as small superscripts, second lines, or dots), extract putts per hole. If not present, set putts to 0.
+   - PUTT LOGIC: If a hole box contains a main number and a smaller number written in the corner, the smaller number represents putts. Map the main number to 'strokes' and the smaller number to 'putts'. If no smaller number is present, you MUST default 'putts' to 2.
    - Calculate or extract totalStrokes, front9, and back9 for each player.
-6. The user indicated the round format is "${selectedFormat}".
+2. The user indicated the round format is '${selectedFormat}'.
+3. If a hole box contains a main number and a smaller number written in the corner, the smaller number represents putts. Map the main number to 'strokes' and the smaller number to 'putts'. If no smaller number is present, default 'putts' to 2.
 
-Return structured JSON conforming to the requested schema. Ensure all player rows found on the card are represented so the golfer can choose which player's scores to import.
+Return structured JSON conforming to the requested schema. Ensure all player rows found on the card are represented so the golfer can choose which player's scores to import. Do not extract course name, date, or tee box information.
 `;
 
     const response = await ai.models.generateContent({
