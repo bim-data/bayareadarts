@@ -305,7 +305,11 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
   );
 
   const totalDrinks = myRounds.reduce((acc, r) => acc + (r.buzzballCount || 0), 0);
-  const avgDrinks = myRounds.length > 0 ? (totalDrinks / myRounds.length).toFixed(1) : 0;
+  const avgDrinks = myRounds.length > 0 ? (totalDrinks / myRounds.length).toFixed(1) : '0';
+
+  const avgGirCount = myRounds.length > 0
+    ? (myRounds.reduce((acc, r) => acc + Math.round(((r.girPercent || 0) / 100) * 18), 0) / myRounds.length).toFixed(1)
+    : '0';
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
@@ -558,8 +562,8 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                         <span className="font-stats font-bold text-lg text-emerald-600 dark:text-emerald-400">{activeUser.avgPutts || 0}</span>
                       </div>
                       <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
-                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Greens Hit</span>
-                        <span className="font-stats font-bold text-lg text-red-500">{activeUser.girPercent || 0}%</span>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Avg GIR</span>
+                        <span className="font-stats font-bold text-lg text-emerald-600 dark:text-emerald-400">{avgGirCount} / 18</span>
                       </div>
                       <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
                         <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Career Low</span>
