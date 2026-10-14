@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { fairwayBanner } from '../assets';
 import { 
   X, 
@@ -37,14 +37,31 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
   // Player Disambiguation & Mapping state
   const [selectedPlayerRowId, setSelectedPlayerRowId] = useState<string>('');
   
-  // NEW: Dynamic selectors for Step 2
-  const [selectedCourseId, setSelectedCourseId] = useState<string>(courses[0]?.id || '');
-  const [customDate, setCustomDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [assignedMemberId, setAssignedMemberId] = useState<string>(members[0]?.id || '');
+  // Dynamic selectors
+  const [selectedCourseId, setSelectedCourseId] = useState<string>('');
+  const [customDate, setCustomDate] = useState<string>('');
+  const [assignedMemberId, setAssignedMemberId] = useState<string>('');
   const [teamName, setTeamName] = useState<string>('');
 
   // Editable scores state
   const [editableHoles, setEditableHoles] = useState<Record<number, { strokes: number; putts: number }>>({});
+
+  // Reset modal state perfectly on open
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedFormat('stroke');
+      setSelectedImage(null);
+      setIsProcessing(false);
+      setOcrResult(null);
+      setErrorMsg(null);
+      setSelectedPlayerRowId('');
+      setSelectedCourseId(courses[0]?.id || '');
+      setCustomDate(new Date().toISOString().split('T')[0]);
+      setAssignedMemberId(members[0]?.id || '');
+      setTeamName('');
+      setEditableHoles({});
+    }
+  }, [isOpen, courses, members]);
 
   if (!isOpen) return null;
 
@@ -280,13 +297,75 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
         </div>
 
         <div className="p-5 sm:p-6 space-y-6 max-h-[80vh] overflow-y-auto">
-          {/* STEP 1: Format Selector & Photo Upload */}
+          {/* STEP 1: Details, Format Selector & Photo Upload */}
           {!ocrResult && (
-            <div className="space-y-5">
+            <div className="space-y-6">
+              
+              {/* Core Details (Moved to Step 1) */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-xl space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
+                      Played Course
+                    </label>
+                    <select
+                      value={selectedCourseId}
+                      onChange={(e) => setSelectedCourseId(e.target.value)}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100 outline-none"
+                    >
+                      {courses.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
+                      Date
+                    </label>
+                    <input
+                      type="date"
+                      value={customDate}
+                      onChange={(e) => setCustomDate(e.target.value)}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 pt-2 border-t border-slate-200 dark:border-slate-700">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
+                    {selectedFormat === 'scramble' || selectedFormat === 'best_ball'
+                      ? 'Team / Squad Name'
+                      : 'Assign Score To Member'}
+                  </label>
+                  {selectedFormat === 'scramble' || selectedFormat === 'best_ball' ? (
+                    <input
+                      type="text"
+                      placeholder="e.g. The OG's"
+                      value={teamName}
+                      onChange={(e) => setTeamName(e.target.value)}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100"
+                    />
+                  ) : (
+                    <select
+                      value={assignedMemberId}
+                      onChange={(e) => setAssignedMemberId(e.target.value)}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100 outline-none"
+                    >
+                      {members.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} {m.nickname ? `("${m.nickname}")` : ''} — Index: {m.handicapIndex}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
+
               {/* Format Selector */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300 block">
-                  1. What game format was this round played in?
+                  Game Format
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
@@ -315,7 +394,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
               {/* Upload Dropzone */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300 block">
-                  2. Upload or take photo of paper scorecard:
+                  Upload Scorecard Photo
                 </label>
                 <div className="p-6 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 text-center space-y-3">
                   {selectedImage ? (
@@ -407,47 +486,24 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
             </div>
           )}
 
-          {/* STEP 2: Player Row Disambiguation & Member Assignment */}
+          {/* STEP 2: Player Row Disambiguation & Score Grid */}
           {ocrResult && (
             <div className="space-y-6">
-              
-              {/* Dynamic Course and Date Selection */}
-              <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 rounded-xl space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
-                    ROUND DETAILS
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
+                    {courses.find(c => c.id === selectedCourseId)?.name}
                   </span>
-                  <button
-                    onClick={() => setOcrResult(null)}
-                    className="text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 underline cursor-pointer"
-                  >
-                    Scan Another Card
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400">Played Course</label>
-                    <select
-                      value={selectedCourseId}
-                      onChange={(e) => setSelectedCourseId(e.target.value)}
-                      className="w-full p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 outline-none"
-                    >
-                      {courses.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-semibold uppercase text-slate-500 dark:text-slate-400">Date</label>
-                    <input
-                      type="date"
-                      value={customDate}
-                      onChange={(e) => setCustomDate(e.target.value)}
-                      className="w-full p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100"
-                    />
+                  <div className="font-heading font-bold text-base text-slate-900 dark:text-slate-100">
+                    Scan successful! Please verify rows below.
                   </div>
                 </div>
+                <button
+                  onClick={() => setOcrResult(null)}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 underline cursor-pointer shrink-0"
+                >
+                  Scan Another Card
+                </button>
               </div>
 
               {/* Player Row Picker */}
@@ -495,37 +551,6 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
                 </div>
               </div>
 
-              {/* Member or Team Assignment */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300 block">
-                  {selectedFormat === 'scramble' || selectedFormat === 'best_ball'
-                    ? 'What is the name of this Team / Squad?'
-                    : 'Who in "Bay Area Darts" does this score belong to?'}
-                </label>
-                
-                {selectedFormat === 'scramble' || selectedFormat === 'best_ball' ? (
-                  <input
-                    type="text"
-                    placeholder="e.g. The OG's"
-                    value={teamName}
-                    onChange={(e) => setTeamName(e.target.value)}
-                    className="w-full p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100"
-                  />
-                ) : (
-                  <select
-                    value={assignedMemberId}
-                    onChange={(e) => setAssignedMemberId(e.target.value)}
-                    className="w-full p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-heading font-semibold text-xs text-slate-900 dark:text-slate-100 outline-none"
-                  >
-                    {members.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name} {m.nickname ? `("${m.nickname}")` : ''} — Index: {m.handicapIndex}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
               {/* Hole-by-Hole Review Table */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -551,23 +576,27 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {/* Strokes Row */}
+                      {/* Strokes Row (Using text type with numeric input mode to hide ugly spin arrows) */}
                       <tr className="bg-white dark:bg-slate-900">
                         <td className="p-2 font-bold font-heading text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800/40 border-r border-slate-200 dark:border-slate-800">
                           Strokes
                         </td>
                         {Array.from({ length: 18 }, (_, i) => {
                           const hNum = i + 1;
-                          const val = editableHoles[hNum]?.strokes || 0;
+                          const val = editableHoles[hNum]?.strokes || '';
                           return (
                             <td key={hNum} className="p-1 border-r border-slate-100 dark:border-slate-800">
                               <input
-                                type="number"
-                                min="1"
-                                max="15"
-                                value={val || ''}
-                                onChange={(e) => handleHoleChange(hNum, 'strokes', parseInt(e.target.value) || 0)}
-                                className="w-8 p-1 text-center font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 focus:bg-white"
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                maxLength={2}
+                                value={val}
+                                onChange={(e) => {
+                                  const num = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10);
+                                  handleHoleChange(hNum, 'strokes', isNaN(num) ? 0 : num);
+                                }}
+                                className="w-full min-w-[28px] p-1 text-center font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 focus:bg-white"
                               />
                             </td>
                           );
@@ -583,16 +612,20 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
                         </td>
                         {Array.from({ length: 18 }, (_, i) => {
                           const hNum = i + 1;
-                          const val = editableHoles[hNum]?.putts || 0;
+                          const val = editableHoles[hNum]?.putts || '';
                           return (
                             <td key={hNum} className="p-1 border-r border-slate-100 dark:border-slate-800">
                               <input
-                                type="number"
-                                min="0"
-                                max="6"
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                maxLength={1}
                                 value={val}
-                                onChange={(e) => handleHoleChange(hNum, 'putts', parseInt(e.target.value) || 0)}
-                                className="w-8 p-1 text-center font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100"
+                                onChange={(e) => {
+                                  const num = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10);
+                                  handleHoleChange(hNum, 'putts', isNaN(num) ? 0 : num);
+                                }}
+                                className="w-full min-w-[28px] p-1 text-center font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 focus:bg-white"
                               />
                             </td>
                           );
