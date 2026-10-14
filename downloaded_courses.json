@@ -1,0 +1,161 @@
+[
+  {
+    "id": "shoreline",
+    "name": "Shoreline Golf Links",
+    "city": "Mountain View",
+    "region": "South Bay",
+    "notes": "On the bay 18 holes near Google Campus and Shoreline Amphitheater",
+    "tees": [
+      {
+        "id": "shoreline-tee-0",
+        "name": "Black",
+        "color": "#1E293B",
+        "rating": 74,
+        "slope": 126,
+        "totalYardage": 7000
+      },
+      {
+        "id": "shoreline-tee-1",
+        "name": "Blue",
+        "color": "#2563EB",
+        "rating": 72.1,
+        "slope": 124,
+        "totalYardage": 6621
+      },
+      {
+        "id": "shoreline-tee-2",
+        "name": "Diamond Combo",
+        "color": "#94A3B8",
+        "rating": 70.7,
+        "slope": 124,
+        "totalYardage": 6327
+      },
+      {
+        "id": "shoreline-tee-3",
+        "name": "White",
+        "color": "#F8FAFC",
+        "rating": 69.5,
+        "slope": 123,
+        "totalYardage": 6080
+      },
+      {
+        "id": "shoreline-tee-4",
+        "name": "Red",
+        "color": "#DC2626",
+        "rating": 66,
+        "slope": 117,
+        "totalYardage": 5447
+      }
+    ],
+    "holes": [
+      {
+        "number": 1,
+        "par": 5,
+        "yardage": 579,
+        "handicapIndex": 12
+      },
+      {
+        "number": 2,
+        "par": 4,
+        "yardage": 400,
+        "handicapIndex": 2
+      },
+      {
+        "number": 3,
+        "par": 4,
+        "yardage": 413,
+        "handicapIndex": 16
+      },
+      {
+        "number": 4,
+        "par": 3,
+        "yardage": 186,
+        "handicapIndex": 6
+      },
+      {
+        "number": 5,
+        "par": 4,
+        "yardage": 402,
+        "handicapIndex": 14
+      },
+      {
+        "number": 6,
+        "par": 4,
+        "yardage": 429,
+        "handicapIndex": 18
+      },
+      {
+        "number": 7,
+        "par": 4,
+        "yardage": 403,
+        "handicapIndex": 8
+      },
+      {
+        "number": 8,
+        "par": 3,
+        "yardage": 203,
+        "handicapIndex": 10
+      },
+      {
+        "number": 9,
+        "par": 5,
+        "yardage": 519,
+        "handicapIndex": 4
+      },
+      {
+        "number": 10,
+        "par": 5,
+        "yardage": 525,
+        "handicapIndex": 17
+      },
+      {
+        "number": 11,
+        "par": 3,
+        "yardage": 173,
+        "handicapIndex": 11
+      },
+      {
+        "number": 12,
+        "par": 4,
+        "yardage": 406,
+        "handicapIndex": 1
+      },
+      {
+        "number": 13,
+        "par": 4,
+        "yardage": 378,
+        "handicapIndex": 3
+      },
+      {
+        "number": 14,
+        "par": 4,
+        "yardage": 399,
+        "handicapIndex": 7
+      },
+      {
+        "number": 15,
+        "par": 4,
+        "yardage": 416,
+        "handicapIndex": 15
+      },
+      {
+        "number": 16,
+        "par": 5,
+        "yardage": 523,
+        "handicapIndex": 9
+      },
+      {
+        "number": 17,
+        "par": 3,
+        "yardage": 207,
+        "handicapIndex": 13
+      },
+      {
+        "number": 18,
+        "par": 4,
+        "yardage": 439,
+        "handicapIndex": 5
+      }
+    ]
+  }
+]
