@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, Play, Trash2, Check, Calendar, KeyRound, FileText, Edit3, RefreshCw, AlertCircle
+  X, Play, Trash2, Check, Calendar, KeyRound, FileText, Edit3, RefreshCw, AlertCircle, Plus
 } from 'lucide-react';
 import { Course, GameFormat, MemberProfile, PlayerRoundData, RoundSession, TeeBox, TeamGroup, HoleScore } from '../types';
 import { SearchableCourseSelect } from './SearchableCourseSelect';
@@ -79,7 +79,20 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setSelectedPlayers([]);
+      // Pre-select the active user by default
+      if (activeUser) {
+        const courseHandicap = Math.round(activeUser.handicapIndex * ((selectedTee?.slope || 124) / 113) + ((selectedTee?.rating || 70.2) - 72));
+        setSelectedPlayers([{ 
+          playerId: activeUser.id, 
+          name: activeUser.name, 
+          handicapIndex: activeUser.handicapIndex, 
+          courseHandicap, 
+          scores: {} 
+        }]);
+      } else {
+        setSelectedPlayers([]);
+      }
+
       setManualSuccessMessage('');
       setRoundDate(new Date().toISOString().split('T')[0]);
       setManualGrossScore(82);
@@ -434,44 +447,58 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
 
                   {participantMode === 'golfers' ? (
                     <div className="space-y-2">
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {selectedPlayers.map((player) => {
-                          const memberObj = members.find((m) => m.id === player.playerId);
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        <span>Select Golfers ({selectedPlayers.length}/8)</span>
+                        <span className="text-[11px] text-slate-400">Click to add/remove</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {members.map((m) => {
+                          const isSelected = selectedPlayers.some(p => p.playerId === m.id);
+                          const isMe = m.id === activeUser?.id;
+
                           return (
-                            <div key={player.playerId} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-between gap-2 shadow-2xs">
+                            <button
+                              type="button"
+                              key={m.id}
+                              onClick={() => {
+                                if (isSelected) {
+                                  handleRemovePlayer(m.id);
+                                } else {
+                                  handleAddPlayer(m);
+                                }
+                              }}
+                              className={`p-2.5 rounded-xl border text-left flex items-center justify-between cursor-pointer transition-colors ${
+                                isSelected
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-900 dark:text-emerald-100'
+                                  : 'bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-300'
+                              }`}
+                            >
                               <div className="flex items-center gap-3 min-w-0">
                                 <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-lg shrink-0">
-                                  {memberObj?.avatarEmoji || '🏌️‍♂️'}
+                                  {m.avatarEmoji}
                                 </div>
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100 truncate">
-                                      {player.name}
+                                <div className="flex flex-col min-w-0">
+                                  <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100 truncate leading-tight">
+                                    {m.name} {isMe && '(You)'}
+                                  </span>
+                                  {m.nickname && (
+                                    <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 truncate leading-tight">
+                                      "{m.nickname}"
                                     </span>
-                                    {memberObj?.nickname && (
-                                      <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 truncate">
-                                        "{memberObj.nickname}"
-                                      </span>
-                                    )}
-                                  </div>
-                                  <span className="text-[10px] text-slate-500 block font-stats mt-0.5">
-                                    Index: {player.handicapIndex.toFixed(1)}
+                                  )}
+                                  <span className="text-[10px] text-slate-400 font-stats block mt-0.5">
+                                    Index: {m.handicapIndex.toFixed(1)}
                                   </span>
                                 </div>
                               </div>
-                              <button onClick={() => handleRemovePlayer(player.playerId)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg cursor-pointer shrink-0 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
-                            </div>
+                              {isSelected ? (
+                                <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                              ) : (
+                                <Plus className="w-4 h-4 text-slate-400 shrink-0" />
+                              )}
+                            </button>
                           );
                         })}
-                      </div>
-                      <div className="pt-1 flex flex-wrap gap-1.5 items-center">
-                        <span className="text-[11px] font-bold uppercase text-slate-400 mr-1">Add:</span>
-                        {members.filter((m) => !selectedPlayers.some((p) => p.playerId === m.id)).map((m) => (
-                          <button key={m.id} onClick={() => handleAddPlayer(m)} className="px-2.5 py-1 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 cursor-pointer transition-colors flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">+ {m.name}</span>
-                            {m.nickname && <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">"{m.nickname}"</span>}
-                          </button>
-                        ))}
                       </div>
                     </div>
                   ) : (
