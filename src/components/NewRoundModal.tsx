@@ -506,16 +506,29 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                       {teams.map((t) => {
                         const isSelected = selectedTeamIds.includes(t.id);
                         const teamHcp = calculateTeamScrambleHandicap(t.playerIds, members);
+                        
+                        // Map the player IDs to actual Member profiles so we can get their names
+                        const roster = t.playerIds.map(id => members.find(m => m.id === id)).filter(Boolean) as MemberProfile[];
+
                         return (
-                          <button key={t.id} onClick={() => handleToggleTeam(t.id)} className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${isSelected ? 'border-emerald-500 ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 shadow-2xs' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}>
-                            <div>
+                          <button key={t.id} onClick={() => handleToggleTeam(t.id)} className={`p-3 rounded-xl border text-left flex items-start justify-between transition-all cursor-pointer ${isSelected ? 'border-emerald-500 ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 shadow-2xs' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'}`}>
+                            <div className="min-w-0 pr-2">
                               <div className="flex items-center gap-2">
                                 <span className="text-xl">{t.avatarEmoji || '🎯'}</span>
-                                <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100">{t.name}</span>
+                                <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100 truncate">{t.name}</span>
                               </div>
                               <span className="text-[10px] text-slate-500 block mt-0.5">{t.playerIds.length} Golfers &middot; Hcp: {teamHcp.toFixed(1)}</span>
+                              
+                              {/* Roster Name Badges */}
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {roster.map(p => (
+                                  <span key={p.id} className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${isSelected ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400'}`}>
+                                    {p.nickname || p.name.split(' ')[0]}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
-                            <div className={`w-5 h-5 rounded-lg border flex items-center justify-center ${isSelected ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300'}`}>
+                            <div className={`mt-0.5 w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 ${isSelected ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 dark:border-slate-600'}`}>
                               {isSelected && <Check className="w-3.5 h-3.5" />}
                             </div>
                           </button>
