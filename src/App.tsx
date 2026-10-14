@@ -123,12 +123,9 @@ export default function App() {
 
   const handleUpdateProfile = async (updatedProfile: MemberProfile) => {
     if (!updatedProfile.id) return;
-    
-    // Strip out undefined values (like empty phones or goals) so Firebase doesn't crash
     const cleanProfile = Object.fromEntries(
       Object.entries(updatedProfile).filter(([_, v]) => v !== undefined)
     );
-
     await updateRecord('members', cleanProfile.id, cleanProfile);
   };
 
@@ -156,12 +153,9 @@ export default function App() {
 
   const handleTeamUpdated = async (updatedTeam: TeamGroup) => {
     if (!updatedTeam.id) return;
-    
-    // Strip out undefined values so Firebase doesn't silently crash
     const cleanTeam = Object.fromEntries(
       Object.entries(updatedTeam).filter(([_, v]) => v !== undefined)
     );
-    
     await updateRecord('teams', cleanTeam.id, cleanTeam);
   };
 
@@ -205,23 +199,28 @@ export default function App() {
   };
 
   // Helper to recalculate a player's stats after a round is saved/edited
-  const recalculatePlayerStats = async (playerId: string) => {
+  const recalculatePlayerStats = async (playerId: string, extraRound?: any) => {
     const member = members.find(m => m.id === playerId);
     if (!member) return;
 
-    const playerRounds = completedRounds.filter(r => r.playerId === playerId);
+    // Grab current rounds, and inject the newly saved round instantly
+    let playerRounds = completedRounds.filter(r => r.playerId === playerId);
+    if (extraRound) {
+      const idx = playerRounds.findIndex(r => r.id === extraRound.id);
+      if (idx >= 0) playerRounds[idx] = extraRound;
+      else playerRounds.push(extraRound);
+    }
+
     if (playerRounds.length === 0) return;
 
     const roundsCount = playerRounds.length;
     
-    // Split 18-hole and 9-hole rounds
     const rounds18 = playerRounds.filter(r => r.holesPlayed === '18' || !r.holesPlayed);
     const rounds9 = playerRounds.filter(r => r.holesPlayed === 'front_9' || r.holesPlayed === 'back_9');
 
     const bestRound = rounds18.length > 0 ? Math.min(...rounds18.map(r => r.grossScore || 999)) : 0;
     const bestRound9 = rounds9.length > 0 ? Math.min(...rounds9.map(r => r.grossScore || 999)) : 0;
     
-    // Calculate scoring average ONLY on 18-hole rounds so 9-hole rounds don't break the average
     const totalGross18 = rounds18.reduce((acc, r) => acc + (r.grossScore || 0), 0);
     const scoringAverage = rounds18.length > 0 ? Number((totalGross18 / rounds18.length).toFixed(1)) : 0;
     
@@ -251,8 +250,7 @@ export default function App() {
   const handleSaveIndividualRound = async (roundData: any) => {
     const roundId = roundData.id || `round-${Date.now()}`;
     await setDoc(doc(db, 'rounds', roundId), { ...roundData, id: roundId });
-    // Recalculate stats for the player!
-    if (roundData.playerId) await recalculatePlayerStats(roundData.playerId);
+    if (roundData.playerId) await recalculatePlayerStats(roundData.playerId, { ...roundData, id: roundId });
   };
 
   const handleSaveTeamEvent = async (eventData: any) => {
@@ -293,6 +291,7 @@ export default function App() {
       format: partialData.format || 'stroke',
       isTeamRound: partialData.format === 'scramble' || partialData.format === 'best_ball',
       status: 'active',
+      holesPlayed: partialData.holesPlayed || '18',
       players: partialData.players || [],
       updatedAt: Date.now(),
     };
@@ -318,6 +317,7 @@ export default function App() {
 
   const handleJoinRoom = async (_roomCode: string, _playerName: string, _handicapIndex: number, _memberId?: string) => { return false; };
   const handleStartFutureRound = async (_futureRoundId: string) => {};
+
   const handleManualRoundLogged = async (data: Record<string, any>) => {
     try {
       const roundId = `round-${Date.now()}`;
@@ -328,8 +328,7 @@ export default function App() {
       };
       await setDoc(doc(db, 'rounds', roundId), newRound);
       console.log("Successfully saved past round:", newRound);
-      // Recalculate stats!
-      if (data.playerId) await recalculatePlayerStats(data.playerId);
+      if (data.playerId) await recalculatePlayerStats(data.playerId, newRound);
     } catch (error) {
       console.error("Failed to save past round to Firebase:", error);
     }
@@ -340,10 +339,10 @@ export default function App() {
       const cleanData = JSON.parse(JSON.stringify(updatedData));
       await updateRecord('rounds', roundId, cleanData);
       
-      // Look up the round we just edited to see whose stats we need to recalculate
-      const targetRound = completedRounds.find(r => r.id === roundId);
-      if (targetRound && targetRound.playerId) {
-        await recalculatePlayerStats(targetRound.playerId);
+      const existingRound = completedRounds.find(r => r.id === roundId);
+      if (existingRound && existingRound.playerId) {
+        const mergedRound = { ...existingRound, ...cleanData };
+        await recalculatePlayerStats(existingRound.playerId, mergedRound);
       }
     } catch (error) {
       console.error("Failed to update past round:", error);
