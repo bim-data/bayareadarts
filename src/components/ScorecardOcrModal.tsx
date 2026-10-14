@@ -48,6 +48,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
   
   // Dynamic selectors
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
+  const [selectedTeeId, setSelectedTeeId] = useState<string>('');
   const [customDate, setCustomDate] = useState<string>('');
   const [assignedMemberId, setAssignedMemberId] = useState<string>('');
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
@@ -67,13 +68,31 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
       setCropEnd(null);
       setIsDragging(false);
       setSelectedPlayerRowId('');
-      setSelectedCourseId(courses[0]?.id || '');
+      
+      const firstCourse = courses[0];
+      setSelectedCourseId(firstCourse?.id || '');
+      setSelectedTeeId(firstCourse?.tees[0]?.id || '');
+      
       setCustomDate(new Date().toISOString().split('T')[0]);
       setAssignedMemberId(members[0]?.id || '');
       setSelectedTeamId(teams[0]?.id || '');
       setEditableHoles({});
     }
   }, [isOpen, courses, members, teams]);
+
+  // Update tee selection when course changes
+  useEffect(() => {
+    if (selectedCourseId) {
+      const course = courses.find(c => c.id === selectedCourseId);
+      if (course && course.tees.length > 0) {
+        // If the current tee isn't in this course, select the first tee
+        const hasTee = course.tees.some(t => t.id === selectedTeeId);
+        if (!hasTee) setSelectedTeeId(course.tees[0].id);
+      } else {
+        setSelectedTeeId('');
+      }
+    }
+  }, [selectedCourseId, courses]);
 
   if (!isOpen) return null;
 
@@ -189,7 +208,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
           detectedPlayers: [
             {
               id: "mock-1",
-              cardName: "Cropped Player",
+              cardName: "Scanned Golfer",
               totalStrokes: 82,
               front9: 41,
               back9: 41,
@@ -257,7 +276,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
     const totalPutts = Object.values(editableHoles).reduce((acc, h) => acc + h.putts, 0);
 
     const matchedCourse = courses.find((c) => c.id === selectedCourseId) || courses[0];
-    const tee = matchedCourse?.tees?.[0] || { name: 'White', rating: 70.0, slope: 125 };
+    const tee = matchedCourse?.tees?.find(t => t.id === selectedTeeId) || matchedCourse?.tees?.[0] || { name: 'White', rating: 70.0, slope: 125 };
 
     if (selectedFormat === 'scramble' || selectedFormat === 'best_ball') {
       const selectedTeam = teams.find(t => t.id === selectedTeamId);
@@ -356,7 +375,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
               
               {/* Core Details */}
               <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-xl space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
                       Played Course
@@ -368,6 +387,23 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
                     >
                       {courses.map((c) => (
                         <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
+                      Tee Box
+                    </label>
+                    <select
+                      value={selectedTeeId}
+                      onChange={(e) => setSelectedTeeId(e.target.value)}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100 outline-none"
+                    >
+                      {courses.find(c => c.id === selectedCourseId)?.tees.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name} ({t.totalYardage}y)
+                        </option>
                       ))}
                     </select>
                   </div>
