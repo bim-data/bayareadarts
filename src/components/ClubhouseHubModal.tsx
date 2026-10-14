@@ -36,6 +36,7 @@ interface ClubhouseHubModalProps {
   onOpenYamlBackup?: () => void;
   courses: Course[];
   onUpdatePastRound?: (roundId: string, data: Partial<CompletedRoundRecord>) => void;
+  onDeletePastRound?: (roundId: string, playerId: string) => void;
 }
 
 const COLOR_OPTIONS = [
@@ -68,6 +69,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
   onOpenYamlBackup,
   courses,
   onUpdatePastRound,
+  onDeletePastRound,
 }) => {
   const [hubTab, setHubTab] = useState<'profiles' | 'teams'>(initialTab);
   const [profileSubTab, setProfileSubTab] = useState<'overview' | 'edit' | 'switch'>('overview');
@@ -393,7 +395,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
           </div>
         )}
 
-        {/* Scrollable Main Content */}
+        {/* Scrollable Main Content - NO INNER SCROLLBARS */}
         <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-6">
 
           {/* ================= SECTION 1: GOLFER PROFILES ================= */}
@@ -586,7 +588,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                   </div>
 
                   {historyTab === 'rounds' && (
-                    <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                    <div className="space-y-3">
                       {myRounds.length === 0 ? (
                         <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800">
                           No individual round cards saved yet for this player.
@@ -599,6 +601,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                             member={activeUser}
                             courses={courses}
                             onUpdatePastRound={onUpdatePastRound}
+                            onDeletePastRound={onDeletePastRound}
                           />
                         ))
                       )}
@@ -613,7 +616,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                           <Star className="w-3 h-3 fill-current" /> ★ Lowest 8 count in Index
                         </span>
                       </div>
-                      <div className="card-modern rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
+                      <div className="card-modern rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
                         {safeDifferentials.length === 0 ? (
                           <div className="p-6 text-center text-xs text-slate-400">No differentials recorded yet.</div>
                         ) : (
@@ -643,7 +646,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
 
                   {historyTab === 'scrambles' && (
                     <div className="space-y-3">
-                      <div className="card-modern rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
+                      <div className="card-modern rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
                         {myTeamEvents.length === 0 ? (
                           <div className="p-6 text-center text-xs text-slate-400">No scramble shootouts recorded for this player yet.</div>
                         ) : (
@@ -652,15 +655,25 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                               t.playerNames.some((p) => p.toLowerCase().includes((activeUser.name || '').toLowerCase()) || (activeUser.nickname && p.toLowerCase().includes(activeUser.nickname.toLowerCase())))
                             );
                             return (
-                              <div key={ev.id} className="p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                              <div key={ev.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                                 <div className="flex items-center justify-between">
-                                  <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100">{ev.eventName}</span>
-                                  <span className="font-stats font-bold text-xs text-emerald-600 dark:text-emerald-400">{playerTeam?.grossScore} Gross</span>
+                                  <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100">{ev.eventName}</span>
+                                  <span className="font-stats font-bold text-sm text-emerald-600 dark:text-emerald-400">{playerTeam?.grossScore} Gross</span>
                                 </div>
-                                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-1 pb-2 border-b border-slate-100 dark:border-slate-800/60">
                                   <span>Team: <strong>{playerTeam?.teamName}</strong> · {ev.date}</span>
                                   <span className="capitalize">{ev.format}</span>
                                 </div>
+                                {/* Roster Names */}
+                                {playerTeam?.playerNames && playerTeam.playerNames.length > 0 && (
+                                  <div className="mt-2.5 flex flex-wrap gap-1.5">
+                                    {playerTeam.playerNames.map((pName, i) => (
+                                      <span key={i} className="text-[10px] px-2 py-0.5 rounded font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                                        {pName}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             );
                           })
@@ -668,6 +681,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                       </div>
                     </div>
                   )}
+
                 </div>
               )}
 
