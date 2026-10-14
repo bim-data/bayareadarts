@@ -96,6 +96,10 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
   const [teamFormError, setTeamFormError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isOpen) {
+      setIsEditingTeam(false);
+      setEditingTeamId(null);
+    }
     if (initialTab) {
       setHubTab(initialTab);
     }
@@ -357,7 +361,11 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
               <span>Golfer Profiles & Handicaps</span>
             </button>
             <button
-              onClick={() => setHubTab('teams')}
+              onClick={() => {
+                setHubTab('teams');
+                setIsEditingTeam(false);
+                setEditingTeamId(null);
+              }}
               className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 hubTab === 'teams'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
