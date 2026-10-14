@@ -551,91 +551,78 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
                 </div>
               </div>
 
-              {/* Hole-by-Hole Review Table */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
+             {/* Hole-by-Hole Review Grid */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
                   <label className="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
                     Verify & Tweak Hole-by-Hole Scores:
                   </label>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-stats">
-                    Total: {Object.values(editableHoles).reduce((acc, h) => acc + h.strokes, 0)} strokes
-                  </span>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <span className="text-[9px] text-slate-500 dark:text-slate-400 block uppercase font-bold tracking-wider">Total Putts</span>
+                      <span className="font-heading font-black text-lg text-slate-700 dark:text-slate-300 leading-none">
+                        {Object.values(editableHoles).reduce((acc, h) => acc + h.putts, 0)}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[9px] text-slate-500 dark:text-slate-400 block uppercase font-bold tracking-wider">Total Strokes</span>
+                      <span className="font-heading font-black text-lg text-emerald-600 dark:text-emerald-400 leading-none">
+                        {Object.values(editableHoles).reduce((acc, h) => acc + h.strokes, 0)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="rounded-xl overflow-x-auto border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-                  <table className="w-full text-xs text-center border-collapse font-stats">
-                    <thead className="bg-slate-900 dark:bg-slate-800 text-white font-heading font-bold">
-                      <tr>
-                        <th className="p-2 border-r border-slate-700 min-w-[70px]">Hole</th>
-                        {Array.from({ length: 18 }, (_, i) => (
-                          <th key={i + 1} className="p-1.5 w-10 border-r border-slate-700">
-                            #{i + 1}
-                          </th>
-                        ))}
-                        <th className="p-2 bg-emerald-600 text-white">TOT</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {/* Strokes Row (Using text type with numeric input mode to hide ugly spin arrows) */}
-                      <tr className="bg-white dark:bg-slate-900">
-                        <td className="p-2 font-bold font-heading text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800/40 border-r border-slate-200 dark:border-slate-800">
-                          Strokes
-                        </td>
-                        {Array.from({ length: 18 }, (_, i) => {
-                          const hNum = i + 1;
-                          const val = editableHoles[hNum]?.strokes || '';
-                          return (
-                            <td key={hNum} className="p-1 border-r border-slate-100 dark:border-slate-800">
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                maxLength={2}
-                                value={val}
-                                onChange={(e) => {
-                                  const num = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10);
-                                  handleHoleChange(hNum, 'strokes', isNaN(num) ? 0 : num);
-                                }}
-                                className="w-full min-w-[28px] p-1 text-center font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 focus:bg-white"
-                              />
-                            </td>
-                          );
-                        })}
-                        <td className="p-2 font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/20">
-                          {Object.values(editableHoles).reduce((acc, h) => acc + h.strokes, 0)}
-                        </td>
-                      </tr>
-                      {/* Putts Row */}
-                      <tr className="bg-slate-50/50 dark:bg-slate-800/30">
-                        <td className="p-2 font-bold font-heading text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/60 border-r border-slate-200 dark:border-slate-800">
-                          Putts
-                        </td>
-                        {Array.from({ length: 18 }, (_, i) => {
-                          const hNum = i + 1;
-                          const val = editableHoles[hNum]?.putts || '';
-                          return (
-                            <td key={hNum} className="p-1 border-r border-slate-100 dark:border-slate-800">
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                maxLength={1}
-                                value={val}
-                                onChange={(e) => {
-                                  const num = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10);
-                                  handleHoleChange(hNum, 'putts', isNaN(num) ? 0 : num);
-                                }}
-                                className="w-full min-w-[28px] p-1 text-center font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100 focus:bg-white"
-                              />
-                            </td>
-                          );
-                        })}
-                        <td className="p-2 font-bold text-slate-700 dark:text-slate-300">
-                          {Object.values(editableHoles).reduce((acc, h) => acc + h.putts, 0)}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
+                  {Array.from({ length: 18 }, (_, i) => {
+                    const hNum = i + 1;
+                    const matchedCourse = courses.find((c) => c.id === selectedCourseId) || courses[0];
+                    const par = matchedCourse?.holes?.find(h => h.number === hNum)?.par || 4;
+                    const strokes = editableHoles[hNum]?.strokes || 0;
+                    const putts = editableHoles[hNum]?.putts || 0;
+
+                    return (
+                      <div key={hNum} className="bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-900/50 rounded-2xl p-2.5 sm:p-3 flex flex-col gap-2.5 shadow-sm">
+                        <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 font-heading">
+                          <span>#{hNum}</span>
+                          <span>P{par}</span>
+                        </div>
+                        
+                        {/* Strokes */}
+                        <div className="flex items-center justify-between gap-1">
+                          <button 
+                            type="button"
+                            onClick={() => handleHoleChange(hNum, 'strokes', strokes - 1)}
+                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center shrink-0 cursor-pointer transition-colors"
+                          >-</button>
+                          <span className="text-lg sm:text-xl font-black font-heading text-slate-900 dark:text-white text-center w-6">{strokes}</span>
+                          <button 
+                            type="button"
+                            onClick={() => handleHoleChange(hNum, 'strokes', strokes + 1)}
+                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center shrink-0 cursor-pointer transition-colors"
+                          >+</button>
+                        </div>
+
+                        {/* Putts */}
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/60">
+                          <button 
+                            type="button"
+                            onClick={() => handleHoleChange(hNum, 'putts', putts - 1)}
+                            className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-500 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center shrink-0 text-xs cursor-pointer transition-colors"
+                          >-</button>
+                          <div className="flex flex-col items-center">
+                            <span className="text-[7px] sm:text-[8px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-0.5">Putts</span>
+                            <span className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 leading-none">{putts}</span>
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={() => handleHoleChange(hNum, 'putts', putts + 1)}
+                            className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-500 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center shrink-0 text-xs cursor-pointer transition-colors"
+                          >+</button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
