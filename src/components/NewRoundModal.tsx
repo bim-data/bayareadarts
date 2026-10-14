@@ -97,7 +97,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
       if (initialSelectedTeamId) {
         setSelectedTeamIds([initialSelectedTeamId]);
         setParticipantMode('teams');
-        setFormat('scramble');
+        setFormat('stroke');
       }
     }
   }, [isOpen, initialSelectedTeamId, selectedCourse]);
@@ -355,17 +355,16 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
+               <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase text-slate-500">Game Format *</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
-                      { id: 'stroke', label: 'Stroke Play', desc: 'Gross & Net' },
-                      { id: 'scramble', label: 'Scramble', desc: 'Squad Shot' },
-                      { id: 'match_play', label: 'Match Play', desc: 'Hole-by-hole' },
-                      { id: 'stableford', label: 'Stableford', desc: 'Points' },
-                      { id: 'skins', label: 'Skins', desc: 'Per hole pot' }
+                      { id: 'stroke', label: 'Stroke Play', desc: 'Total Score' },
+                      { id: 'match_play', label: 'Match Play', desc: 'Hole-by-Hole' },
+                      { id: 'stableford', label: 'Stableford', desc: 'Points Based' },
+                      { id: 'skins', label: 'Skins', desc: 'Per-Hole Pot' }
                     ].map((f) => (
-                      <button key={f.id} onClick={() => { setFormat(f.id as any); setParticipantMode(f.id === 'scramble' ? 'teams' : 'golfers'); }} className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${format === f.id ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}>
+                      <button key={f.id} onClick={() => setFormat(f.id as any)} className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${format === f.id ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}>
                         <span className="font-heading font-bold text-xs block leading-tight">{f.label}</span>
                         <span className="text-[10px] opacity-75 block mt-0.5">{f.desc}</span>
                       </button>
@@ -376,14 +375,8 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                 <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
-                      {format !== 'scramble' ? (
-                        <span className="px-3 py-1.5 text-xs font-bold text-slate-900 dark:text-white">Individual Golfers Only</span>
-                      ) : (
-                        <>
-                          <button onClick={() => setParticipantMode('golfers')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${participantMode === 'golfers' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>Golfers</button>
-                          <button onClick={() => setParticipantMode('teams')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${participantMode === 'teams' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>Scramble Squads</button>
-                        </>
-                      )}
+                      <button onClick={() => setParticipantMode('golfers')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${participantMode === 'golfers' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>Individuals</button>
+                      <button onClick={() => setParticipantMode('teams')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${participantMode === 'teams' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>Scramble Squads</button>
                     </div>
                     {participantMode === 'teams' && onOpenTeamManager && (
                       <button type="button" onClick={onOpenTeamManager} className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer shrink-0">
@@ -392,7 +385,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                     )}
                   </div>
 
-                  {participantMode === 'golfers' || format !== 'scramble' ? (
+                  {participantMode === 'golfers' ? (
                     <div className="space-y-2">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {selectedPlayers.map((player) => {
