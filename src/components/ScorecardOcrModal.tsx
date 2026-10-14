@@ -11,6 +11,7 @@ import {
   Crop
 } from 'lucide-react';
 import { Course, GameFormat, MemberProfile, OcrScorecardResponse, Team } from '../types';
+import { findWhiteOrEquivalentTee } from '../utils/teeUtils';
 
 interface ScorecardOcrModalProps {
   isOpen: boolean;
@@ -71,7 +72,8 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
       
       const firstCourse = courses[0];
       setSelectedCourseId(firstCourse?.id || '');
-      setSelectedTeeId(firstCourse?.tees[0]?.id || '');
+      // Automatically default to White or equivalent tee on open
+      setSelectedTeeId(firstCourse ? findWhiteOrEquivalentTee(firstCourse) : '');
       
       setCustomDate(new Date().toISOString().split('T')[0]);
       setAssignedMemberId(members[0]?.id || '');
@@ -85,9 +87,8 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
     if (selectedCourseId) {
       const course = courses.find(c => c.id === selectedCourseId);
       if (course && course.tees.length > 0) {
-        // If the current tee isn't in this course, select the first tee
-        const hasTee = course.tees.some(t => t.id === selectedTeeId);
-        if (!hasTee) setSelectedTeeId(course.tees[0].id);
+        // Force the selection to the White or equivalent tee when a new course is picked
+        setSelectedTeeId(findWhiteOrEquivalentTee(course));
       } else {
         setSelectedTeeId('');
       }
