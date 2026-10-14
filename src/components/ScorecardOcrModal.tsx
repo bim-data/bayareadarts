@@ -9,13 +9,14 @@ import {
   Sparkles, 
   RefreshCw,
 } from 'lucide-react';
-import { Course, GameFormat, MemberProfile, OcrScorecardResponse } from '../types';
+import { Course, GameFormat, MemberProfile, OcrScorecardResponse, Team } from '../types';
 
 interface ScorecardOcrModalProps {
   isOpen: boolean;
   onClose: () => void;
   courses: Course[];
   members: MemberProfile[];
+  teams?: Team[]; // Added the teams prop!
   onSaveIndividualRound: (roundData: any) => void;
   onSaveTeamEvent: (eventData: any) => void;
 }
@@ -25,6 +26,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
   onClose,
   courses,
   members,
+  teams = [],
   onSaveIndividualRound,
   onSaveTeamEvent,
 }) => {
@@ -41,7 +43,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   const [customDate, setCustomDate] = useState<string>('');
   const [assignedMemberId, setAssignedMemberId] = useState<string>('');
-  const [teamName, setTeamName] = useState<string>('');
+  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
 
   // Editable scores state
   const [editableHoles, setEditableHoles] = useState<Record<number, { strokes: number; putts: number }>>({});
@@ -58,10 +60,10 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
       setSelectedCourseId(courses[0]?.id || '');
       setCustomDate(new Date().toISOString().split('T')[0]);
       setAssignedMemberId(members[0]?.id || '');
-      setTeamName('');
+      setSelectedTeamId(teams[0]?.id || '');
       setEditableHoles({});
     }
-  }, [isOpen, courses, members]);
+  }, [isOpen, courses, members, teams]);
 
   if (!isOpen) return null;
 
@@ -107,7 +109,6 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
         const data: OcrScorecardResponse = await response.json();
         applyOcrData(data);
       } catch (e) {
-        // If API doesn't exist (GitHub pages), trigger the simulation fallback
         throw new Error('STATIC_FALLBACK');
       }
     } catch (err: any) {
@@ -128,7 +129,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
               back9: 41,
               holes: Array.from({ length: 18 }, (_, i) => ({
                 holeNumber: i + 1,
-                strokes: [3,4,5][Math.floor(Math.random()*3)] + 1, // Random realistic strokes
+                strokes: [3,4,5][Math.floor(Math.random()*3)] + 1, 
                 putts: 2
               }))
             },
@@ -212,7 +213,14 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
 
     if (selectedFormat === 'scramble' || selectedFormat === 'best_ball') {
       // Save to Team Events Store
-      const displayTeamName = teamName.trim() || 'Custom Squad';
+      const selectedTeam = teams.find(t => t.id === selectedTeamId);
+      const displayTeamName = selectedTeam?.name || 'Custom Squad';
+      
+      // Pull actual member names from the squad roster!
+      const playerNames = selectedTeam 
+        ? selectedTeam.playerIds.map(id => members.find(m => m.id === id)?.name || 'Unknown Golfer')
+        : ['Scanned Player 1', 'Scanned Player 2'];
+
       onSaveTeamEvent({
         date: customDate,
         courseName: matchedCourse.name,
@@ -224,7 +232,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
             teamName: displayTeamName,
             grossScore: totalGross,
             netScore: totalGross - 4, // Placeholder net
-            playerNames: ['Scanned Player 1', 'Scanned Player 2'], 
+            playerNames: playerNames, 
           },
         ],
         notes: `Digitized via AI Scorecard OCR.`,
@@ -335,17 +343,33 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
                 <div className="space-y-1.5 pt-2 border-t border-slate-200 dark:border-slate-700">
                   <label className="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
                     {selectedFormat === 'scramble' || selectedFormat === 'best_ball'
-                      ? 'Team / Squad Name'
+                      ? 'Which Team / Squad played this round?'
                       : 'Assign Score To Member'}
                   </label>
                   {selectedFormat === 'scramble' || selectedFormat === 'best_ball' ? (
-                    <input
-                      type="text"
-                      placeholder="e.g. The OG's"
-                      value={teamName}
-                      onChange={(e) => setTeamName(e.target.value)}
-                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100"
-                    />
+                    <select
+                      value={selectedTeamId}
+                      onChange={(e) => setSelectedTeamId(e.target.value)}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100 outline-none"
+                    >
+                      {teams.length > 0 ? (
+                        teams.map((t) => {
+                          // Compile a quick list of nicknames/first names for the dropdown
+                          const rosterNames = t.playerIds.map(id => {
+                            const m = members.find(m => m.id === id);
+                            return m?.nickname || m?.name.split(' ')[0] || 'Unknown';
+                          }).join(', ');
+                          
+                          return (
+                            <option key={t.id} value={t.id}>
+                              {t.name} ({rosterNames})
+                            </option>
+                          );
+                        })
+                      ) : (
+                        <option value="">No squads available...</option>
+                      )}
+                    </select>
                   ) : (
                     <select
                       value={assignedMemberId}
@@ -551,7 +575,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
                 </div>
               </div>
 
-             {/* Hole-by-Hole Review Grid */}
+              {/* Hole-by-Hole Review Grid */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
                   <label className="text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
