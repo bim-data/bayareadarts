@@ -58,14 +58,26 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
     if (selectedCourse) {
       setSelectedTeeId(findWhiteOrEquivalentTee(selectedCourse));
     }
-  }, [courseId]);
+  }, [courseId, selectedCourse]);
 
-  // Set the course from the directory if provided
+  // Reset form state every time the modal opens
   useEffect(() => {
-    if (isOpen && initialSelectedCourseId) {
-      setCourseId(initialSelectedCourseId);
+    if (isOpen) {
+      setTargetDate(getNextSaturday());
+      setTimeWindow('8:00 AM – 9:30 AM');
+      setFormat('stroke');
+      setStatus('placeholder');
+      setEmailAlertEnabled(true);
+      setNotes('');
+      setSelectedPlayerIds(activeUser ? [activeUser.id] : []);
+      
+      if (initialSelectedCourseId) {
+        setCourseId(initialSelectedCourseId);
+      } else if (courses.length > 0) {
+        setCourseId(courses[0].id);
+      }
     }
-  }, [isOpen, initialSelectedCourseId]);
+  }, [isOpen, initialSelectedCourseId, activeUserId]);
 
   // Set active user on open
   useEffect(() => {
