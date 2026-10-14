@@ -46,7 +46,7 @@ interface ClubhouseDashboardProps {
   onStartFutureRound: (futureRoundId: string) => void;
   onDeleteFutureRound: (futureRoundId: string) => void;
   onOpenEditNickname: () => void;
-  onSelectMemberForHistory: (member: MemberProfile) => void;
+  onSelectMemberForHistory: (member: MemberProfile, roundId?: string) => void;
   onSelectTeamForHistory: (event: TeamEventRecord, teamName?: string) => void;
 }
 
@@ -89,7 +89,11 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
   const dartSniperMember = eligibleGirMembers.length > 0 ? [...eligibleGirMembers].sort((a, b) => (b.girPercent || 0) - (a.girPercent || 0))[0] : null;
   const flatstickMember = eligiblePuttMembers.length > 0 ? [...eligiblePuttMembers].sort((a, b) => (a.avgPutts || 99) - (b.avgPutts || 99))[0] : null;
 
-  // Find the single round with the highest buzzballCount across ALL players
+  const lowGrossRound = lowGrossMember ? completedRounds.find(r => (r.playerId === lowGrossMember.id || r.playerName === lowGrossMember.name) && r.grossScore === lowGrossMember.bestRound) : null;
+  const low9Round = low9Member ? completedRounds.find(r => (r.playerId === low9Member.id || r.playerName === low9Member.name) && r.grossScore === low9Member.bestRound9) : null;
+  const dartSniperRound = dartSniperMember ? completedRounds.find(r => (r.playerId === dartSniperMember.id || r.playerName === dartSniperMember.name) && r.girPercent === dartSniperMember.girPercent) : null;
+  const flatstickRound = flatstickMember ? completedRounds.find(r => (r.playerId === flatstickMember.id || r.playerName === flatstickMember.name) && r.totalPutts === flatstickMember.avgPutts) : null;
+
   const drunkestRound = completedRounds.reduce((max, round) => 
     (round.buzzballCount || 0) > (max?.buzzballCount || 0) ? round : max
   , completedRounds[0]);
@@ -229,9 +233,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
         </div>
       )}
 
-      {/* 3. MAIN DASHBOARD SPLIT:
-          LEFT: SCORE & PLAYER RELATED STUFF (PUSHED TO THE TOP)
-          RIGHT: FUTURE ROUNDS & RECENT ROUNDS ON THE RIGHT SIDE */}
+      {/* 3. MAIN DASHBOARD SPLIT */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* ================= LEFT / MAIN COLUMN (SCORE & PLAYER STUFF) ================= */}
         <div className="lg:col-span-7 xl:col-span-7 space-y-6">
@@ -349,9 +351,9 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
           {/* B. Club Accolades Summary Cards (Clickable for History) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             <div 
-              onClick={() => dartSniperMember && onSelectMemberForHistory(dartSniperMember)}
+              onClick={() => dartSniperRound && dartSniperMember && onSelectMemberForHistory(dartSniperMember, dartSniperRound.id)}
               className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-red-300 dark:hover:border-red-800 transition-all cursor-pointer group"
-              title="Click to view history"
+              title="Click to view scorecard"
             >
               <div className="w-11 h-11 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🎯
@@ -370,9 +372,9 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             </div>
 
             <div 
-              onClick={() => flatstickMember && onSelectMemberForHistory(flatstickMember)}
+              onClick={() => flatstickRound && flatstickMember && onSelectMemberForHistory(flatstickMember, flatstickRound.id)}
               className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-800 transition-all cursor-pointer group"
-              title="Click to view history"
+              title="Click to view scorecard"
             >
               <div className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🪄
@@ -391,9 +393,9 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             </div>
 
             <div 
-              onClick={() => lowGrossMember && onSelectMemberForHistory(lowGrossMember)}
+              onClick={() => lowGrossRound && lowGrossMember && onSelectMemberForHistory(lowGrossMember, lowGrossRound.id)}
               className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-800 transition-all cursor-pointer group"
-              title="Click to view history"
+              title="Click to view scorecard"
             >
               <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 ⚡
@@ -412,9 +414,9 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             </div>
 
             <div 
-              onClick={() => low9Member && onSelectMemberForHistory(low9Member)}
+              onClick={() => low9Round && low9Member && onSelectMemberForHistory(low9Member, low9Round.id)}
               className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-800 transition-all cursor-pointer group"
-              title="Click to view history"
+              title="Click to view scorecard"
             >
               <div className="w-11 h-11 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🔥
@@ -433,9 +435,9 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             </div>
 
             <div 
-              onClick={() => liquidCourageMember && onSelectMemberForHistory(liquidCourageMember)}
+              onClick={() => drunkestRound && liquidCourageMember && onSelectMemberForHistory(liquidCourageMember, drunkestRound.id)}
               className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-800 transition-all cursor-pointer group"
-              title="Click to view history"
+              title="Click to view scorecard"
             >
               <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🍹
@@ -499,7 +501,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                   return (
                     <div
                       key={round.id}
-                      onClick={() => m && onSelectMemberForHistory(m)}
+                      onClick={() => m && onSelectMemberForHistory(m, round.id)}
                       className="p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
                       title="Click to view player score history"
                     >
