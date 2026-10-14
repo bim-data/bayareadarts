@@ -10,9 +10,10 @@ import {
   Shield, 
   AlertCircle,
   Mail,
-  FileCode
+  FileCode,
+  Star
 } from 'lucide-react';
-import { MemberProfile, TeamGroup, CompletedRoundRecord, Course } from '../types';
+import { MemberProfile, TeamGroup, CompletedRoundRecord, Course, TeamEventRecord } from '../types';
 import { calculateTeamScrambleHandicap } from './ScrambleTeamManagerModal';
 import { ExpandableRoundCard } from './ExpandableRoundCard';
 
@@ -26,6 +27,7 @@ interface ClubhouseHubModalProps {
   onUpdateProfile: (updatedProfile: MemberProfile) => void;
   onAddNewMember?: (newMember: MemberProfile) => void;
   completedRounds: CompletedRoundRecord[];
+  teamEvents: TeamEventRecord[];
   teams: TeamGroup[];
   onTeamCreated: (team: TeamGroup) => void;
   onTeamUpdated: (team: TeamGroup) => void;
@@ -57,6 +59,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
   onUpdateProfile,
   onAddNewMember,
   completedRounds,
+  teamEvents,
   teams,
   onTeamCreated,
   onTeamUpdated,
@@ -68,6 +71,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
 }) => {
   const [hubTab, setHubTab] = useState<'profiles' | 'teams'>(initialTab);
   const [profileSubTab, setProfileSubTab] = useState<'overview' | 'edit' | 'switch'>('overview');
+  const [historyTab, setHistoryTab] = useState<'rounds' | 'differentials' | 'scrambles'>('rounds');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   
   const activeUser = members.find((m) => m.id === activeUserId) || members[0];
@@ -135,15 +139,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
       handicapGoal: editGoal ? parseFloat(editGoal) : undefined,
     };
 
-    try {
-      await fetch(`/api/members/${activeUser.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
-      });
-    } catch {}
-
-    onUpdateProfile(updated);
+    await onUpdateProfile(updated);
     showToast('Profile updated successfully!');
     setProfileSubTab('overview');
   };
@@ -161,11 +157,12 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
       badgeTitle: 'Club Member',
       handicapIndex: parseFloat(newGolferHcp) || 12.0,
       roundsCount: 0,
-      scoringAverage: 82.0,
-      avgPutts: 32.0,
-      firPercent: 55,
-      girPercent: 50,
-      bestRound: 80,
+      scoringAverage: 0,
+      avgPutts: 0,
+      firPercent: 0,
+      girPercent: 0,
+      bestRound: 0,
+      bestRound9: 0,
       differentials: [],
     };
 
@@ -273,33 +270,18 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
       },
     };
 
-    try {
-      if (editingTeamId) {
-        await fetch(`/api/teams/${editingTeamId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        onTeamUpdated(payload);
-        showToast(`Updated "${payload.name}"!`);
-      } else {
-        await fetch('/api/teams', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        onTeamCreated(payload);
-        showToast(`Created squad "${payload.name}"!`);
-      }
-    } catch {}
+    if (editingTeamId) {
+      onTeamUpdated(payload);
+      showToast(`Updated "${payload.name}"!`);
+    } else {
+      onTeamCreated(payload);
+      showToast(`Created squad "${payload.name}"!`);
+    }
 
     setIsEditingTeam(false);
   };
 
   const handleDeleteTeam = async (teamId: string) => {
-    try {
-      await fetch(`/api/teams/${teamId}`, { method: 'DELETE' });
-    } catch {}
     onTeamDeleted(teamId);
     showToast('Scramble team deleted');
   };
@@ -307,6 +289,18 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
   const myRounds = completedRounds.filter(
     (r) => r.playerId === activeUser.id || r.playerName.toLowerCase() === activeUser.name.toLowerCase()
   );
+
+  const myTeamEvents = teamEvents.filter((ev) =>
+    ev.teamLeaderboard.some((t) =>
+      t.playerNames.some(
+        (pName) =>
+          pName.toLowerCase().includes((activeUser.name || '').toLowerCase()) ||
+          (activeUser.nickname && pName.toLowerCase().includes(activeUser.nickname.toLowerCase()))
+      )
+    )
+  );
+
+  const safeDifferentials = activeUser.differentials || [];
 
   const totalDrinks = myRounds.reduce((acc, r) => acc + (r.buzzballCount || 0), 0);
   const avgDrinks = myRounds.length > 0 ? (totalDrinks / myRounds.length).toFixed(1) : '0';
@@ -350,6 +344,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
               onClick={() => {
                 setHubTab('profiles');
                 setIsEditingTeam(false);
+                setEditingTeamId(null);
               }}
               className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 hubTab === 'profiles'
@@ -543,39 +538,33 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                             </span>
                           </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            {activeUser.email || 'No email saved'} · {activeUser.badgeTitle}
+                            Official WHS Index: <strong className="text-emerald-600 dark:text-emerald-400 font-stats">{activeUser.handicapIndex > 0 ? activeUser.handicapIndex.toFixed(1) : `+${Math.abs(activeUser.handicapIndex).toFixed(1)}`}</strong> · Badge: {activeUser.badgeTitle}
                           </p>
                         </div>
-                      </div>
-
-                      {/* WHS Index Badge */}
-                      <div className="px-4 py-2 rounded-2xl bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 text-center shadow-2xs">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
-                          WHS Index
-                        </span>
-                        <span className="font-stats font-extrabold text-2xl text-emerald-700 dark:text-emerald-300">
-                          {activeUser.handicapIndex > 0 ? activeUser.handicapIndex.toFixed(1) : `+${Math.abs(activeUser.handicapIndex).toFixed(1)}`}
-                        </span>
                       </div>
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
-                      <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
-                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Scoring Avg</span>
-                        <span className="font-stats font-bold text-lg text-slate-900 dark:text-slate-100">{activeUser.scoringAverage || 0}</span>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-2">
+                      <div className="p-3 bg-white/80 dark:bg-slate-800/80 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/80">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Scoring Avg</span>
+                        <span className="font-stats font-extrabold text-lg text-slate-900 dark:text-slate-100">{activeUser.scoringAverage || 0}</span>
                       </div>
-                      <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
-                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Avg Putts</span>
-                        <span className="font-stats font-bold text-lg text-emerald-600 dark:text-emerald-400">{activeUser.avgPutts || 0}</span>
+                      <div className="p-3 bg-white/80 dark:bg-slate-800/80 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/80">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Avg Putts</span>
+                        <span className="font-stats font-extrabold text-lg text-emerald-600 dark:text-emerald-400">{activeUser.avgPutts || 0}</span>
                       </div>
-                      <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
-                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Avg GIR</span>
-                        <span className="font-stats font-bold text-lg text-emerald-600 dark:text-emerald-400">{avgGirCount} / 18</span>
+                      <div className="p-3 bg-white/80 dark:bg-slate-800/80 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/80">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Avg GIR</span>
+                        <span className="font-stats font-extrabold text-lg text-emerald-600 dark:text-emerald-400">{avgGirCount} / 18</span>
                       </div>
-                      <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
-                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Career Low</span>
-                        <span className="font-stats font-bold text-lg text-amber-500">{activeUser.bestRound || 0}</span>
+                      <div className="p-3 bg-white/80 dark:bg-slate-800/80 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/80">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Low 18</span>
+                        <span className="font-stats font-extrabold text-lg text-amber-500">{activeUser.bestRound || 0}</span>
+                      </div>
+                      <div className="p-3 bg-white/80 dark:bg-slate-800/80 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/80">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Low 9</span>
+                        <span className="font-stats font-extrabold text-lg text-amber-500">{activeUser.bestRound9 || 0}</span>
                       </div>
                       <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-center border border-amber-200/80 dark:border-amber-800/60">
                         <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-500 uppercase tracking-wide block">🍹 Avg Drinks</span>
@@ -584,35 +573,101 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Personal Round History Preview */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h5 className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100">
-                        {activeUser.nickname || activeUser.name}'s Recorded Rounds ({myRounds.length})
-                      </h5>
-                      <span className="text-xs text-slate-400">
-                        Historical & Live Rounds
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                    <button onClick={() => setHistoryTab('rounds')} className={`btn-modern px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${historyTab === 'rounds' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'}`}>
+                      Round Records ({myRounds.length})
+                    </button>
+                    <button onClick={() => setHistoryTab('differentials')} className={`btn-modern px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${historyTab === 'differentials' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'}`}>
+                      WHS Differentials ({safeDifferentials.length})
+                    </button>
+                    <button onClick={() => setHistoryTab('scrambles')} className={`btn-modern px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${historyTab === 'scrambles' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'}`}>
+                      Team Events ({myTeamEvents.length})
+                    </button>
+                  </div>
 
-                    {myRounds.length === 0 ? (
-                      <div className="p-6 text-center rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-xs text-slate-500">
-                        No individual rounds logged for {activeUser.name} yet. Use "Start Round" to record your scores.
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {myRounds.slice(0, 5).map((round) => (
+                  {historyTab === 'rounds' && (
+                    <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                      {myRounds.length === 0 ? (
+                        <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800">
+                          No individual round cards saved yet for this player.
+                        </div>
+                      ) : (
+                        myRounds.map((r) => (
                           <ExpandableRoundCard
-                            key={round.id}
-                            round={round}
+                            key={r.id}
+                            round={r}
                             member={activeUser}
                             courses={courses}
                             onUpdatePastRound={onUpdatePastRound}
                           />
-                        ))}
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {historyTab === 'differentials' && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Formula: (113 / Slope) * (Gross - Rating).</span>
+                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                          <Star className="w-3 h-3 fill-current" /> ★ Lowest 8 count in Index
+                        </span>
                       </div>
-                    )}
-                  </div>
+                      <div className="card-modern rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
+                        {safeDifferentials.length === 0 ? (
+                          <div className="p-6 text-center text-xs text-slate-400">No differentials recorded yet.</div>
+                        ) : (
+                          safeDifferentials.map((diff, idx) => (
+                            <div key={diff.roundId || idx} className={`p-3.5 flex items-center justify-between text-xs transition-colors ${diff.usedInIndex ? 'bg-emerald-50/50 dark:bg-emerald-950/20 font-semibold text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40'}`}>
+                              <div className="flex items-center gap-3 min-w-0">
+                                {diff.usedInIndex ? (
+                                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] shrink-0 font-bold">★</span>
+                                ) : (
+                                  <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center text-[10px] shrink-0 font-stats">{idx + 1}</span>
+                                )}
+                                <div className="min-w-0">
+                                  <span className="font-medium text-slate-900 dark:text-slate-100 truncate block">{diff.courseName}</span>
+                                  <span className="text-[11px] text-slate-400 block">{diff.date}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4 text-right shrink-0">
+                                <span className="font-stats text-slate-800 dark:text-slate-200">{diff.grossScore} Gross</span>
+                                <span className="font-stats font-bold text-emerald-600 dark:text-emerald-400 text-sm">{diff.differential} Diff</span>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {historyTab === 'scrambles' && (
+                    <div className="space-y-3">
+                      <div className="card-modern rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
+                        {myTeamEvents.length === 0 ? (
+                          <div className="p-6 text-center text-xs text-slate-400">No scramble shootouts recorded for this player yet.</div>
+                        ) : (
+                          myTeamEvents.map((ev) => {
+                            const playerTeam = ev.teamLeaderboard.find((t) =>
+                              t.playerNames.some((p) => p.toLowerCase().includes((activeUser.name || '').toLowerCase()) || (activeUser.nickname && p.toLowerCase().includes(activeUser.nickname.toLowerCase())))
+                            );
+                            return (
+                              <div key={ev.id} className="p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100">{ev.eventName}</span>
+                                  <span className="font-stats font-bold text-xs text-emerald-600 dark:text-emerald-400">{playerTeam?.grossScore} Gross</span>
+                                </div>
+                                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                  <span>Team: <strong>{playerTeam?.teamName}</strong> · {ev.date}</span>
+                                  <span className="capitalize">{ev.format}</span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
