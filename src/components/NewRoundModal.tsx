@@ -441,8 +441,13 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                             <div key={player.playerId} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-between gap-2 shadow-2xs">
                               <div className="flex items-center gap-2 min-w-0">
                                 <span className="text-base">{memberObj?.avatarEmoji || '🏌️‍♂️'}</span>
-                                <span className="font-heading font-bold text-xs truncate">{player.name}</span>
-                                <span className="text-[10px] text-slate-400 font-stats shrink-0">Idx: {player.handicapIndex.toFixed(1)}</span>
+                                <div className="flex flex-col min-w-0">
+                                  <span className="font-heading font-bold text-xs truncate leading-tight">{player.name}</span>
+                                  {memberObj?.nickname && (
+                                    <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 truncate leading-tight">"{memberObj.nickname}"</span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-slate-400 font-stats shrink-0 ml-1">Idx: {player.handicapIndex.toFixed(1)}</span>
                               </div>
                               <button onClick={() => handleRemovePlayer(player.playerId)} className="p-1 text-slate-400 hover:text-red-500 cursor-pointer shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
                             </div>
@@ -452,7 +457,10 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                       <div className="pt-1 flex flex-wrap gap-1.5 items-center">
                         <span className="text-[11px] font-bold uppercase text-slate-400 mr-1">Add:</span>
                         {members.filter((m) => !selectedPlayers.some((p) => p.playerId === m.id)).map((m) => (
-                          <button key={m.id} onClick={() => handleAddPlayer(m)} className="px-2.5 py-1 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer transition-colors">+ {m.nickname || m.name}</button>
+                          <button key={m.id} onClick={() => handleAddPlayer(m)} className="px-2.5 py-1 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 cursor-pointer transition-colors flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">+ {m.name}</span>
+                            {m.nickname && <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">"{m.nickname}"</span>}
+                          </button>
                         ))}
                       </div>
                     </div>
