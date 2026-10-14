@@ -5,11 +5,7 @@ const API_KEY = 'YWVWXINIAUWWFIZ6NTKQOHOUNE'; // Paste your fresh API key here
 
 // ⚠️ MAX 17 COURSES PER RUN (2 API calls used per course)
 const TARGET_COURSES = [
-  "San Ramon",
-  "Poplar Creek",
-  "Deep Cliff",
-  "Tilden Park",
-  "Mission Hills",
+  "Shroeline",
   // Add up to 9 more here...
 ];
 
