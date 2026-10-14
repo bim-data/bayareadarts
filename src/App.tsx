@@ -585,6 +585,7 @@ export default function App() {
         }}
         courses={courses}
         onUpdatePastRound={handleUpdatePastRound}
+        onDeletePastRound={handleDeletePastRound}
       />
 
       <NewRoundModal
