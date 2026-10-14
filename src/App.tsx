@@ -609,7 +609,7 @@ export default function App() {
       />
 
       <ScorecardOcrModal
-        isOpen={isOcrModalOpen}
+        isOpen={isOcrOpen}
         onClose={() => setIsOcrModalOpen(false)}
         courses={courses}
         members={members}
