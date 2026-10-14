@@ -13,11 +13,11 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editScores, setEditScores] = useState<Record<number, HoleScore>>(round.holeScores || {});
+  const [editBuzzballs, setEditBuzzballs] = useState<number>(round.buzzballCount || 0);
 
   const handleStartEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // Generate a full 18-hole scorecard if they are converting a Quick Total round
     let startingScores: Record<number, HoleScore> = {};
     if (round.holeScores) {
       startingScores = JSON.parse(JSON.stringify(round.holeScores));
@@ -34,6 +34,7 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
     }
     
     setEditScores(startingScores);
+    setEditBuzzballs(round.buzzballCount || 0);
     setIsEditing(true);
     setIsExpanded(true);
   };
@@ -41,6 +42,7 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditScores(round.holeScores || {});
+    setEditBuzzballs(round.buzzballCount || 0);
   };
 
   const updateHole = (holeNum: number, field: keyof HoleScore, value: any) => {
@@ -76,7 +78,6 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
     const netScore = gross - courseHandicap;
     const differential = Number((((gross - rating) * 113) / slope).toFixed(1));
 
-    // Deep clean the data to remove any hidden undefined values that crash Firebase
     const rawPayload = {
       holeScores: editScores,
       grossScore: gross,
@@ -84,7 +85,8 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
       differential: differential,
       totalPutts: putts,
       firPercent: firPercent,
-      girPercent: girPercent
+      girPercent: girPercent,
+      buzzballCount: editBuzzballs
     };
     
     const cleanPayload = JSON.parse(JSON.stringify(rawPayload));
@@ -95,7 +97,6 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden transition-all shadow-xs">
-      {/* Clickable Header Row */}
       <div onClick={() => !isEditing && setIsExpanded(!isExpanded)} className={`p-3 sm:p-3.5 flex items-center justify-between gap-3 text-xs ${!isEditing ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50' : 'bg-slate-50 dark:bg-slate-800/30'} transition-colors`}>
         <div>
           <div className="font-heading font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -106,8 +107,13 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
               </button>
             )}
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-            {round.date} · {round.teeName} Tee
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5">
+            <span>{round.date} · {round.teeName} Tee</span>
+            {(round.buzzballCount || 0) > 0 && !isEditing && (
+              <span className="flex items-center gap-0.5 font-bold text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 rounded">
+                🍹 {round.buzzballCount}
+              </span>
+            )}
           </div>
         </div>
         <div className="text-right flex items-center gap-3">
@@ -124,14 +130,21 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
         </div>
       </div>
 
-      {/* Expanded Accordion Body */}
       {isExpanded && (
         <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 animate-fadeIn">
           {isEditing ? (
             <div className="space-y-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Edit Hole-by-Hole Scores</span>
-                <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Edit Scores</span>
+                  <div className="flex items-center gap-1.5 bg-amber-100/50 dark:bg-amber-900/30 px-2 py-1 rounded-lg border border-amber-200/50 dark:border-amber-800/50">
+                    <span className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-500">🍹 Drinks</span>
+                    <button type="button" onClick={() => setEditBuzzballs(Math.max(0, editBuzzballs - 1))} className="w-5 h-5 rounded bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs">-</button>
+                    <span className="font-stats font-bold text-xs w-4 text-center text-slate-900 dark:text-slate-100">{editBuzzballs}</span>
+                    <button type="button" onClick={() => setEditBuzzballs(editBuzzballs + 1)} className="w-5 h-5 rounded bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs">+</button>
+                  </div>
+                </div>
+                <div className="flex gap-2 self-end sm:self-auto">
                   <button onClick={handleCancelEdit} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 cursor-pointer">Cancel</button>
                   <button onClick={handleSaveEdit} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 cursor-pointer"><Check className="w-3 h-3"/> Save</button>
                 </div>
