@@ -304,6 +304,9 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
     (r) => r.playerId === activeUser.id || r.playerName.toLowerCase() === activeUser.name.toLowerCase()
   );
 
+  const totalDrinks = myRounds.reduce((acc, r) => acc + (r.buzzballCount || 0), 0);
+  const avgDrinks = myRounds.length > 0 ? (totalDrinks / myRounds.length).toFixed(1) : 0;
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
       <div className="w-full sm:max-w-3xl h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:rounded-3xl bg-white dark:bg-slate-900 border-0 sm:border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden text-slate-900 dark:text-slate-100 transition-colors">
@@ -545,22 +548,26 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
-                      <div className="p-3 bg-white/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Scoring Avg</span>
-                        <span className="font-stats font-extrabold text-base text-slate-900 dark:text-slate-100">{activeUser.scoringAverage}</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
+                      <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Scoring Avg</span>
+                        <span className="font-stats font-bold text-lg text-slate-900 dark:text-slate-100">{activeUser.scoringAverage || 0}</span>
                       </div>
-                      <div className="p-3 bg-white/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">GIR %</span>
-                        <span className="font-stats font-extrabold text-base text-emerald-600 dark:text-emerald-400">{activeUser.girPercent}%</span>
+                      <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Avg Putts</span>
+                        <span className="font-stats font-bold text-lg text-emerald-600 dark:text-emerald-400">{activeUser.avgPutts || 0}</span>
                       </div>
-                      <div className="p-3 bg-white/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Avg Putts</span>
-                        <span className="font-stats font-extrabold text-base text-slate-900 dark:text-slate-100">{activeUser.avgPutts}</span>
+                      <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Greens Hit</span>
+                        <span className="font-stats font-bold text-lg text-red-500">{activeUser.girPercent || 0}%</span>
                       </div>
-                      <div className="p-3 bg-white/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-center">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Best Gross</span>
-                        <span className="font-stats font-extrabold text-base text-amber-500">{activeUser.bestRound}</span>
+                      <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Career Low</span>
+                        <span className="font-stats font-bold text-lg text-amber-500">{activeUser.bestRound || 0}</span>
+                      </div>
+                      <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-center border border-amber-200/80 dark:border-amber-800/60">
+                        <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-500 uppercase tracking-wide block">🍹 Avg Drinks</span>
+                        <span className="font-stats font-bold text-lg text-amber-600 dark:text-amber-400">{avgDrinks}</span>
                       </div>
                     </div>
                   </div>
