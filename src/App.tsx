@@ -209,18 +209,22 @@ export default function App() {
     const member = members.find(m => m.id === playerId);
     if (!member) return;
 
-    // Get all rounds for this player
     const playerRounds = completedRounds.filter(r => r.playerId === playerId);
     if (playerRounds.length === 0) return;
 
     const roundsCount = playerRounds.length;
-    const bestRound = Math.min(...playerRounds.map(r => r.grossScore || 999));
     
-    // Averages
-    const totalGross = playerRounds.reduce((acc, r) => acc + (r.grossScore || 0), 0);
-    const scoringAverage = Number((totalGross / roundsCount).toFixed(1));
+    // Split 18-hole and 9-hole rounds
+    const rounds18 = playerRounds.filter(r => r.holesPlayed === '18' || !r.holesPlayed);
+    const rounds9 = playerRounds.filter(r => r.holesPlayed === 'front_9' || r.holesPlayed === 'back_9');
+
+    const bestRound = rounds18.length > 0 ? Math.min(...rounds18.map(r => r.grossScore || 999)) : 0;
+    const bestRound9 = rounds9.length > 0 ? Math.min(...rounds9.map(r => r.grossScore || 999)) : 0;
     
-    // Only count putts/GIR if they were recorded
+    // Calculate scoring average ONLY on 18-hole rounds so 9-hole rounds don't break the average
+    const totalGross18 = rounds18.reduce((acc, r) => acc + (r.grossScore || 0), 0);
+    const scoringAverage = rounds18.length > 0 ? Number((totalGross18 / rounds18.length).toFixed(1)) : 0;
+    
     const roundsWithPutts = playerRounds.filter(r => r.totalPutts && r.totalPutts > 0);
     const avgPutts = roundsWithPutts.length > 0 
       ? Number((roundsWithPutts.reduce((acc, r) => acc + r.totalPutts, 0) / roundsWithPutts.length).toFixed(1)) 
@@ -235,6 +239,7 @@ export default function App() {
       ...member,
       roundsCount,
       bestRound: bestRound === 999 ? 0 : bestRound,
+      bestRound9: bestRound9 === 999 ? 0 : bestRound9,
       scoringAverage,
       avgPutts,
       girPercent
