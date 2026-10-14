@@ -74,7 +74,13 @@ export default function App() {
   useEffect(() => {
     const unsubCourses = subscribeToCollection<Course>('courses', setCourses);
     const unsubMembers = subscribeToCollection<MemberProfile>('members', setMembers);
-    const unsubRounds = subscribeToCollection<CompletedRoundRecord>('rounds', setCompletedRounds);
+    
+    // Subscribe to rounds and force sort by Date descending!
+    const unsubRounds = subscribeToCollection<CompletedRoundRecord>('rounds', (data) => {
+      const sorted = [...data].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setCompletedRounds(sorted);
+    });
+
     const unsubEvents = subscribeToCollection<TeamEventRecord>('events', setTeamEvents);
     const unsubFuture = subscribeToCollection<FutureRound>('future_rounds', setFutureRounds);
     const unsubTeams = subscribeToCollection<TeamGroup>('teams', setTeams);
@@ -198,12 +204,45 @@ export default function App() {
     await deleteRecord('future_rounds', futureRoundId);
   };
 
+  // Helper to accurately calculate WHS Index
+  const calculateWHSIndex = (diffs: number[]) => {
+    if (diffs.length < 3) return 0;
+    
+    // Sort lowest to highest
+    const sorted = [...diffs].sort((a, b) => a - b);
+    
+    let toCount = 1;
+    let adjustment = 0;
+
+    if (diffs.length === 3) { toCount = 1; adjustment = -2.0; }
+    else if (diffs.length === 4) { toCount = 1; adjustment = -1.0; }
+    else if (diffs.length === 5) { toCount = 1; adjustment = 0; }
+    else if (diffs.length === 6) { toCount = 2; adjustment = -1.0; }
+    else if (diffs.length === 7 || diffs.length === 8) { toCount = 2; adjustment = 0; }
+    else if (diffs.length >= 9 && diffs.length <= 11) { toCount = 3; adjustment = 0; }
+    else if (diffs.length >= 12 && diffs.length <= 14) { toCount = 4; adjustment = 0; }
+    else if (diffs.length === 15 || diffs.length === 16) { toCount = 5; adjustment = 0; }
+    else if (diffs.length === 17 || diffs.length === 18) { toCount = 6; adjustment = 0; }
+    else if (diffs.length === 19) { toCount = 7; adjustment = 0; }
+    else { toCount = 8; adjustment = 0; }
+
+    const countingDiffs = sorted.slice(0, toCount);
+    const sum = countingDiffs.reduce((acc, val) => acc + val, 0);
+    const rawAvg = sum / toCount;
+    
+    let finalIndex = rawAvg + adjustment;
+    // Cap maximum index at 54.0
+    if (finalIndex > 54.0) finalIndex = 54.0;
+    
+    // Truncate to 1 decimal place (WHS rules: don't round up)
+    return Math.floor(finalIndex * 10) / 10;
+  };
+
   // Helper to recalculate a player's stats after a round is saved/edited
   const recalculatePlayerStats = async (playerId: string, extraRound?: any) => {
     const member = members.find(m => m.id === playerId);
     if (!member) return;
 
-    // Grab current rounds, and inject the newly saved round instantly
     let playerRounds = completedRounds.filter(r => r.playerId === playerId);
     if (extraRound) {
       const idx = playerRounds.findIndex(r => r.id === extraRound.id);
@@ -213,8 +252,10 @@ export default function App() {
 
     if (playerRounds.length === 0) return;
 
+    // Make absolutely sure we sort by newest first!
+    playerRounds.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
     const roundsCount = playerRounds.length;
-    
     const rounds18 = playerRounds.filter(r => r.holesPlayed === '18' || !r.holesPlayed);
     const rounds9 = playerRounds.filter(r => r.holesPlayed === 'front_9' || r.holesPlayed === 'back_9');
 
@@ -234,6 +275,45 @@ export default function App() {
       ? Math.round(roundsWithGir.reduce((acc, r) => acc + (r.girPercent || 0), 0) / roundsWithGir.length) 
       : 0;
 
+    // Build the Differentials History (Max 20 most recent 18-hole equivalents)
+    // For now, treat 9 hole rounds as 9-hole differentials
+    const recentDiffsRaw = playerRounds
+      .filter(r => r.differential !== undefined && r.differential > 0)
+      .slice(0, 20);
+
+    const diffValues = recentDiffsRaw.map(r => r.differential || 0);
+    const newHandicapIndex = calculateWHSIndex(diffValues);
+
+    // Identify which ones are actively counting toward the index right now
+    const sortedVals = [...diffValues].sort((a, b) => a - b);
+    let toCount = 1;
+    if (diffValues.length >= 20) toCount = 8;
+    else if (diffValues.length >= 19) toCount = 7;
+    else if (diffValues.length >= 17) toCount = 6;
+    else if (diffValues.length >= 15) toCount = 5;
+    else if (diffValues.length >= 12) toCount = 4;
+    else if (diffValues.length >= 9) toCount = 3;
+    else if (diffValues.length >= 6) toCount = 2;
+
+    const thresholdValue = sortedVals[toCount - 1] || 999;
+    let countedSoFar = 0;
+
+    const newDifferentialsList = recentDiffsRaw.map((r) => {
+      let isUsed = false;
+      if (r.differential !== undefined && r.differential <= thresholdValue && countedSoFar < toCount) {
+        isUsed = true;
+        countedSoFar++;
+      }
+      return {
+        roundId: r.id,
+        courseName: r.courseName,
+        date: r.date,
+        grossScore: r.grossScore || 0,
+        differential: r.differential || 0,
+        usedInIndex: isUsed
+      };
+    });
+
     const updatedProfile = {
       ...member,
       roundsCount,
@@ -241,7 +321,9 @@ export default function App() {
       bestRound9: bestRound9 === 999 ? 0 : bestRound9,
       scoringAverage,
       avgPutts,
-      girPercent
+      girPercent,
+      handicapIndex: newHandicapIndex,
+      differentials: newDifferentialsList
     };
 
     await updateRecord('members', playerId, updatedProfile);
