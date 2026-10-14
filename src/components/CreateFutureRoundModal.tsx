@@ -160,7 +160,7 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
                   Schedule Future Round
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                  Set placeholder or confirmed tee time · Logged in as <strong>{activeUser?.nickname}</strong>
+                  Set placeholder or confirmed tee time · Logged in as <strong>{activeUser?.nickname || activeUser?.name}</strong>
                 </p>
               </div>
             </div>
@@ -301,13 +301,22 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
                           : 'bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-300'
                       }`}
                     >
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="text-base">{m.avatarEmoji}</span>
-                        <div className="truncate">
-                          <div className="text-xs font-bold truncate">
-                            {m.nickname} {isMe && '(You)'}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-base shrink-0">{m.avatarEmoji}</span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                              {m.name} {isMe && '(You)'}
+                            </span>
+                            {m.nickname && (
+                              <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 truncate">
+                                "{m.nickname}"
+                              </span>
+                            )}
                           </div>
-                          <div className="text-[10px] text-slate-400">Index: {m.handicapIndex.toFixed(1)}</div>
+                          <span className="text-[10px] text-slate-500 block">
+                            Index: {m.handicapIndex.toFixed(1)}
+                          </span>
                         </div>
                       </div>
                       {isSelected ? (
