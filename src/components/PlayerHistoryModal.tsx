@@ -13,6 +13,7 @@ interface PlayerHistoryModalProps {
   onOpenEditProfile?: () => void;
   courses: Course[];
   onUpdatePastRound?: (roundId: string, data: Partial<CompletedRoundRecord>) => void;
+  initialExpandedRoundId?: string;
 }
 
 export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
@@ -25,6 +26,7 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
   onOpenEditProfile,
   courses,
   onUpdatePastRound,
+  initialExpandedRoundId,
 }) => {
   const [activeTab, setActiveTab] = useState<'rounds' | 'differentials' | 'scrambles'>('rounds');
 
@@ -149,6 +151,7 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
                     member={member}
                     courses={courses}
                     onUpdatePastRound={onUpdatePastRound}
+                    defaultExpanded={initialExpandedRoundId === r.id}
                   />
                 ))
               )}
