@@ -49,7 +49,6 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
   const totalDrinks = playerRounds.reduce((acc, r) => acc + (r.buzzballCount || 0), 0);
   const avgDrinks = playerRounds.length > 0 ? (totalDrinks / playerRounds.length).toFixed(1) : '0';
 
-  // Calculate Average Greens Hit per round (out of 18)
   const avgGirCount = playerRounds.length > 0
     ? (playerRounds.reduce((acc, r) => acc + Math.round(((r.girPercent || 0) / 100) * 18), 0) / playerRounds.length).toFixed(1)
     : '0';
@@ -97,7 +96,7 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5">
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
             <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Scoring Avg</span>
               <span className="font-stats font-bold text-lg text-slate-900 dark:text-slate-100">{member.scoringAverage || 0}</span>
@@ -111,11 +110,15 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
               <span className="font-stats font-bold text-lg text-emerald-600 dark:text-emerald-400">{avgGirCount} / 18</span>
             </div>
             <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Career Low</span>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Low 18</span>
               <span className="font-stats font-bold text-lg text-amber-500">{member.bestRound || 0}</span>
             </div>
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Low 9</span>
+              <span className="font-stats font-bold text-lg text-amber-500">{member.bestRound9 || 0}</span>
+            </div>
             <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-center border border-amber-200/80 dark:border-amber-800/60">
-              <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-500 uppercase tracking-wide block">🍹 Avg Drinks</span>
+              <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-500 uppercase tracking-wide block">🍹 Drinks</span>
               <span className="font-stats font-bold text-lg text-amber-600 dark:text-amber-400">{avgDrinks}</span>
             </div>
           </div>
