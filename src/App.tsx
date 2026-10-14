@@ -186,7 +186,13 @@ export default function App() {
       status: futureRoundData.status || 'placeholder',
       registeredPlayerIds: futureRoundData.registeredPlayerIds || [],
     };
-    await addRecord('future_rounds', newRound);
+    
+    // Strip out undefined values (like empty notes) so Firebase doesn't crash
+    const cleanRound = Object.fromEntries(
+      Object.entries(newRound).filter(([_, v]) => v !== undefined)
+    );
+    
+    await addRecord('future_rounds', cleanRound);
   };
 
   const handleRsvpPlayer = async (futureRoundId: string, memberId: string, action: 'join' | 'leave') => {
