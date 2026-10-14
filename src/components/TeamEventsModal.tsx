@@ -1,6 +1,7 @@
 import React from 'react';
-import { X, Trophy, Shield, Users, Calendar, Award, ChevronRight } from 'lucide-react';
+import { X, Trophy, Shield } from 'lucide-react';
 import { TeamEventRecord } from '../types';
+import { ExpandableTeamEventCard } from './TeamHistoryModal'; // Import our new expandable team card!
 
 interface TeamEventsModalProps {
   isOpen: boolean;
@@ -13,7 +14,6 @@ export const TeamEventsModal: React.FC<TeamEventsModalProps> = ({
   isOpen,
   onClose,
   events,
-  onSelectTeamForHistory,
 }) => {
   if (!isOpen) return null;
 
@@ -44,6 +44,7 @@ export const TeamEventsModal: React.FC<TeamEventsModalProps> = ({
           </button>
         </div>
 
+        {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-6">
           {/* Isolation Notice Banner */}
           <div className="p-3.5 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs text-amber-900 dark:text-amber-300 flex items-center gap-2.5">
@@ -53,90 +54,22 @@ export const TeamEventsModal: React.FC<TeamEventsModalProps> = ({
             </div>
           </div>
 
-          {/* Events List */}
-          <div className="space-y-4">
-            {events.map((event) => (
-              <div
-                key={event.id}
-                className="card-modern p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-xs"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded border border-slate-200 dark:border-slate-700">
-                        {event.format.toUpperCase()}
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {event.date} · {event.courseName}
-                      </span>
-                    </div>
-                    <h4 className="font-heading font-extrabold text-lg text-slate-900 dark:text-slate-100 mt-1">
-                      {event.eventName}
-                    </h4>
-                  </div>
-
-                  <div className="px-3 py-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-center shrink-0">
-                    <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase block">Champions</span>
-                    <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100">
-                      {event.winningTeamName}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Leaderboard Table */}
-                <div className="card-modern rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800">
-                  {event.teamLeaderboard.map((team, idx) => (
-                    <div
-                      key={team.teamName}
-                      onClick={() => onSelectTeamForHistory && onSelectTeamForHistory(event, team.teamName)}
-                      className={`p-3 flex items-center justify-between gap-3 transition-colors cursor-pointer ${
-                        idx === 0
-                          ? 'bg-amber-50/50 dark:bg-amber-950/20'
-                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="font-stats font-bold text-xs text-slate-400">
-                          #{idx + 1}
-                        </span>
-                        <div>
-                          <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100 block">
-                            {team.teamName}
-                          </span>
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate block">
-                            {team.playerNames.join(', ')}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <div className="text-right">
-                          <span className="font-stats font-bold text-sm text-slate-900 dark:text-slate-100">
-                            {team.grossScore} Gross
-                          </span>
-                          {team.netScore && (
-                            <span className="text-[11px] font-stats text-slate-400 ml-1.5">
-                              ({team.netScore} net)
-                            </span>
-                          )}
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {event.notes && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400 italic">
-                    "{event.notes}"
-                  </p>
-                )}
+          {/* Events List using Expandable Cards */}
+          <div className="space-y-3">
+            {events.length === 0 ? (
+              <div className="p-6 text-center text-xs text-slate-400 border border-slate-200 dark:border-slate-800 rounded-xl">
+                No team events have been recorded yet.
               </div>
-            ))}
+            ) : (
+              events.map((event) => (
+                <ExpandableTeamEventCard key={event.id} event={event} />
+              ))
+            )}
           </div>
         </div>
 
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+        {/* Footer */}
+        <div className="shrink-0 p-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex justify-end">
           <button
             onClick={onClose}
             className="btn-modern px-5 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-semibold cursor-pointer shadow-xs"
