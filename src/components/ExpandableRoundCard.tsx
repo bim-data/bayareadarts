@@ -143,9 +143,9 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
       </div>
 
       {isExpanded && (
-        <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 animate-fadeIn overflow-x-auto">
+        <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 animate-fadeIn">
           {isEditing ? (
-            <div className="space-y-3 min-w-max">
+            <div className="space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Edit Scores</span>
@@ -189,74 +189,95 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
               </div>
             </div>
           ) : (
-            <div className="min-w-max border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
-              {round.holeScores ? (
-                <>
-                  {/* Scorecard Header Row (Hole Numbers) */}
-                  <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/80">
-                    <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Hole</div>
-                    {Array.from({length: 9}, (_, i) => i + 1).map(h => (
-                      <div key={h} className="w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700">{h}</div>
-                    ))}
-                    <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-slate-700 dark:text-white border-r-2 border-slate-300 dark:border-slate-600 bg-slate-200 dark:bg-slate-700">OUT</div>
-                    {Array.from({length: 9}, (_, i) => i + 10).map(h => (
-                      <div key={h} className="w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700">{h}</div>
-                    ))}
-                    <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-slate-700 dark:text-white border-r-2 border-slate-300 dark:border-slate-600 bg-slate-200 dark:bg-slate-700">IN</div>
-                    <div className="w-14 shrink-0 p-2 text-center text-[11px] font-extrabold text-white bg-emerald-600">TOT</div>
-                  </div>
-
-                  {/* Par Row */}
-                  <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                    <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Par</div>
-                    {Array.from({length: 9}, (_, i) => i + 1).map(h => (
-                      <div key={h} className="w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 dark:border-slate-700">{getPar(h)}</div>
-                    ))}
-                    <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-slate-600 dark:text-slate-400 border-r-2 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800/80">
-                      {Array.from({length: 9}, (_, i) => getPar(i + 1)).reduce((a, b) => a + b, 0)}
-                    </div>
-                    {Array.from({length: 9}, (_, i) => i + 10).map(h => (
-                      <div key={h} className="w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 dark:border-slate-700">{getPar(h)}</div>
-                    ))}
-                    <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-slate-600 dark:text-slate-400 border-r-2 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800/80">
-                      {Array.from({length: 9}, (_, i) => getPar(i + 10)).reduce((a, b) => a + b, 0)}
-                    </div>
-                    <div className="w-14 shrink-0 p-2 text-center text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20">
-                      {Array.from({length: 18}, (_, i) => getPar(i + 1)).reduce((a, b) => a + b, 0)}
-                    </div>
-                  </div>
-
-                  {/* Score Row */}
-                  <div className="flex items-center">
-                    <div className="w-16 shrink-0 p-2 border-r border-slate-200 dark:border-slate-700 flex flex-col justify-center">
-                      <span className="text-[11px] font-bold text-slate-900 dark:text-white leading-tight truncate">{round.playerName.split(' ')[0]}</span>
-                    </div>
-                    {Array.from({length: 9}, (_, i) => i + 1).map(h => (
-                      <div key={h} className="w-10 h-10 shrink-0 flex items-center justify-center font-stats text-sm border-r border-slate-100 dark:border-slate-800/50">
-                        {renderScore(round.holeScores![h]?.strokes, getPar(h))}
+            <div className="overflow-x-auto w-full pb-1">
+              <div className="min-w-[480px] flex flex-col gap-3">
+                {round.holeScores ? (
+                  <>
+                    {/* Front 9 */}
+                    <div className="overflow-hidden border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">
+                      {/* Header */}
+                      <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/80">
+                        <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Hole</div>
+                        {Array.from({length: 9}, (_, i) => i + 1).map(h => (
+                          <div key={h} className="w-9 sm:w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700">{h}</div>
+                        ))}
+                        <div className="w-12 flex-1 p-2 text-center text-[11px] font-extrabold text-slate-700 dark:text-white bg-slate-200 dark:bg-slate-700">OUT</div>
                       </div>
-                    ))}
-                    <div className="w-12 h-10 shrink-0 flex items-center justify-center font-stats text-sm font-bold text-slate-800 dark:text-slate-200 border-r-2 border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/30">
-                      {Array.from({length: 9}, (_, i) => round.holeScores![i + 1]?.strokes || 0).reduce((a, b) => a + b, 0) || '-'}
-                    </div>
-                    {Array.from({length: 9}, (_, i) => i + 10).map(h => (
-                      <div key={h} className="w-10 h-10 shrink-0 flex items-center justify-center font-stats text-sm border-r border-slate-100 dark:border-slate-800/50">
-                        {renderScore(round.holeScores![h]?.strokes, getPar(h))}
+                      {/* Par */}
+                      <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                        <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Par</div>
+                        {Array.from({length: 9}, (_, i) => i + 1).map(h => (
+                          <div key={h} className="w-9 sm:w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 dark:border-slate-700">{getPar(h)}</div>
+                        ))}
+                        <div className="w-12 flex-1 p-2 text-center text-[11px] font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80">
+                          {Array.from({length: 9}, (_, i) => getPar(i + 1)).reduce((a, b) => a + b, 0)}
+                        </div>
                       </div>
-                    ))}
-                    <div className="w-12 h-10 shrink-0 flex items-center justify-center font-stats text-sm font-bold text-slate-800 dark:text-slate-200 border-r-2 border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/30">
-                      {Array.from({length: 9}, (_, i) => round.holeScores![i + 10]?.strokes || 0).reduce((a, b) => a + b, 0) || '-'}
+                      {/* Score */}
+                      <div className="flex items-center bg-white dark:bg-slate-900">
+                        <div className="w-16 shrink-0 p-2 border-r border-slate-200 dark:border-slate-700 flex flex-col justify-center">
+                          <span className="text-[11px] font-bold text-slate-900 dark:text-white leading-tight truncate">{round.playerName.split(' ')[0]}</span>
+                        </div>
+                        {Array.from({length: 9}, (_, i) => i + 1).map(h => (
+                          <div key={h} className="w-9 sm:w-10 h-10 shrink-0 flex items-center justify-center font-stats text-sm border-r border-slate-100 dark:border-slate-800/50">
+                            {renderScore(round.holeScores![h]?.strokes, getPar(h))}
+                          </div>
+                        ))}
+                        <div className="w-12 flex-1 h-10 flex items-center justify-center font-stats text-sm font-bold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/30">
+                          {Array.from({length: 9}, (_, i) => round.holeScores![i + 1]?.strokes || 0).reduce((a, b) => a + b, 0) || '-'}
+                        </div>
+                      </div>
                     </div>
-                    <div className="w-14 h-10 shrink-0 flex items-center justify-center font-stats text-sm font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/10">
-                      {round.grossScore}
+
+                    {/* Back 9 */}
+                    <div className="overflow-hidden border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs">
+                      {/* Header */}
+                      <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/80">
+                        <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Hole</div>
+                        {Array.from({length: 9}, (_, i) => i + 10).map(h => (
+                          <div key={h} className="w-9 sm:w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700">{h}</div>
+                        ))}
+                        <div className="w-10 sm:w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-slate-700 dark:text-white border-r border-slate-300 dark:border-slate-600 bg-slate-200 dark:bg-slate-700">IN</div>
+                        <div className="w-12 flex-1 p-2 text-center text-[11px] font-extrabold text-white bg-emerald-600">TOT</div>
+                      </div>
+                      {/* Par */}
+                      <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                        <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Par</div>
+                        {Array.from({length: 9}, (_, i) => i + 10).map(h => (
+                          <div key={h} className="w-9 sm:w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 dark:border-slate-700">{getPar(h)}</div>
+                        ))}
+                        <div className="w-10 sm:w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-slate-600 dark:text-slate-400 border-r border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800/80">
+                          {Array.from({length: 9}, (_, i) => getPar(i + 10)).reduce((a, b) => a + b, 0)}
+                        </div>
+                        <div className="w-12 flex-1 p-2 text-center text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20">
+                          {Array.from({length: 18}, (_, i) => getPar(i + 1)).reduce((a, b) => a + b, 0)}
+                        </div>
+                      </div>
+                      {/* Score */}
+                      <div className="flex items-center bg-white dark:bg-slate-900">
+                        <div className="w-16 shrink-0 p-2 border-r border-slate-200 dark:border-slate-700 flex flex-col justify-center">
+                          <span className="text-[11px] font-bold text-slate-900 dark:text-white leading-tight truncate">{round.playerName.split(' ')[0]}</span>
+                        </div>
+                        {Array.from({length: 9}, (_, i) => i + 10).map(h => (
+                          <div key={h} className="w-9 sm:w-10 h-10 shrink-0 flex items-center justify-center font-stats text-sm border-r border-slate-100 dark:border-slate-800/50">
+                            {renderScore(round.holeScores![h]?.strokes, getPar(h))}
+                          </div>
+                        ))}
+                        <div className="w-10 sm:w-12 h-10 shrink-0 flex items-center justify-center font-stats text-sm font-bold text-slate-800 dark:text-slate-200 border-r border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/30">
+                          {Array.from({length: 9}, (_, i) => round.holeScores![i + 10]?.strokes || 0).reduce((a, b) => a + b, 0) || '-'}
+                        </div>
+                        <div className="w-12 flex-1 h-10 flex items-center justify-center font-stats text-sm font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/10">
+                          {round.grossScore}
+                        </div>
+                      </div>
                     </div>
+                  </>
+                ) : (
+                  <div className="text-xs text-slate-500 text-center italic py-4">
+                    No hole-by-hole scorecard was saved for this round. Click the edit icon to add scores!
                   </div>
-                </>
-              ) : (
-                <div className="text-xs text-slate-500 text-center italic py-4">
-                  No hole-by-hole scorecard was saved for this round. Click the edit icon to add scores!
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </div>
