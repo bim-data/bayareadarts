@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { dartsLogo, fairwayBanner } from '../assets';
 import { 
   Trophy, 
@@ -17,12 +17,10 @@ import {
   Flag,
   Flame,
   FileText,
-  FileCode,
-  X
+  FileCode
 } from 'lucide-react';
 import { MemberProfile, CompletedRoundRecord, TeamEventRecord, RoundSession, FutureRound, Course, TeamGroup } from '../types';
 import { FutureRoundsSection } from './FutureRoundsSection';
-import { ExpandableRoundCard } from './ExpandableRoundCard';
 
 interface ClubhouseDashboardProps {
   members: MemberProfile[];
@@ -79,22 +77,19 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
   onSelectMemberForHistory,
   onSelectTeamForHistory,
 }) => {
-  const [selectedAccoladeRound, setSelectedAccoladeRound] = useState<{round: CompletedRoundRecord, title: string, member: MemberProfile} | null>(null);
-
   const sortedMembers = [...members].sort((a, b) => a.handicapIndex - b.handicapIndex);
   
-  // Only include players who have actually logged a round!
-  const eligibleMembers = members.filter(m => m.roundsCount > 0);
+  const eligible18Members = members.filter(m => m.bestRound && m.bestRound > 0);
+  const eligible9Members = members.filter(m => m.bestRound9 && m.bestRound9 > 0);
+  const eligibleGirMembers = members.filter(m => m.girPercent && m.girPercent > 0);
+  const eligiblePuttMembers = members.filter(m => m.avgPutts && m.avgPutts > 0);
   
-  const lowGrossMember = eligibleMembers.length > 0 ? [...eligibleMembers].sort((a, b) => a.bestRound - b.bestRound)[0] : null;
-  const dartSniperMember = eligibleMembers.length > 0 ? [...eligibleMembers].sort((a, b) => b.girPercent - a.girPercent)[0] : null;
-  const flatstickMember = eligibleMembers.length > 0 ? [...eligibleMembers].sort((a, b) => a.avgPutts - b.avgPutts)[0] : null;
+  const lowGrossMember = eligible18Members.length > 0 ? [...eligible18Members].sort((a, b) => (a.bestRound || 999) - (b.bestRound || 999))[0] : null;
+  const low9Member = eligible9Members.length > 0 ? [...eligible9Members].sort((a, b) => (a.bestRound9 || 999) - (b.bestRound9 || 999))[0] : null;
+  const dartSniperMember = eligibleGirMembers.length > 0 ? [...eligibleGirMembers].sort((a, b) => (b.girPercent || 0) - (a.girPercent || 0))[0] : null;
+  const flatstickMember = eligiblePuttMembers.length > 0 ? [...eligiblePuttMembers].sort((a, b) => (a.avgPutts || 99) - (b.avgPutts || 99))[0] : null;
 
-  // Find the exact rounds that set these records
-  const lowGrossRound = lowGrossMember ? completedRounds.filter(r => (r.playerId === lowGrossMember.id || r.playerName === lowGrossMember.name) && r.grossScore === lowGrossMember.bestRound)[0] : null;
-  const dartSniperRound = dartSniperMember ? completedRounds.filter(r => (r.playerId === dartSniperMember.id || r.playerName === dartSniperMember.name) && r.girPercent === dartSniperMember.girPercent)[0] : null;
-  const flatstickRound = flatstickMember ? completedRounds.filter(r => (r.playerId === flatstickMember.id || r.playerName === flatstickMember.name) && r.totalPutts === flatstickMember.avgPutts)[0] : null;
-
+  // Find the single round with the highest buzzballCount across ALL players
   const drunkestRound = completedRounds.reduce((max, round) => 
     (round.buzzballCount || 0) > (max?.buzzballCount || 0) ? round : max
   , completedRounds[0]);
@@ -352,11 +347,11 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
           </div>
 
           {/* B. Club Accolades Summary Cards (Clickable for History) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             <div 
-              onClick={() => dartSniperRound && dartSniperMember && setSelectedAccoladeRound({round: dartSniperRound, title: "Dart Sniper", member: dartSniperMember})}
+              onClick={() => dartSniperMember && onSelectMemberForHistory(dartSniperMember)}
               className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-red-300 dark:hover:border-red-800 transition-all cursor-pointer group"
-              title="Click to view scorecard"
+              title="Click to view history"
             >
               <div className="w-11 h-11 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🎯
@@ -375,16 +370,16 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             </div>
 
             <div 
-              onClick={() => flatstickRound && flatstickMember && setSelectedAccoladeRound({round: flatstickRound, title: "Flatstick King", member: flatstickMember})}
+              onClick={() => flatstickMember && onSelectMemberForHistory(flatstickMember)}
               className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-800 transition-all cursor-pointer group"
-              title="Click to view scorecard"
+              title="Click to view history"
             >
               <div className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🪄
               </div>
               <div className="truncate min-w-0">
                 <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
-                  FLATSTICK KING (PUTTS)
+                  FLATSTICK KING
                 </span>
                 <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
                   {flatstickMember?.name || 'TBD'}
@@ -396,16 +391,16 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             </div>
 
             <div 
-              onClick={() => lowGrossRound && lowGrossMember && setSelectedAccoladeRound({round: lowGrossRound, title: "Low Gross Record", member: lowGrossMember})}
+              onClick={() => lowGrossMember && onSelectMemberForHistory(lowGrossMember)}
               className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-800 transition-all cursor-pointer group"
-              title="Click to view scorecard"
+              title="Click to view history"
             >
               <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 ⚡
               </div>
               <div className="truncate min-w-0">
                 <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
-                  LOW GROSS RECORD
+                  LOW 18 RECORD
                 </span>
                 <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
                   {lowGrossMember?.name || 'TBD'}
@@ -417,9 +412,30 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             </div>
 
             <div 
-              onClick={() => drunkestRound && liquidCourageMember && setSelectedAccoladeRound({round: drunkestRound, title: "Liquid Courage", member: liquidCourageMember})}
+              onClick={() => low9Member && onSelectMemberForHistory(low9Member)}
+              className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-800 transition-all cursor-pointer group"
+              title="Click to view history"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+                🔥
+              </div>
+              <div className="truncate min-w-0">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  LOW 9 RECORD
+                </span>
+                <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                  {low9Member?.name || 'TBD'}
+                </span>
+                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
+                  {low9Member ? `${low9Member.bestRound9} Gross` : 'No rounds yet'}
+                </span>
+              </div>
+            </div>
+
+            <div 
+              onClick={() => liquidCourageMember && onSelectMemberForHistory(liquidCourageMember)}
               className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-800 transition-all cursor-pointer group"
-              title="Click to view scorecard"
+              title="Click to view history"
             >
               <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🍹
@@ -558,41 +574,6 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
           </div>
         </div>
       </div>
-      
-      {/* Accolade Scorecard Modal */}
-      {selectedAccoladeRound && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
-          <div className="w-full sm:max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:rounded-3xl bg-slate-50 dark:bg-slate-900 border-0 sm:border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden text-slate-900 dark:text-slate-100">
-            <div className="shrink-0 p-4 bg-white dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <div>
-                <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Award className="w-5 h-5 text-amber-500" />
-                  {selectedAccoladeRound.title} Record
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {selectedAccoladeRound.member.name}
-                </p>
-              </div>
-              <button onClick={() => setSelectedAccoladeRound(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-              <ExpandableRoundCard 
-                round={selectedAccoladeRound.round} 
-                member={selectedAccoladeRound.member} 
-                courses={courses} 
-                defaultExpanded={true}
-              />
-            </div>
-            <div className="shrink-0 p-3.5 sm:p-4 bg-white dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex justify-end">
-              <button onClick={() => setSelectedAccoladeRound(null)} className="btn-modern px-5 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-semibold cursor-pointer shadow-sm">
-                Close Scorecard
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
