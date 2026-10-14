@@ -7,14 +7,9 @@ import {
   Check, 
   AlertCircle, 
   Sparkles, 
-  User, 
-  Users, 
-  Trophy, 
-  ArrowRight,
   RefreshCw,
-  Edit2
 } from 'lucide-react';
-import { Course, GameFormat, MemberProfile, OcrDetectedPlayer, OcrScorecardResponse } from '../types';
+import { Course, GameFormat, MemberProfile, OcrScorecardResponse } from '../types';
 
 interface ScorecardOcrModalProps {
   isOpen: boolean;
@@ -164,7 +159,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
 
     const matchedCourse =
       courses.find((c) => c.name.toLowerCase().includes(customCourseName.toLowerCase())) || courses[0];
-    const tee = matchedCourse.tees[0] || { name: 'White', rating: 70.0, slope: 125 };
+    const tee = matchedCourse?.tees?.[0] || { name: 'White', rating: 70.0, slope: 125 };
 
     if (selectedFormat === 'scramble' || selectedFormat === 'best_ball') {
       // Save to Team Events Store
@@ -192,27 +187,31 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
 
       onSaveIndividualRound({
         date: customDate,
-        courseId: matchedCourse.id,
+        courseId: matchedCourse?.id || 'unknown',
         courseName: customCourseName,
         teeName: tee.name,
         format: selectedFormat,
+        entryMode: 'hole_by_hole',
+        holesPlayed: '18',
         isTeamRound: false,
         playerId: member.id,
         playerName: member.name,
         grossScore: totalGross,
-        netScore: totalGross - Math.round(member.handicapIndex),
+        netScore: totalGross - Math.round(member.handicapIndex || 0),
         differential: diff,
         courseRating: tee.rating,
         slopeRating: tee.slope,
         totalPutts,
-        firCount: 9,
-        girCount: 10,
-        scores: Object.entries(editableHoles).reduce((acc, [hole, val]) => {
+        firPercent: 50,
+        girPercent: 50,
+        buzzballCount: 0,
+        holeScores: Object.entries(editableHoles).reduce((acc, [hole, val]) => {
           acc[Number(hole)] = {
             strokes: val.strokes,
             putts: val.putts,
-            fir: 'hit',
-            gir: true,
+            fir: 'none',
+            gir: false,
+            drinks: 0
           };
           return acc;
         }, {} as any),
