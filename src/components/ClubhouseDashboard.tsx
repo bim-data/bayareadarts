@@ -86,6 +86,16 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
   const dartSniperMember = eligibleMembers.length > 0 ? [...eligibleMembers].sort((a, b) => b.girPercent - a.girPercent)[0] : null;
   const flatstickMember = eligibleMembers.length > 0 ? [...eligibleMembers].sort((a, b) => a.avgPutts - b.avgPutts)[0] : null;
 
+  // Find the single round with the highest buzzballCount across ALL players
+  const drunkestRound = completedRounds.reduce((max, round) => 
+    (round.buzzballCount || 0) > (max?.buzzballCount || 0) ? round : max
+  , completedRounds[0]);
+
+  // Find the member associated with that drunkest round
+  const liquidCourageMember = drunkestRound?.buzzballCount && drunkestRound.buzzballCount > 0 
+    ? members.find(m => m.id === drunkestRound.playerId || m.name === drunkestRound.playerName) 
+    : null;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-8">
       {/* 1. Modern Clubhouse Hero Card */}
@@ -335,7 +345,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
           </div>
 
           {/* B. Club Accolades Summary Cards (Clickable for History) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div 
               onClick={() => dartSniperMember && onSelectMemberForHistory(dartSniperMember)}
               className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-red-300 dark:hover:border-red-800 transition-all cursor-pointer group"
@@ -395,6 +405,27 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                 </span>
                 <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
                   {lowGrossMember ? `${lowGrossMember.bestRound} Gross` : 'No rounds yet'}
+                </span>
+              </div>
+            </div>
+
+            <div 
+              onClick={() => liquidCourageMember && onSelectMemberForHistory(liquidCourageMember)}
+              className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-800 transition-all cursor-pointer group"
+              title="Click to view history"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+                🍹
+              </div>
+              <div className="truncate min-w-0">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  LIQUID COURAGE AWARD
+                </span>
+                <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                  {liquidCourageMember?.name || 'TBD'}
+                </span>
+                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
+                  {drunkestRound?.buzzballCount ? `${drunkestRound.buzzballCount} Drinks & a ${drunkestRound.grossScore}` : 'No rounds yet'}
                 </span>
               </div>
             </div>
