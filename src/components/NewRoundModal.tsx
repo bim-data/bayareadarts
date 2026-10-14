@@ -47,6 +47,8 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
 
   const [format, setFormat] = useState<GameFormat>('stroke');
   const [participantMode, setParticipantMode] = useState<'golfers' | 'teams'>('golfers');
+  const [holesPlayed, setHolesPlayed] = useState<'18' | 'front_9' | 'back_9'>('18');
+  
   const [selectedPlayers, setSelectedPlayers] = useState<PlayerRoundData[]>([]);
   const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
   const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
@@ -85,6 +87,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
       setManualFirPercent(55);
       setManualGirPercent(50);
       setManualBuzzballs(0);
+      setHolesPlayed('18');
       
       if (selectedCourse && selectedCourse.holes) {
         const resetScores: Record<number, any> = {};
@@ -147,7 +150,11 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
   const handleQuickParAllHoles = () => {
     if (!selectedCourse) return;
     const updated: Record<number, HoleScore> = {};
-    selectedCourse.holes.forEach((h) => updated[h.number] = { strokes: h.par, putts: 2, fir: h.par === 3 ? 'none' : 'hit', gir: true });
+    selectedCourse.holes.forEach((h) => {
+      if (holesPlayed === 'front_9' && h.number > 9) return;
+      if (holesPlayed === 'back_9' && h.number < 10) return;
+      updated[h.number] = { strokes: h.par, putts: 2, fir: h.par === 3 ? 'none' : 'hit', gir: true };
+    });
     setManualHoleScores(updated);
   };
 
@@ -181,8 +188,16 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
     if (finalPlayers.length === 0) return alert('Please select at least 1 golfer or team to play.');
 
     onCreateSession({
-      courseId: selectedCourse.id, courseName: selectedCourse.name, teeId: selectedTee.id, teeName: selectedTee.name,
-      format, players: finalPlayers, teams: finalTeams, isTeamRound: participantMode === 'teams' || format === 'scramble', date: roundDate,
+      courseId: selectedCourse.id, 
+      courseName: selectedCourse.name, 
+      teeId: selectedTee.id, 
+      teeName: selectedTee.name,
+      format, 
+      players: finalPlayers, 
+      teams: finalTeams, 
+      isTeamRound: participantMode === 'teams' || format === 'scramble', 
+      date: roundDate,
+      holesPlayed // Save length of round
     });
     onClose();
   };
@@ -190,18 +205,27 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
   const handleSubmitManualRound = async () => {
     setIsSubmittingManual(true);
     let gross = manualGrossScore, putts = manualPuttsTotal, fir = manualFirPercent, gir = manualGirPercent;
+    
+    const is9Hole = holesPlayed !== '18';
 
     if (manualEntryMode === 'hole_by_hole') {
-      gross = Object.values(manualHoleScores).reduce((acc, h) => acc + (h.strokes || 4), 0);
-      putts = Object.values(manualHoleScores).reduce((acc, h) => acc + (h.putts || 2), 0);
-      const eligibleFir = Object.values(manualHoleScores).filter((h) => h.fir !== 'none').length;
-      fir = eligibleFir > 0 ? Math.round((Object.values(manualHoleScores).filter((h) => h.fir === 'hit').length / eligibleFir) * 100) : 50;
-      gir = Math.round((Object.values(manualHoleScores).filter((h) => h.gir).length / 18) * 100);
+      const validHoles = Object.entries(manualHoleScores).filter(([hNum]) => {
+        if (holesPlayed === 'front_9') return Number(hNum) <= 9;
+        if (holesPlayed === 'back_9') return Number(hNum) >= 10;
+        return true;
+      });
+
+      gross = validHoles.reduce((acc, [_, h]) => acc + (h.strokes || 4), 0);
+      putts = validHoles.reduce((acc, [_, h]) => acc + (h.putts || 2), 0);
+      const eligibleFir = validHoles.filter(([_, h]) => h.fir !== 'none').length;
+      fir = eligibleFir > 0 ? Math.round((validHoles.filter(([_, h]) => h.fir === 'hit').length / eligibleFir) * 100) : 50;
+      gir = Math.round((validHoles.filter(([_, h]) => h.gir).length / (is9Hole ? 9 : 18)) * 100);
     }
 
-    const rating = selectedTee?.rating || 72;
+    const baseRating = selectedTee?.rating || 72;
+    const rating = is9Hole ? baseRating / 2 : baseRating;
     const slope = selectedTee?.slope || 113;
-    const courseHandicap = Math.round(activeUser.handicapIndex * (slope / 113) + (rating - 72));
+    const courseHandicap = Math.round((activeUser.handicapIndex / (is9Hole ? 2 : 1)) * (slope / 113) + (rating - (is9Hole ? 36 : 72)));
     const netScore = gross - courseHandicap;
     const differential = Number((((gross - rating) * 113) / slope).toFixed(1));
 
@@ -215,6 +239,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
       teeName: selectedTee.name, 
       format, 
       entryMode: manualEntryMode, 
+      holesPlayed,
       grossScore: gross, 
       netScore, 
       differential, 
@@ -241,9 +266,16 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
     }
   };
 
-  const displayGross = manualEntryMode === 'hole_by_hole' 
-    ? Object.values(manualHoleScores).reduce((acc, h) => acc + (h.strokes || 4), 0)
-    : manualGrossScore;
+  const getDisplayGross = () => {
+    if (manualEntryMode !== 'hole_by_hole') return manualGrossScore;
+    return Object.entries(manualHoleScores).filter(([hNum]) => {
+      if (holesPlayed === 'front_9') return Number(hNum) <= 9;
+      if (holesPlayed === 'back_9') return Number(hNum) >= 10;
+      return true;
+    }).reduce((acc, [_, h]) => acc + (h.strokes || 4), 0);
+  };
+
+  const displayGross = getDisplayGross();
 
   return (
     <>
@@ -355,7 +387,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                   </div>
                 </div>
 
-               <div className="space-y-1.5">
+                <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase text-slate-500">Game Format *</label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
@@ -369,6 +401,21 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                         <span className="text-[10px] opacity-75 block mt-0.5">{f.desc}</span>
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase text-slate-500">Holes Played *</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button onClick={() => setHolesPlayed('18')} className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${holesPlayed === '18' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300'}`}>
+                      <span className="font-heading font-bold text-xs block leading-tight">Full 18</span>
+                    </button>
+                    <button onClick={() => setHolesPlayed('front_9')} className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${holesPlayed === 'front_9' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300'}`}>
+                      <span className="font-heading font-bold text-xs block leading-tight">Front 9</span>
+                    </button>
+                    <button onClick={() => setHolesPlayed('back_9')} className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${holesPlayed === 'back_9' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300'}`}>
+                      <span className="font-heading font-bold text-xs block leading-tight">Back 9</span>
+                    </button>
                   </div>
                 </div>
 
@@ -438,7 +485,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                     <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-2">
                         <button onClick={() => setManualEntryMode('hole_by_hole')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${manualEntryMode === 'hole_by_hole' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>Hole-by-Hole Scorecard</button>
-                        <button onClick={() => setManualEntryMode('quick_total')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${manualEntryMode === 'quick_total' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>Quick Total 18-Hole</button>
+                        <button onClick={() => setManualEntryMode('quick_total')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${manualEntryMode === 'quick_total' ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>Quick Total</button>
                       </div>
                       {manualEntryMode === 'hole_by_hole' && (
                         <button type="button" onClick={handleQuickParAllHoles} className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold cursor-pointer hover:bg-emerald-100">
@@ -459,7 +506,9 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                     ) : (
                       <>
                         <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                          {Array.from({ length: 18 }, (_, idx) => idx + 1).map((hNum) => {
+                          {Array.from({ length: 18 }, (_, idx) => idx + 1)
+                            .filter(hNum => holesPlayed === '18' ? true : holesPlayed === 'front_9' ? hNum <= 9 : hNum >= 10)
+                            .map((hNum) => {
                             const par = selectedCourse?.holes.find((h) => h.number === hNum)?.par || 4;
                             const score = manualHoleScores[hNum]?.strokes || par;
                             const putts = manualHoleScores[hNum]?.putts || 2;
