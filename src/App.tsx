@@ -77,7 +77,7 @@ export default function App() {
     
     // Subscribe to rounds and force sort by Date descending!
     const unsubRounds = subscribeToCollection<CompletedRoundRecord>('rounds', (data) => {
-      const sorted = [...data].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const sorted = [...data].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
       setCompletedRounds(sorted);
     });
 
@@ -204,26 +204,26 @@ export default function App() {
     await deleteRecord('future_rounds', futureRoundId);
   };
 
-  // Helper to accurately calculate WHS Index
+  // Helper to accurately calculate WHS Index with strict Number casting
   const calculateWHSIndex = (diffs: number[]) => {
     if (diffs.length < 3) return 0;
     
-    // Sort lowest to highest
-    const sorted = [...diffs].sort((a, b) => a - b);
+    // Convert to numbers and sort lowest to highest safely
+    const sorted = [...diffs].map(Number).filter(n => !isNaN(n)).sort((a, b) => a - b);
     
     let toCount = 1;
     let adjustment = 0;
 
-    if (diffs.length === 3) { toCount = 1; adjustment = -2.0; }
-    else if (diffs.length === 4) { toCount = 1; adjustment = -1.0; }
-    else if (diffs.length === 5) { toCount = 1; adjustment = 0; }
-    else if (diffs.length === 6) { toCount = 2; adjustment = -1.0; }
-    else if (diffs.length === 7 || diffs.length === 8) { toCount = 2; adjustment = 0; }
-    else if (diffs.length >= 9 && diffs.length <= 11) { toCount = 3; adjustment = 0; }
-    else if (diffs.length >= 12 && diffs.length <= 14) { toCount = 4; adjustment = 0; }
-    else if (diffs.length === 15 || diffs.length === 16) { toCount = 5; adjustment = 0; }
-    else if (diffs.length === 17 || diffs.length === 18) { toCount = 6; adjustment = 0; }
-    else if (diffs.length === 19) { toCount = 7; adjustment = 0; }
+    if (sorted.length === 3) { toCount = 1; adjustment = -2.0; }
+    else if (sorted.length === 4) { toCount = 1; adjustment = -1.0; }
+    else if (sorted.length === 5) { toCount = 1; adjustment = 0; }
+    else if (sorted.length === 6) { toCount = 2; adjustment = -1.0; }
+    else if (sorted.length === 7 || sorted.length === 8) { toCount = 2; adjustment = 0; }
+    else if (sorted.length >= 9 && sorted.length <= 11) { toCount = 3; adjustment = 0; }
+    else if (sorted.length >= 12 && sorted.length <= 14) { toCount = 4; adjustment = 0; }
+    else if (sorted.length === 15 || sorted.length === 16) { toCount = 5; adjustment = 0; }
+    else if (sorted.length === 17 || sorted.length === 18) { toCount = 6; adjustment = 0; }
+    else if (sorted.length === 19) { toCount = 7; adjustment = 0; }
     else { toCount = 8; adjustment = 0; }
 
     const countingDiffs = sorted.slice(0, toCount);
@@ -231,8 +231,9 @@ export default function App() {
     const rawAvg = sum / toCount;
     
     let finalIndex = rawAvg + adjustment;
-    // Cap maximum index at 54.0
+    // Cap maximum index at 54.0 and prevent negative zero
     if (finalIndex > 54.0) finalIndex = 54.0;
+    if (finalIndex < 0 && finalIndex > -0.05) finalIndex = 0;
     
     // Truncate to 1 decimal place (WHS rules: don't round up)
     return Math.floor(finalIndex * 10) / 10;
@@ -252,39 +253,39 @@ export default function App() {
 
     if (playerRounds.length === 0) return;
 
-    // Make absolutely sure we sort by newest first!
-    playerRounds.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // Force string-based sorting for YYYY-MM-DD dates to ensure order
+    playerRounds.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
     const roundsCount = playerRounds.length;
+    
+    // Strictly isolate 18-hole vs 9-hole rounds
     const rounds18 = playerRounds.filter(r => r.holesPlayed === '18' || !r.holesPlayed);
     const rounds9 = playerRounds.filter(r => r.holesPlayed === 'front_9' || r.holesPlayed === 'back_9');
 
-    const bestRound = rounds18.length > 0 ? Math.min(...rounds18.map(r => r.grossScore || 999)) : 0;
-    const bestRound9 = rounds9.length > 0 ? Math.min(...rounds9.map(r => r.grossScore || 999)) : 0;
+    const bestRound = rounds18.length > 0 ? Math.min(...rounds18.map(r => Number(r.grossScore) || 999)) : 0;
+    const bestRound9 = rounds9.length > 0 ? Math.min(...rounds9.map(r => Number(r.grossScore) || 999)) : 0;
     
-    const totalGross18 = rounds18.reduce((acc, r) => acc + (r.grossScore || 0), 0);
+    const totalGross18 = rounds18.reduce((acc, r) => acc + (Number(r.grossScore) || 0), 0);
     const scoringAverage = rounds18.length > 0 ? Number((totalGross18 / rounds18.length).toFixed(1)) : 0;
     
-    const roundsWithPutts = playerRounds.filter(r => r.totalPutts && r.totalPutts > 0);
+    const roundsWithPutts = playerRounds.filter(r => r.totalPutts && Number(r.totalPutts) > 0);
     const avgPutts = roundsWithPutts.length > 0 
-      ? Number((roundsWithPutts.reduce((acc, r) => acc + r.totalPutts, 0) / roundsWithPutts.length).toFixed(1)) 
+      ? Number((roundsWithPutts.reduce((acc, r) => acc + Number(r.totalPutts), 0) / roundsWithPutts.length).toFixed(1)) 
       : 0;
 
     const roundsWithGir = playerRounds.filter(r => r.girPercent !== undefined);
     const girPercent = roundsWithGir.length > 0 
-      ? Math.round(roundsWithGir.reduce((acc, r) => acc + (r.girPercent || 0), 0) / roundsWithGir.length) 
+      ? Math.round(roundsWithGir.reduce((acc, r) => acc + Number(r.girPercent || 0), 0) / roundsWithGir.length) 
       : 0;
 
-    // Build the Differentials History (Max 20 most recent 18-hole equivalents)
-    // For now, treat 9 hole rounds as 9-hole differentials
-    const recentDiffsRaw = playerRounds
-      .filter(r => r.differential !== undefined && r.differential > 0)
+    // Build the Differentials History using ONLY 18-hole rounds
+    const recentDiffsRaw = rounds18
+      .filter(r => r.differential !== undefined && !isNaN(Number(r.differential)))
       .slice(0, 20);
 
-    const diffValues = recentDiffsRaw.map(r => r.differential || 0);
+    const diffValues = recentDiffsRaw.map(r => Number(r.differential));
     const newHandicapIndex = calculateWHSIndex(diffValues);
 
-    // Identify which ones are actively counting toward the index right now
     const sortedVals = [...diffValues].sort((a, b) => a - b);
     let toCount = 1;
     if (diffValues.length >= 20) toCount = 8;
@@ -300,7 +301,8 @@ export default function App() {
 
     const newDifferentialsList = recentDiffsRaw.map((r) => {
       let isUsed = false;
-      if (r.differential !== undefined && r.differential <= thresholdValue && countedSoFar < toCount) {
+      const diffNum = Number(r.differential);
+      if (diffNum <= thresholdValue && countedSoFar < toCount) {
         isUsed = true;
         countedSoFar++;
       }
@@ -308,8 +310,8 @@ export default function App() {
         roundId: r.id,
         courseName: r.courseName,
         date: r.date,
-        grossScore: r.grossScore || 0,
-        differential: r.differential || 0,
+        grossScore: Number(r.grossScore) || 0,
+        differential: diffNum || 0,
         usedInIndex: isUsed
       };
     });
