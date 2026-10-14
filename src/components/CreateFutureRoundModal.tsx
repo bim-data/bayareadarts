@@ -11,7 +11,7 @@ interface CreateFutureRoundModalProps {
   courses: Course[];
   members: MemberProfile[];
   activeUserId?: string;
-  initialSelectedCourseId?: string; // Add this
+  initialSelectedCourseId?: string;
   onCourseAdded?: (course: Course) => void;
   onCreateFutureRound: (roundData: Partial<FutureRound>) => void;
 }
@@ -49,7 +49,7 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
   const [timeWindow, setTimeWindow] = useState('8:00 AM – 9:30 AM');
   const [format, setFormat] = useState<GameFormat>('stroke');
   const [status, setStatus] = useState<'placeholder' | 'confirmed'>('placeholder');
-  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([activeUser?.id || members[0]?.id || '']);
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [emailAlertEnabled, setEmailAlertEnabled] = useState(true);
   const [notes, setNotes] = useState('');
 
@@ -60,7 +60,7 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
     }
   }, [courseId, selectedCourse]);
 
-  // Reset form state every time the modal opens
+  // Memory Wipe - Reset everything perfectly when the modal opens!
   useEffect(() => {
     if (isOpen) {
       setTargetDate(getNextSaturday());
@@ -69,22 +69,22 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
       setStatus('placeholder');
       setEmailAlertEnabled(true);
       setNotes('');
-      setSelectedPlayerIds(activeUser ? [activeUser.id] : []);
       
+      if (activeUserId) {
+        setSelectedPlayerIds([activeUserId]);
+      } else if (members.length > 0) {
+        setSelectedPlayerIds([members[0].id]);
+      } else {
+        setSelectedPlayerIds([]);
+      }
+
       if (initialSelectedCourseId) {
         setCourseId(initialSelectedCourseId);
       } else if (courses.length > 0) {
         setCourseId(courses[0].id);
       }
     }
-  }, [isOpen, initialSelectedCourseId, activeUserId]);
-
-  // Set active user on open
-  useEffect(() => {
-    if (activeUser && !selectedPlayerIds.includes(activeUser.id)) {
-      setSelectedPlayerIds([activeUser.id]);
-    }
-  }, [isOpen, activeUserId]);
+  }, [isOpen, initialSelectedCourseId, activeUserId, members, courses]);
 
   if (!isOpen) return null;
 
@@ -171,8 +171,9 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
                 <h3 className="font-heading font-extrabold text-lg sm:text-xl text-slate-900 dark:text-slate-100 truncate">
                   Schedule Future Round
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                  Set placeholder or confirmed tee time · Logged in as <strong>{activeUser?.nickname || activeUser?.name}</strong>
+                <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 flex-wrap">
+                  Set placeholder or confirmed tee time · Logged in as <strong>{activeUser?.name}</strong>
+                  {activeUser?.nickname && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">"{activeUser.nickname}"</span>}
                 </p>
               </div>
             </div>
@@ -313,20 +314,20 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
                           : 'bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-300'
                       }`}
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-base shrink-0">{m.avatarEmoji}</span>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
-                              {m.name} {isMe && '(You)'}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-lg shrink-0">
+                          {m.avatarEmoji}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100 truncate leading-tight">
+                            {m.name} {isMe && '(You)'}
+                          </span>
+                          {m.nickname && (
+                            <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 truncate leading-tight">
+                              "{m.nickname}"
                             </span>
-                            {m.nickname && (
-                              <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 truncate">
-                                "{m.nickname}"
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-[10px] text-slate-500 block">
+                          )}
+                          <span className="text-[10px] text-slate-400 font-stats block mt-0.5">
                             Index: {m.handicapIndex.toFixed(1)}
                           </span>
                         </div>
