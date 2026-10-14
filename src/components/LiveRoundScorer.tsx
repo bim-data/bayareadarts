@@ -208,6 +208,30 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
     };
   }, [session, currentHoleNum]);
 
+  const getBadgeStyle = (strokes: number, par: number, isSelected: boolean) => {
+    let base = `btn-modern flex flex-col items-center justify-center min-w-[46px] h-13 rounded-xl border text-center cursor-pointer transition-all ${isSelected ? 'ring-2 ring-emerald-500 scale-105 z-10 shadow-sm' : ''}`;
+    
+    if (strokes === 0) {
+      return `${base} bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300`;
+    }
+
+    const diff = strokes - par;
+    if (diff <= -2) {
+      return `${base} bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border-2 border-amber-400 rounded-full font-bold relative after:absolute after:inset-[2px] after:border after:border-amber-400 after:rounded-full`;
+    }
+    if (diff === -1) {
+      return `${base} bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-400 rounded-full font-bold`;
+    }
+    if (diff === 0) {
+      return `${base} bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700 font-bold`;
+    }
+    if (diff === 1) {
+      return `${base} bg-slate-50 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 border border-slate-400 rounded-md font-bold`;
+    }
+    
+    return `${base} bg-slate-50 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 border-2 border-slate-500 rounded-md font-bold relative after:absolute after:inset-[2px] after:border after:border-slate-400 after:rounded-sm`;
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 pb-28 sm:pb-24 space-y-4">
       {/* 1. Header Bar: Course, Format, Room PIN */}
@@ -287,36 +311,26 @@ export const LiveRoundScorer: React.FC<LiveRoundScorerProps> = ({
 
       {/* 2. Hole Selector Strip (1 - 18) */}
       <div className="overflow-x-auto pb-1">
-        <div className="flex items-center gap-1.5 min-w-max p-0.5">
+        <div className="flex items-center gap-2 min-w-max p-1">
           {course.holes.map((h) => {
             const isSelected = h.number === currentHoleNum;
             const scoreForHole = activePlayer?.scores[h.number]?.strokes || 0;
-            const hasScore = scoreForHole > 0;
-            const diff = scoreForHole - h.par;
-
-            let badgeStyle = 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300';
-            if (hasScore) {
-              if (diff < 0) badgeStyle = 'bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-400 border-red-300 dark:border-red-800 font-bold';
-              else if (diff === 0) badgeStyle = 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 font-bold';
-              else badgeStyle = 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700';
-            }
+            const badgeStyle = getBadgeStyle(scoreForHole, h.par, isSelected);
 
             return (
               <button
                 key={h.number}
                 onClick={() => setCurrentHoleNum(h.number)}
-                className={`btn-modern flex flex-col items-center justify-center min-w-[46px] h-13 rounded-xl border text-center cursor-pointer transition-all ${
-                  isSelected ? 'ring-2 ring-emerald-500 scale-105 z-10 shadow-sm' : ''
-                } ${badgeStyle}`}
+                className={badgeStyle}
               >
-                <span className="font-heading font-bold text-xs leading-tight">
+                <span className="font-heading font-bold text-xs leading-tight z-10">
                   #{h.number}
                 </span>
-                <span className="text-[10px] text-slate-400 leading-tight">
+                <span className="text-[10px] text-slate-400 leading-tight z-10">
                   P{h.par}
                 </span>
-                {hasScore && (
-                  <span className="font-stats text-[11px] font-bold leading-none mt-0.5">
+                {scoreForHole > 0 && (
+                  <span className="font-stats text-[12px] font-extrabold leading-none mt-1 z-10">
                     {scoreForHole}
                   </span>
                 )}
