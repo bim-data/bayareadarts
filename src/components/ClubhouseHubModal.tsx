@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, User, Users, Plus, Check, Trash2, Edit3, Shield, AlertCircle, Mail, FileCode, Star
+  X, User, Users, Plus, Check, Trash2, Edit3, Shield, AlertCircle, Mail, FileCode, Star, Link, ArrowRight
 } from 'lucide-react';
 import { MemberProfile, TeamGroup, CompletedRoundRecord, Course, TeamEventRecord } from '../types';
 import { calculateTeamScrambleHandicap } from './ScrambleTeamManagerModal';
 import { ExpandableRoundCard } from './ExpandableRoundCard';
 import { ExpandableTeamEventCard } from './TeamHistoryModal'; 
+import { useAuth } from '../contexts/AuthContext';
 
 interface ClubhouseHubModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialTab?: 'profiles' | 'teams';
+  initialTab?: 'profiles' | 'teams' | 'guests';
   members: MemberProfile[];
   activeUserId: string;
   onSelectActiveUser: (userId: string) => void;
@@ -29,6 +30,7 @@ interface ClubhouseHubModalProps {
   onDeletePastRound?: (roundId: string, playerId: string) => void;
   onUpdateTeamEvent?: (eventId: string, data: Partial<TeamEventRecord>) => void;
   onDeleteTeamEvent?: (eventId: string) => void;
+  onMergeMembers?: (guestId: string, officialId: string) => void;
 }
 
 const COLOR_OPTIONS = [
@@ -64,13 +66,17 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
   onDeletePastRound,
   onUpdateTeamEvent,
   onDeleteTeamEvent,
+  onMergeMembers,
 }) => {
-  const [hubTab, setHubTab] = useState<'profiles' | 'teams'>(initialTab);
+  const { isAdmin } = useAuth();
+  const [hubTab, setHubTab] = useState<'profiles' | 'teams' | 'guests'>(initialTab);
   const [profileSubTab, setProfileSubTab] = useState<'overview' | 'edit' | 'switch'>('overview');
   const [historyTab, setHistoryTab] = useState<'rounds' | 'differentials' | 'scrambles'>('rounds');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   
   const activeUser = members.find((m) => m.id === activeUserId) || members[0];
+  const officialMembers = members.filter(m => !m.isGuest);
+  const guestMembers = members.filter(m => m.isGuest);
 
   const [editName, setEditName] = useState(activeUser?.name || '');
   const [editNickname, setEditNickname] = useState(activeUser?.nickname || '');
@@ -82,8 +88,11 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
   const [isAddingNewGolfer, setIsAddingNewGolfer] = useState(false);
   const [newGolferName, setNewGolferName] = useState('');
   const [newGolferNickname, setNewGolferNickname] = useState('');
-  const [newGolferEmail, setNewGolferEmail] = useState('');
-  const [newGolferHcp, setNewGolferHcp] = useState('12.0');
+  const [newGolferHcp, setNewGolferHcp] = useState('0.0');
+
+  // Admin Merge Tool State
+  const [mergeSource, setMergeSource] = useState<MemberProfile | null>(null);
+  const [mergeTargetId, setMergeTargetId] = useState<string>('');
 
   const [isEditingTeam, setIsEditingTeam] = useState(false);
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
@@ -140,7 +149,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
     setProfileSubTab('overview');
   };
 
-  const handleCreateGolfer = (e: React.FormEvent) => {
+  const handleCreateGuestGolfer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGolferName.trim()) return;
 
@@ -148,10 +157,10 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
       id: `member-${Date.now()}`,
       name: newGolferName.trim(),
       nickname: newGolferNickname.trim() || newGolferName.trim(),
-      email: newGolferEmail.trim() || undefined,
       avatarEmoji: '🎯',
-      badgeTitle: 'Club Member',
-      handicapIndex: parseFloat(newGolferHcp) || 12.0,
+      badgeTitle: 'Guest',
+      isGuest: true, // FLAG AS GUEST
+      handicapIndex: parseFloat(newGolferHcp) || 0.0,
       roundsCount: 0,
       scoringAverage: 0,
       avgPutts: 0,
@@ -165,13 +174,24 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
     if (onAddNewMember) {
       onAddNewMember(newMem);
     }
-    onSelectActiveUser(newMem.id);
     setIsAddingNewGolfer(false);
     setNewGolferName('');
     setNewGolferNickname('');
-    setNewGolferEmail('');
-    showToast(`Added ${newMem.name} to the club!`);
-    setProfileSubTab('overview');
+    setNewGolferHcp('0.0');
+    showToast(`Added ${newMem.name} as a manual guest!`);
+  };
+
+  const handleExecuteMerge = () => {
+    if (!mergeSource || !mergeTargetId || !onMergeMembers) return;
+    const targetMember = officialMembers.find(m => m.id === mergeTargetId);
+    if (!targetMember) return;
+    
+    if (window.confirm(`Are you sure you want to merge all data from ${mergeSource.name} into ${targetMember.name}? The guest profile will be permanently deleted.`)) {
+      onMergeMembers(mergeSource.id, mergeTargetId);
+      setMergeSource(null);
+      setMergeTargetId('');
+      showToast(`Merged ${mergeSource.name} into ${targetMember.name}!`);
+    }
   };
 
   const handleStartCreateTeam = (size: number = 2) => {
@@ -320,7 +340,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                 Clubhouse Roster & Teams
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                Manage golfers, nicknames, WHS handicaps, and 2-to-4 player scramble squads
+                Manage golfers, nicknames, WHS handicaps, and scramble squads
               </p>
             </div>
           </div>
@@ -335,7 +355,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
 
         {/* Primary Segmented Tab Switcher */}
         <div className="shrink-0 p-2 sm:px-5 sm:py-2.5 bg-slate-100/80 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-          <div className={`grid ${onOpenYamlBackup ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'} p-1 bg-slate-200 dark:bg-slate-800 rounded-xl gap-1`}>
+          <div className={`grid ${isAdmin ? (onOpenYamlBackup ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-1 sm:grid-cols-3') : (onOpenYamlBackup ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2')} p-1 bg-slate-200 dark:bg-slate-800 rounded-xl gap-1`}>
             <button
               onClick={() => {
                 setHubTab('profiles');
@@ -349,7 +369,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
               }`}
             >
               <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>Golfer Profiles & Handicaps</span>
+              <span className="truncate">Active Golfers</span>
             </button>
             <button
               onClick={() => {
@@ -364,8 +384,27 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
               }`}
             >
               <Users className="w-4 h-4 text-amber-500" />
-              <span>Scramble Squads ({teams.length})</span>
+              <span className="truncate">Squads ({teams.length})</span>
             </button>
+            
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  setHubTab('guests');
+                  setIsEditingTeam(false);
+                  setEditingTeamId(null);
+                }}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  hubTab === 'guests'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
+              >
+                <Link className="w-4 h-4 text-purple-500" />
+                <span className="truncate">Merge Guests</span>
+              </button>
+            )}
+
             {onOpenYamlBackup && (
               <button
                 onClick={() => {
@@ -375,7 +414,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                 className="py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer text-emerald-700 dark:text-emerald-400 hover:bg-white dark:hover:bg-slate-900"
               >
                 <FileCode className="w-4 h-4 text-emerald-500" />
-                <span>YAML & Git Backup</span>
+                <span className="truncate">Backup</span>
               </button>
             )}
           </div>
@@ -417,7 +456,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
-                    Edit Info & Email
+                    Edit Info
                   </button>
                   <button
                     onClick={() => setProfileSubTab('switch')}
@@ -427,7 +466,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
-                    Switch Golfer ({members.length})
+                    Switch Golfer ({officialMembers.length})
                   </button>
                 </div>
 
@@ -436,16 +475,16 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                   className="btn-modern px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>+ New Golfer</span>
+                  <span className="hidden sm:inline">Manual Guest</span>
                 </button>
               </div>
 
-              {/* Add New Golfer Form */}
+              {/* Add New Guest Golfer Form */}
               {isAddingNewGolfer && (
-                <form onSubmit={handleCreateGolfer} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-4">
+                <form onSubmit={handleCreateGuestGolfer} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100">
-                      Add New Golfer to Club
+                      Add Manual Guest Player
                     </h4>
                     <button
                       type="button"
@@ -455,7 +494,10 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                       Cancel
                     </button>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <p className="text-[11px] text-slate-500">
+                    Guests do not have a login, and their scores do not affect official club leaderboards. They can be added to Scramble Squads and live rounds.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1">Full Name *</label>
                       <input
@@ -468,7 +510,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1">Club Nickname</label>
+                      <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1">Nickname</label>
                       <input
                         type="text"
                         value={newGolferNickname}
@@ -478,23 +520,13 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1">Email</label>
-                      <input
-                        type="email"
-                        value={newGolferEmail}
-                        onChange={(e) => setNewGolferEmail(e.target.value)}
-                        placeholder="jordan@example.com"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1">Initial Handicap Index</label>
+                      <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1">Estimated HCP</label>
                       <input
                         type="number"
                         step="0.1"
                         value={newGolferHcp}
                         onChange={(e) => setNewGolferHcp(e.target.value)}
-                        placeholder="12.0"
+                        placeholder="0.0"
                         className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold"
                       />
                     </div>
@@ -504,7 +536,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                     className="btn-modern w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>Create & Switch to Golfer</span>
+                    <span>Create Manual Guest</span>
                   </button>
                 </form>
               )}
@@ -768,7 +800,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                     Switch which player you are scoring and tracking as in the clubhouse:
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {members.map((m) => {
+                    {officialMembers.map((m) => {
                       const isCurrent = m.id === activeUser.id;
                       return (
                         <button
@@ -870,7 +902,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300">
                     <Shield className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>
-                      <strong>Pre-Built Teams Advantage:</strong> In round setup, select these squads in 1-tap instead of configuring up to 4 players manually every time.
+                      <strong>Pre-Built Teams Advantage:</strong> In round setup, select these squads in 1-tap instead of configuring up to 4 players manually every time. Includes manual guest accounts.
                     </span>
                   </div>
 
@@ -1047,9 +1079,14 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                             <div className="flex items-center gap-2.5">
                               <span className="text-xl">{m.avatarEmoji}</span>
                               <div>
-                                <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100 block">
-                                  {m.name}
-                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100 block">
+                                    {m.name}
+                                  </span>
+                                  {m.isGuest && (
+                                    <span className="px-1.5 py-0.5 rounded text-[8px] bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold uppercase">Guest</span>
+                                  )}
+                                </div>
                                 <span className="text-[10px] text-slate-500">Index: {m.handicapIndex.toFixed(1)}</span>
                               </div>
                             </div>
@@ -1111,6 +1148,99 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
               )}
             </div>
           )}
+
+          {/* ================= SECTION 3: ADMIN GUEST MERGE TOOL ================= */}
+          {hubTab === 'guests' && isAdmin && (
+            <div className="space-y-6">
+              <div className="pb-3 border-b border-slate-100 dark:border-slate-800">
+                <h4 className="font-heading font-extrabold text-base text-slate-900 dark:text-slate-100">
+                  Guest Account Merge Tool
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Transfer all past rounds and scramble history from a manual guest account to an official registered player.
+                </p>
+              </div>
+
+              {guestMembers.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-400 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+                  No guest accounts currently exist in the database.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {!mergeSource ? (
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase text-slate-500 block mb-2">Step 1: Select Guest to Migrate</label>
+                      {guestMembers.map(guest => (
+                        <div key={guest.id} className="p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="text-2xl shrink-0">{guest.avatarEmoji}</span>
+                            <div className="truncate">
+                              <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block">
+                                {guest.name}
+                              </span>
+                              <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded">
+                                GUEST ACCOUNT
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setMergeSource(guest)}
+                            className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs font-bold shrink-0 cursor-pointer"
+                          >
+                            Select
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/60 rounded-2xl space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h5 className="font-heading font-bold text-sm text-purple-900 dark:text-purple-100">Step 2: Choose Official Destination</h5>
+                        <button onClick={() => setMergeSource(null)} className="text-xs text-purple-500 hover:text-purple-700 font-semibold cursor-pointer">Cancel</button>
+                      </div>
+
+                      <div className="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-purple-100 dark:border-purple-800/60">
+                        <span className="text-xl shrink-0">{mergeSource.avatarEmoji}</span>
+                        <div className="min-w-0">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">From Guest</span>
+                          <span className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate block">{mergeSource.name}</span>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-purple-400 mx-auto shrink-0" />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold uppercase text-purple-700 dark:text-purple-400 block">Target Official Profile</label>
+                        <select
+                          value={mergeTargetId}
+                          onChange={(e) => setMergeTargetId(e.target.value)}
+                          className="w-full p-2.5 bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-purple-500"
+                        >
+                          <option value="">Select official golfer...</option>
+                          {officialMembers.map(m => (
+                            <option key={m.id} value={m.id}>{m.name} ({m.nickname})</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <button
+                        onClick={handleExecuteMerge}
+                        disabled={!mergeTargetId}
+                        className={`w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors ${
+                          mergeTargetId 
+                            ? 'bg-purple-600 hover:bg-purple-700 text-white cursor-pointer shadow-sm' 
+                            : 'bg-purple-200 dark:bg-purple-900/40 text-purple-400 dark:text-purple-600 cursor-not-allowed'
+                        }`}
+                      >
+                        <Link className="w-4 h-4" />
+                        <span>Merge & Delete Guest Profile</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Sticky Action Footer */}
@@ -1118,6 +1248,8 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
           <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
             {hubTab === 'profiles'
               ? `Logged in as ${activeUser.nickname} (${activeUser.handicapIndex.toFixed(1)} HCP)`
+              : hubTab === 'guests' 
+              ? `${guestMembers.length} guest accounts found`
               : `${teams.length} Scramble Squads registered`}
           </span>
           <button
