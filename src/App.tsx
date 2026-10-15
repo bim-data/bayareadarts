@@ -14,6 +14,7 @@ import { ClubLogoCustomizer } from './components/ClubLogoCustomizer';
 import { CreateFutureRoundModal } from './components/CreateFutureRoundModal';
 import { EditNicknameModal } from './components/EditNicknameModal';
 import { PlayerHistoryModal } from './components/PlayerHistoryModal';
+import { TeamHistoryModal } from './components/TeamHistoryModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { ScrambleTeamManagerModal } from './components/ScrambleTeamManagerModal';
 import { ClubhouseHubModal } from './components/ClubhouseHubModal';
@@ -673,71 +674,6 @@ export default function App() {
         courses={courses}
         onAddCourse={handleAddCourse}
         onPlanFutureRound={(courseId) => {
-          setPreselectedCourseId(courseId);
-          setIsCourseLibraryOpen(false);
-          setIsCreateFutureRoundOpen(true);
-        }}
-      />
-
-      <HandicapLeaderboardModal
-        isOpen={isHandicapOpen}
-        onClose={() => setIsHandicapOpen(false)}
-        members={members}
-        onSelectMemberForHistory={handleOpenMemberHistory}
-      />
-
-      <TeamEventsModal
-        isOpen={isTeamEventsOpen}
-        onClose={() => setIsTeamEventsOpen(false)}
-        events={teamEvents}
-        courses={courses}
-        onUpdateTeamEvent={handleUpdateTeamEvent}
-        onDeleteTeamEvent={handleDeleteTeamEvent}
-        onSelectTeamForHistory={handleOpenTeamHistory}
-      />
-
-      <PlayerHistoryModal
-        isOpen={isPlayerHistoryOpen}
-        onClose={() => {
-          setIsPlayerHistoryOpen(false);
-          setSelectedHistoryRoundId(undefined);
-        }}
-        member={selectedMemberForHistory}
-        rounds={completedRounds}
-        teamEvents={teamEvents}
-        activeUserId={activeUserId}
-        onOpenEditProfile={() => handleOpenClubhouseHub('profiles')}
-        courses={courses}
-        onUpdatePastRound={handleUpdatePastRound}
-        onDeletePastRound={handleDeletePastRound}
-        onUpdateTeamEvent={handleUpdateTeamEvent}
-        onDeleteTeamEvent={handleDeleteTeamEvent}
-        initialExpandedRoundId={selectedHistoryRoundId}
-      />
-
-      {activeSession && (
-        <>
-          <FormatScorecardModal
-            isOpen={isScorecardMatrixOpen}
-            onClose={() => setIsScorecardMatrixOpen(false)}
-            session={activeSession}
-            course={activeCourse}
-          />
-          <LeaderboardModal
-            isOpen={isLeaderboardOpen}
-            onClose={() => setIsLeaderboardOpen(false)}
-            session={activeSession}
-            course={activeCourse}
-          />
-        </>
-      )}
-
-      <CourseLibraryModal
-        isOpen={isCourseLibraryOpen}
-        onClose={() => setIsCourseLibraryOpen(false)}
-        courses={courses}
-        onAddCourse={handleAddCourse}
-        onPlanFutureRound={(courseId) => {
           setPreselectedCourseId(courseId); // Save the course!
           setIsCourseLibraryOpen(false);
           setIsCreateFutureRoundOpen(true);
@@ -755,6 +691,9 @@ export default function App() {
         isOpen={isTeamEventsOpen}
         onClose={() => setIsTeamEventsOpen(false)}
         events={teamEvents}
+        courses={courses}
+        onUpdateTeamEvent={handleUpdateTeamEvent}
+        onDeleteTeamEvent={handleDeleteTeamEvent}
         onSelectTeamForHistory={handleOpenTeamHistory}
       />
 
@@ -772,7 +711,18 @@ export default function App() {
         courses={courses}
         onUpdatePastRound={handleUpdatePastRound}
         onDeletePastRound={handleDeletePastRound}
+        onUpdateTeamEvent={handleUpdateTeamEvent}
+        onDeleteTeamEvent={handleDeleteTeamEvent}
         initialExpandedRoundId={selectedHistoryRoundId}
+      />
+
+      <TeamHistoryModal
+        isOpen={isTeamHistoryOpen}
+        onClose={() => setIsTeamHistoryOpen(false)}
+        event={selectedTeamEventForHistory}
+        courses={courses}
+        onUpdateTeamEvent={handleUpdateTeamEvent}
+        onDeleteTeamEvent={handleDeleteTeamEvent}
       />
 
       <ClubLogoCustomizer
