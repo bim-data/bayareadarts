@@ -211,7 +211,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
       teams: finalTeams, 
       isTeamRound: participantMode === 'teams', 
       date: roundDate,
-      holesPlayed
+      holesPlayed 
     });
     onClose();
   };
@@ -243,7 +243,7 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
     const netScore = gross - courseHandicap;
     const differential = Number((((gross - rating) * 113) / slope).toFixed(1));
 
-    // TEAM EVENT ROUTING (Based solely on participantMode now!)
+    // TEAM EVENT ROUTING
     if (participantMode === 'teams' && selectedTeamIds.length > 0) {
       const selectedSquad = teams.find(t => t.id === selectedTeamIds[0]);
       const displayTeamName = selectedSquad?.name || 'Custom Squad';
@@ -266,6 +266,8 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
           },
         ],
         notes: `Manually logged past team round.`,
+        holeScores: manualEntryMode === 'hole_by_hole' ? manualHoleScores : undefined,
+        buzzballCount: manualBuzzballs,
       };
 
       try {
