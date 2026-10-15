@@ -7,6 +7,7 @@ import { MemberProfile } from '../types';
 interface AuthContextType {
   currentUser: User | null;
   memberProfile: MemberProfile | null;
+  isAdmin: boolean;
   loading: boolean;
   logout: () => Promise<void>;
 }
@@ -21,6 +22,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const isAdmin = memberProfile?.role === 'admin';
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -47,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => signOut(auth);
 
   return (
-    <AuthContext.Provider value={{ currentUser, memberProfile, loading, logout }}>
+    <AuthContext.Provider value={{ currentUser, memberProfile, isAdmin, loading, logout }}>
       {!loading && children}
     </AuthContext.Provider>
   );
