@@ -123,6 +123,7 @@ export interface MemberProfile {
   avatarEmoji: string;
   badgeTitle: string;
   role?: 'admin' | string;
+  isGuest?: boolean;
   handicapIndex: number;
   handicapGoal?: number;
   roundsCount: number;
