@@ -102,6 +102,9 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
     ? members.find(m => m.id === drunkestRound.playerId || m.name === drunkestRound.playerName) 
     : null;
 
+  // Sort team events by newest date first
+  const sortedTeamEvents = [...teamEvents].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-8">
       {/* 1. Modern Clubhouse Hero Card */}
@@ -542,36 +545,45 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
               </span>
             </div>
 
-            <div className="space-y-3">
-              {teamEvents.map((event) => (
-                <div
-                  key={event.id}
-                  onClick={() => onSelectTeamForHistory(event, event.winningTeamName)}
-                  className="card-modern p-4 rounded-2xl space-y-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer group"
-                  title="Click to view team score history"
-                >
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded uppercase">
-                      {event.format}
-                    </span>
-                    <span className="text-slate-400 text-[11px]">{event.date} · {event.courseName}</span>
-                  </div>
-                  <h4 className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                    {event.eventName}
-                  </h4>
-                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center justify-between">
-                    <div className="flex items-center gap-2 truncate">
-                      <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
-                        {event.winningTeamName}
-                      </span>
+            <div className="card-elevated rounded-2xl divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              {sortedTeamEvents.length === 0 ? (
+                <div className="p-4 text-center text-xs text-slate-400">No team events recorded yet.</div>
+              ) : (
+                sortedTeamEvents.slice(0, 5).map((event) => {
+                  const winningTeam = event.teamLeaderboard[0];
+                  return (
+                    <div
+                      key={event.id}
+                      onClick={() => onSelectTeamForHistory(event, event.winningTeamName)}
+                      className="p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
+                      title="Click to view team score history"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-heading font-semibold text-xs text-slate-900 dark:text-slate-100 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                          {event.eventName}
+                        </span>
+                        <div className="flex items-baseline gap-1.5 shrink-0">
+                          <span className="font-stats font-bold text-sm text-emerald-600 dark:text-emerald-400">
+                            {winningTeam?.grossScore}
+                          </span>
+                          <span className="font-stats text-[11px] text-slate-400">
+                            ({winningTeam?.netScore} net)
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <Trophy className="w-3 h-3 text-amber-500 shrink-0" />
+                          <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">
+                            {event.winningTeamName}
+                          </span>
+                        </div>
+                        <span className="shrink-0 ml-2">{event.date}</span>
+                      </div>
                     </div>
-                    <span className="font-stats font-bold text-xs text-emerald-600 dark:text-emerald-400 shrink-0 ml-2">
-                      {event.teamLeaderboard[0]?.grossScore} Gross
-                    </span>
-                  </div>
-                </div>
-              ))}
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
