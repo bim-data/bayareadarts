@@ -258,13 +258,13 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
               </div>
             </div>
           ) : (
-            <div className="min-w-max border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
+            <div className="w-fit mx-auto border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
               {round.holeScores ? (
                 <>
                   {isFront9 && isBack9 ? (
-                    <div className="flex">
+                    <div className="flex w-fit">
                       {/* Front 9 and Back 9 */}
-                      <div className="flex-1 min-w-0">
+                      <div className="shrink-0">
                         {/* Front 9 */}
                         <div className="border-b border-slate-200 dark:border-slate-800">
                           {/* Header */}
@@ -373,14 +373,14 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
                         {Array.from({length: 9}, (_, i) => i + 1).map(h => (
                           <div key={h} className="w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700">{h}</div>
                         ))}
-                        <div className="w-12 flex-1 p-2 text-center text-[11px] font-extrabold text-white bg-emerald-600">TOT</div>
+                        <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-white bg-emerald-600">TOT</div>
                       </div>
                       <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
                         <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Par</div>
                         {Array.from({length: 9}, (_, i) => i + 1).map(h => (
                           <div key={h} className="w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 dark:border-slate-700">{getPar(h)}</div>
                         ))}
-                        <div className="w-12 flex-1 p-2 text-center text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20">
+                        <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20">
                           {Array.from({length: 9}, (_, i) => getPar(i + 1)).reduce((a, b) => a + b, 0)}
                         </div>
                       </div>
@@ -393,7 +393,7 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
                             {renderScore(round.holeScores![h]?.strokes, getPar(h))}
                           </div>
                         ))}
-                        <div className="w-12 flex-1 h-10 flex items-center justify-center font-stats text-sm font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/10">
+                        <div className="w-12 shrink-0 h-10 flex items-center justify-center font-stats text-sm font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/10">
                           {round.grossScore}
                         </div>
                       </div>
@@ -406,14 +406,14 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
                         {Array.from({length: 9}, (_, i) => i + 10).map(h => (
                           <div key={h} className="w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700">{h}</div>
                         ))}
-                        <div className="w-12 flex-1 p-2 text-center text-[11px] font-extrabold text-white bg-emerald-600">TOT</div>
+                        <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-white bg-emerald-600">TOT</div>
                       </div>
                       <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
                         <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Par</div>
                         {Array.from({length: 9}, (_, i) => i + 10).map(h => (
                           <div key={h} className="w-10 shrink-0 p-2 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 dark:border-slate-700">{getPar(h)}</div>
                         ))}
-                        <div className="w-12 flex-1 p-2 text-center text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20">
+                        <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20">
                           {Array.from({length: 9}, (_, i) => getPar(i + 10)).reduce((a, b) => a + b, 0)}
                         </div>
                       </div>
@@ -426,7 +426,7 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
                             {renderScore(round.holeScores![h]?.strokes, getPar(h))}
                           </div>
                         ))}
-                        <div className="w-12 flex-1 h-10 flex items-center justify-center font-stats text-sm font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/10">
+                        <div className="w-12 shrink-0 h-10 flex items-center justify-center font-stats text-sm font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/10">
                           {round.grossScore}
                         </div>
                       </div>

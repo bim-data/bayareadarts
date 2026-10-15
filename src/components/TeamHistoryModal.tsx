@@ -184,12 +184,12 @@ export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = (
               </div>
             </div>
           ) : (
-            <div className="min-w-max border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
+            <div className="w-fit mx-auto border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
               {(event as any).holeScores ? (
                 <>
-                  <div className="flex">
+                  <div className="flex w-fit">
                     {/* Front 9 and Back 9 */}
-                    <div className="flex-1 min-w-0">
+                    <div className="shrink-0">
                       {/* Front 9 */}
                       <div className="border-b border-slate-200 dark:border-slate-800">
                         {/* Header */}
