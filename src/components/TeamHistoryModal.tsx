@@ -246,3 +246,5 @@ export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = (
     </div>
   );
 };
+
+export const TeamHistoryModal: React.FC<any> = () => null;
