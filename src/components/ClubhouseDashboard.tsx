@@ -102,6 +102,21 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
     ? members.find(m => m.id === drunkestRound.playerId || m.name === drunkestRound.playerName) 
     : null;
 
+  // Calculate the lowest team event score
+  let bestScrambleEvent: TeamEventRecord | null = null;
+  let bestScrambleTeamName = '';
+  let bestScrambleScore = 999;
+
+  teamEvents.forEach(event => {
+    event.teamLeaderboard.forEach(team => {
+      if (team.grossScore < bestScrambleScore) {
+        bestScrambleScore = team.grossScore;
+        bestScrambleTeamName = team.teamName;
+        bestScrambleEvent = event;
+      }
+    });
+  });
+
   // Sort team events by newest date first
   const sortedTeamEvents = [...teamEvents].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
@@ -457,6 +472,28 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                 </span>
               </div>
             </div>
+
+            <div 
+              onClick={() => bestScrambleEvent && onSelectTeamForHistory(bestScrambleEvent, bestScrambleTeamName)}
+              className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-800 transition-all cursor-pointer group"
+              title="Click to view team scorecard"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+                🏆
+              </div>
+              <div className="truncate min-w-0">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  LOW SCRAMBLE
+                </span>
+                <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                  {bestScrambleTeamName || 'TBD'}
+                </span>
+                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
+                  {bestScrambleScore !== 999 ? `${bestScrambleScore} Gross` : 'No scrambles yet'}
+                </span>
+              </div>
+            </div>
+
           </div>
 
           {/* C. Clean WHS Handicap Data Integrity Notice */}
