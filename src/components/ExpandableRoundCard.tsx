@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CompletedRoundRecord, MemberProfile, Course, HoleScore } from '../types';
 import { ChevronDown, Edit3, Check, Trash2 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ExpandableRoundCardProps {
   round: CompletedRoundRecord;
@@ -13,11 +14,21 @@ interface ExpandableRoundCardProps {
 }
 
 export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round, member, courses, index, onUpdatePastRound, onDeletePastRound, defaultExpanded = false }) => {
+  const { currentUser, memberProfile, isAdmin } = useAuth();
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isEditing, setIsEditing] = useState(false);
   const [editScores, setEditScores] = useState<Record<number, HoleScore>>(round.holeScores || {});
   const [editBuzzballs, setEditBuzzballs] = useState<number>(round.buzzballCount || 0);
   const [editDate, setEditDate] = useState<string>(round.date || '');
+
+  // PERMISSION CHECK: Admin, Profile Owner, or Firebase UID match
+  const canEdit = !!(
+    currentUser && 
+    (isAdmin || 
+     currentUser.uid === round.playerId || 
+     memberProfile?.id === round.playerId || 
+     (memberProfile?.name || '').toLowerCase() === round.playerName.toLowerCase())
+  );
 
   const course = courses.find(c => c.id === round.courseId);
   const getPar = (hNum: number) => course?.holes?.find((h) => h.number === hNum)?.par || 4;
@@ -174,7 +185,7 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
             </span>
           )}
           <div className="flex items-center gap-1 shrink-0">
-            {!isEditing && onUpdatePastRound && (
+            {!isEditing && onUpdatePastRound && canEdit && (
               <button 
                 type="button" 
                 onClick={handleStartEdit} 
@@ -235,7 +246,7 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
                 </div>
               </div>
               <div className="flex gap-2 self-end sm:self-auto">
-                {onDeletePastRound && (
+                {onDeletePastRound && canEdit && (
                   <button
                     onClick={() => { if(window.confirm('Are you sure you want to permanently delete this round?')) onDeletePastRound(round.id, round.playerId); }}
                     className="px-3 py-1.5 rounded-lg text-xs font-bold border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 cursor-pointer flex items-center gap-1 transition-colors"
