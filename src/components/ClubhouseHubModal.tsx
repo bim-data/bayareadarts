@@ -14,7 +14,6 @@ interface ClubhouseHubModalProps {
   initialTab?: 'profiles' | 'teams' | 'guests';
   members: MemberProfile[];
   activeUserId: string;
-  onSelectActiveUser: (userId: string) => void;
   onUpdateProfile: (updatedProfile: MemberProfile) => void;
   onAddNewMember?: (newMember: MemberProfile) => void;
   completedRounds: CompletedRoundRecord[];
@@ -31,6 +30,7 @@ interface ClubhouseHubModalProps {
   onUpdateTeamEvent?: (eventId: string, data: Partial<TeamEventRecord>) => void;
   onDeleteTeamEvent?: (eventId: string) => void;
   onMergeMembers?: (guestId: string, officialId: string) => void;
+  onSelectMemberForHistory?: (member: MemberProfile) => void;
 }
 
 const COLOR_OPTIONS = [
@@ -50,7 +50,6 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
   initialTab = 'profiles',
   members,
   activeUserId,
-  onSelectActiveUser,
   onUpdateProfile,
   onAddNewMember,
   completedRounds,
@@ -67,10 +66,11 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
   onUpdateTeamEvent,
   onDeleteTeamEvent,
   onMergeMembers,
+  onSelectMemberForHistory,
 }) => {
   const { isAdmin } = useAuth();
   const [hubTab, setHubTab] = useState<'profiles' | 'teams' | 'guests'>(initialTab);
-  const [profileSubTab, setProfileSubTab] = useState<'overview' | 'edit' | 'switch'>('overview');
+  const [profileSubTab, setProfileSubTab] = useState<'overview' | 'edit'>('overview');
   const [historyTab, setHistoryTab] = useState<'rounds' | 'differentials' | 'scrambles'>('rounds');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   
@@ -159,7 +159,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
       nickname: newGolferNickname.trim() || newGolferName.trim(),
       avatarEmoji: '🎯',
       badgeTitle: 'Guest',
-      isGuest: true, // FLAG AS GUEST
+      isGuest: true,
       handicapIndex: parseFloat(newGolferHcp) || 0.0,
       roundsCount: 0,
       scoringAverage: 0,
@@ -369,7 +369,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
               }`}
             >
               <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span className="truncate">Active Golfers</span>
+              <span className="truncate">Player Profile</span>
             </button>
             <button
               onClick={() => {
@@ -401,7 +401,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                 }`}
               >
                 <Link className="w-4 h-4 text-purple-500" />
-                <span className="truncate">Merge Guests</span>
+                <span className="truncate">Guest Members</span>
               </button>
             )}
 
@@ -446,7 +446,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
-                    Active Profile
+                    History and Stats
                   </button>
                   <button
                     onClick={() => setProfileSubTab('edit')}
@@ -457,16 +457,6 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                     }`}
                   >
                     Edit Info
-                  </button>
-                  <button
-                    onClick={() => setProfileSubTab('switch')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
-                      profileSubTab === 'switch'
-                        ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    Switch Golfer ({officialMembers.length})
                   </button>
                 </div>
 
@@ -541,7 +531,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                 </form>
               )}
 
-              {/* Subtab 1: Overview */}
+              {/* Subtab 1: History and Stats */}
               {profileSubTab === 'overview' && (
                 <div className="space-y-5">
                   {/* Active Golfer Card */}
@@ -791,57 +781,6 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                     <span>Save Profile Changes</span>
                   </button>
                 </form>
-              )}
-
-              {/* Subtab 3: Switch Active Golfer */}
-              {profileSubTab === 'switch' && (
-                <div className="space-y-3">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Switch which player you are scoring and tracking as in the clubhouse:
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {officialMembers.map((m) => {
-                      const isCurrent = m.id === activeUser.id;
-                      return (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() => {
-                            onSelectActiveUser(m.id);
-                            showToast(`Switched active golfer to ${m.nickname}!`);
-                            setProfileSubTab('overview');
-                          }}
-                          className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
-                            isCurrent
-                              ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-700 shadow-2xs'
-                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">{m.avatarEmoji}</span>
-                            <div>
-                              <div className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                                <span>{m.name}</span>
-                                {isCurrent && (
-                                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-600 text-white">
-                                    YOU
-                                  </span>
-                                )}
-                              </div>
-                              <span className="text-[11px] text-slate-500">"{m.nickname}"</span>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-[10px] text-slate-400 block uppercase">Index</span>
-                            <span className="font-stats font-bold text-xs text-emerald-600 dark:text-emerald-400">
-                              {m.handicapIndex.toFixed(1)}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
               )}
             </div>
           )}
@@ -1171,11 +1110,19 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                     <div className="space-y-2">
                       <label className="text-xs font-bold uppercase text-slate-500 block mb-2">Step 1: Select Guest to Migrate</label>
                       {guestMembers.map(guest => (
-                        <div key={guest.id} className="p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span className="text-2xl shrink-0">{guest.avatarEmoji}</span>
+                        <div key={guest.id} className="p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between gap-3 group">
+                          <div 
+                            className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
+                            onClick={() => {
+                              if (onSelectMemberForHistory) {
+                                onClose();
+                                onSelectMemberForHistory(guest);
+                              }
+                            }}
+                          >
+                            <span className="text-2xl shrink-0 group-hover:scale-105 transition-transform">{guest.avatarEmoji}</span>
                             <div className="truncate">
-                              <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block">
+                              <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 transition-colors">
                                 {guest.name}
                               </span>
                               <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded">
@@ -1185,9 +1132,9 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                           </div>
                           <button
                             onClick={() => setMergeSource(guest)}
-                            className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs font-bold shrink-0 cursor-pointer"
+                            className="px-4 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs font-bold shrink-0 cursor-pointer"
                           >
-                            Select
+                            Merge
                           </button>
                         </div>
                       ))}
