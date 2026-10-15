@@ -76,5 +76,27 @@ const bannerSvg = `
 </svg>
 `;
 
+// Minimalist Dart Sniper Badge
+const sniperBadgeSvg = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+  </defs>
+  <circle cx="200" cy="200" r="200" fill="url(#bg)"/>
+  
+  <!-- Target Rings -->
+  <circle cx="200" cy="200" r="140" fill="none" stroke="#ef4444" stroke-width="8" stroke-dasharray="20 10"/>
+  <circle cx="200" cy="200" r="90" fill="none" stroke="#10b981" stroke-width="12"/>
+  <circle cx="200" cy="200" r="30" fill="#ef4444"/>
+  
+  <!-- Crosshairs -->
+  <path d="M200 20 L200 100 M200 300 L200 380 M20 200 L100 200 M300 200 L380 200" stroke="#f8fafc" stroke-width="8" stroke-linecap="round"/>
+</svg>
+`;
+
 export const dartsLogo = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(logoSvg.trim())}`;
 export const fairwayBanner = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(bannerSvg.trim())}`;
+export const sniperBadge = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(sniperBadgeSvg.trim())}`;
