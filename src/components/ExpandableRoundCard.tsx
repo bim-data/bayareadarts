@@ -6,12 +6,13 @@ interface ExpandableRoundCardProps {
   round: CompletedRoundRecord;
   member: MemberProfile;
   courses: Course[];
+  index?: number;
   onUpdatePastRound?: (roundId: string, data: Partial<CompletedRoundRecord>) => void;
   onDeletePastRound?: (roundId: string, playerId: string) => void;
   defaultExpanded?: boolean;
 }
 
-export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round, member, courses, onUpdatePastRound, onDeletePastRound, defaultExpanded = false }) => {
+export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round, member, courses, index, onUpdatePastRound, onDeletePastRound, defaultExpanded = false }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isEditing, setIsEditing] = useState(false);
   const [editScores, setEditScores] = useState<Record<number, HoleScore>>(round.holeScores || {});
@@ -20,6 +21,15 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
 
   const course = courses.find(c => c.id === round.courseId);
   const getPar = (hNum: number) => course?.holes?.find((h) => h.number === hNum)?.par || 4;
+
+  const matchingDiff = member?.differentials?.find(
+    (d) =>
+      d.roundId === round.id ||
+      (d.courseName === round.courseName &&
+        d.date === round.date &&
+        d.grossScore === round.grossScore)
+  );
+  const isCountedInIndex = Boolean(matchingDiff?.usedInIndex);
 
   const isFront9 = round.holesPlayed !== 'back_9';
   const isBack9 = round.holesPlayed !== 'front_9';
@@ -129,37 +139,67 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden transition-all shadow-xs">
-      <div onClick={() => !isEditing && setIsExpanded(!isExpanded)} className={`p-3 sm:p-3.5 flex items-center justify-between gap-3 text-xs ${!isEditing ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50' : 'bg-slate-50 dark:bg-slate-800/30'} transition-colors`}>
-        <div>
-          <div className="font-heading font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            {round.courseName}
+    <div className={`transition-colors ${isCountedInIndex ? 'bg-emerald-50/40 dark:bg-emerald-950/20' : ''}`}>
+      <div 
+        onClick={() => !isEditing && setIsExpanded(!isExpanded)} 
+        className={`p-3.5 flex items-center justify-between gap-3 text-xs transition-colors ${!isEditing ? 'cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/40' : 'bg-slate-50 dark:bg-slate-800/40'}`}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          {isCountedInIndex ? (
+            <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] shrink-0 font-bold shadow-2xs" title="Counted in WHS Index">★</span>
+          ) : (
+            <span className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center text-[10px] shrink-0 font-stats">{index ?? 1}</span>
+          )}
+          <div className="min-w-0">
+            <span className="font-medium text-slate-900 dark:text-slate-100 truncate block">{round.courseName}</span>
+            <span className="text-[11px] text-slate-400 block truncate">
+              {round.date} · {round.teeName} Tee
+              {(round.buzzballCount || 0) > 0 && !isEditing && (
+                <span className="ml-1 text-amber-600 dark:text-amber-500 font-semibold">· 🍹 {round.buzzballCount}</span>
+              )}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 sm:gap-4 text-right shrink-0">
+          <div className="text-right">
+            <span className="font-stats font-extrabold text-sm text-slate-900 dark:text-slate-100">{round.grossScore}</span>
+            {round.netScore !== undefined && (
+              <span className="font-stats text-[11px] text-slate-400 dark:text-slate-500 ml-1">({round.netScore})</span>
+            )}
+          </div>
+          {round.differential !== undefined && (
+            <span className="font-stats font-bold text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm whitespace-nowrap">
+              {round.differential.toFixed(1)} Diff
+            </span>
+          )}
+          <div className="flex items-center gap-1 shrink-0">
             {!isEditing && onUpdatePastRound && (
-              <button onClick={handleStartEdit} className="p-1 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer" title="Edit Scorecard">
+              <button 
+                type="button" 
+                onClick={handleStartEdit} 
+                className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer" 
+                title="Edit Scorecard"
+                aria-label="Edit Scorecard"
+              >
                 <Edit3 className="w-3.5 h-3.5" />
               </button>
             )}
-          </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5">
-            <span>{round.date} · {round.teeName} Tee</span>
-            {(round.buzzballCount || 0) > 0 && !isEditing && (
-              <span className="flex items-center gap-0.5 font-bold text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 rounded">
-                🍹 {round.buzzballCount}
-              </span>
+            {!isEditing && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExpanded(!isExpanded);
+                }}
+                className={`w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 transition-all cursor-pointer ${isExpanded ? 'rotate-180' : ''}`}
+                title={isExpanded ? 'Collapse scorecard' : 'Expand scorecard'}
+                aria-label={isExpanded ? 'Collapse scorecard' : 'Expand scorecard'}
+              >
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
             )}
           </div>
-        </div>
-        <div className="text-right flex items-center gap-3">
-          <div>
-            <span className="font-stats font-extrabold text-sm text-slate-900 dark:text-slate-100">{round.grossScore}</span>
-            <span className="text-[11px] text-slate-400 ml-1">({round.netScore})</span>
-            <div className="text-[10px] font-stats text-emerald-600 dark:text-emerald-400 font-bold">Diff: {round.differential?.toFixed(1)}</div>
-          </div>
-          {!isEditing && (
-            <div className={`w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-              <ChevronDown className="w-3.5 h-3.5" />
-            </div>
-          )}
         </div>
       </div>
 

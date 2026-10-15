@@ -583,21 +583,30 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
 
                   {historyTab === 'rounds' && (
                     <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                        <span>Individual scoring records & hole-by-hole cards.</span>
+                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                          <Star className="w-3 h-3 fill-current" /> ★ Counted in Index
+                        </span>
+                      </div>
                       {myRounds.length === 0 ? (
                         <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800">
                           No individual round cards saved yet for this player.
                         </div>
                       ) : (
-                        myRounds.map((r) => (
-                          <ExpandableRoundCard
-                            key={r.id}
-                            round={r}
-                            member={activeUser}
-                            courses={courses}
-                            onUpdatePastRound={onUpdatePastRound}
-                            onDeletePastRound={onDeletePastRound}
-                          />
-                        ))
+                        <div className="card-modern rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+                          {myRounds.map((r, idx) => (
+                            <ExpandableRoundCard
+                              key={r.id}
+                              index={idx + 1}
+                              round={r}
+                              member={activeUser}
+                              courses={courses}
+                              onUpdatePastRound={onUpdatePastRound}
+                              onDeletePastRound={onDeletePastRound}
+                            />
+                          ))}
+                        </div>
                       )}
                     </div>
                   )}
