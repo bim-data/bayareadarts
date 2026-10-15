@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Star } from 'lucide-react';
 import { MemberProfile, CompletedRoundRecord, TeamEventRecord, Course } from '../types';
 import { ExpandableRoundCard } from './ExpandableRoundCard';
+import { ExpandableTeamEventCard } from './TeamHistoryModal';
 
 interface PlayerHistoryModalProps {
   isOpen: boolean;
@@ -14,6 +15,8 @@ interface PlayerHistoryModalProps {
   courses: Course[];
   onUpdatePastRound?: (roundId: string, data: Partial<CompletedRoundRecord>) => void;
   onDeletePastRound?: (roundId: string, playerId: string) => void;
+  onUpdateTeamEvent?: (eventId: string, data: Partial<TeamEventRecord>) => void;
+  onDeleteTeamEvent?: (eventId: string) => void;
   initialExpandedRoundId?: string;
 }
 
@@ -28,6 +31,8 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
   courses,
   onUpdatePastRound,
   onDeletePastRound,
+  onUpdateTeamEvent,
+  onDeleteTeamEvent,
   initialExpandedRoundId,
 }) => {
   const [activeTab, setActiveTab] = useState<'rounds' | 'differentials' | 'scrambles'>('rounds');
@@ -200,39 +205,21 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
           
           {activeTab === 'scrambles' && (
             <div className="space-y-3">
-              <div className="card-modern rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
-                {playerTeamEvents.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-slate-400">No scramble shootouts recorded for this player yet.</div>
-                ) : (
-                  playerTeamEvents.map((ev) => {
-                    const playerTeam = ev.teamLeaderboard.find((t) =>
-                      t.playerNames.some((p) => p.toLowerCase().includes((member.name || '').toLowerCase()) || (member.nickname && p.toLowerCase().includes(member.nickname.toLowerCase())))
-                    );
-                    return (
-                      <div key={ev.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                        <div className="flex items-center justify-between">
-                          <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100">{ev.eventName}</span>
-                          <span className="font-stats font-bold text-sm text-emerald-600 dark:text-emerald-400">{playerTeam?.grossScore} Gross</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-1 pb-2 border-b border-slate-100 dark:border-slate-800/60">
-                          <span>Team: <strong>{playerTeam?.teamName}</strong> · {ev.date}</span>
-                          <span className="capitalize">{ev.format}</span>
-                        </div>
-                        {/* Roster Names */}
-                        {playerTeam?.playerNames && playerTeam.playerNames.length > 0 && (
-                          <div className="mt-2.5 flex flex-wrap gap-1.5">
-                            {playerTeam.playerNames.map((pName, i) => (
-                              <span key={i} className="text-[10px] px-2 py-0.5 rounded font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-                                {pName}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
+              {playerTeamEvents.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-400 border border-slate-200 dark:border-slate-800 rounded-xl">
+                  No scramble shootouts recorded for this player yet.
+                </div>
+              ) : (
+                playerTeamEvents.map((ev) => (
+                  <ExpandableTeamEventCard 
+                    key={ev.id} 
+                    event={ev} 
+                    courses={courses}
+                    onUpdateTeamEvent={onUpdateTeamEvent}
+                    onDeleteTeamEvent={onDeleteTeamEvent}
+                  />
+                ))
+              )}
             </div>
           )}
         </div>
