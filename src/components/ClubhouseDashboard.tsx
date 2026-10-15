@@ -7,17 +7,10 @@ import {
   Users, 
   Camera, 
   Calendar, 
-  Clock, 
   ArrowRight, 
   ChevronRight, 
   ShieldCheck, 
-  Sparkles,
-  Edit3,
-  Award,
-  Flag,
-  Flame,
-  FileText,
-  FileCode
+  Edit3
 } from 'lucide-react';
 import { MemberProfile, CompletedRoundRecord, TeamEventRecord, RoundSession, FutureRound, Course, TeamGroup } from '../types';
 import { FutureRoundsSection } from './FutureRoundsSection';
@@ -557,31 +550,37 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                 groupedRecentRounds.slice(0, 5).map((group, idx) => (
                   <div key={idx} className="p-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors group">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="font-heading font-extrabold text-sm text-slate-900 dark:text-slate-100 truncate">
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">
                         {group.courseName}
                       </span>
-                      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 shrink-0">
+                      <span className="text-[11px] font-medium text-slate-400 shrink-0 ml-2">
                         {group.date}
                       </span>
                     </div>
                     
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       {group.rounds.sort((a, b) => a.grossScore - b.grossScore).map(round => {
                         const m = members.find((item) => item.id === round.playerId || item.name === round.playerName);
                         return (
                           <div 
                             key={round.id}
                             onClick={() => m && onSelectMemberForHistory(m, round.id)}
-                            className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-800/60 cursor-pointer transition-all"
+                            className="flex items-center justify-between cursor-pointer group/row"
                             title="Click to view player score history"
                           >
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm">{m?.avatarEmoji || '🏌️'}</span>
-                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{round.playerName}</span>
+                            <div className="flex items-center gap-2.5 truncate">
+                              <span className="text-base shrink-0">{m?.avatarEmoji || '⛳'}</span>
+                              <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate group-hover/row:text-emerald-600 dark:group-hover/row:text-emerald-400 transition-colors">
+                                {round.playerName}
+                              </span>
                             </div>
-                            <div className="flex items-baseline gap-2">
-                              <span className="font-stats font-bold text-xs text-slate-900 dark:text-slate-100">{round.grossScore}</span>
-                              <span className="font-stats text-[10px] text-slate-400 w-12 text-right">({round.netScore} net)</span>
+                            <div className="flex items-baseline gap-1.5 shrink-0 ml-2">
+                              <span className="font-stats font-extrabold text-base text-emerald-600 dark:text-emerald-400">
+                                {round.grossScore}
+                              </span>
+                              <span className="font-stats text-[11px] text-slate-500 dark:text-slate-400">
+                                ({round.netScore} net)
+                              </span>
                             </div>
                           </div>
                         );
@@ -614,30 +613,32 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                     <div
                       key={event.id}
                       onClick={() => onSelectTeamForHistory(event, event.winningTeamName)}
-                      className="p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
+                      className="p-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors cursor-pointer group"
                       title="Click to view team score history"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-heading font-semibold text-xs text-slate-900 dark:text-slate-100 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">
                           {event.eventName}
                         </span>
-                        <div className="flex items-baseline gap-1.5 shrink-0">
-                          <span className="font-stats font-bold text-sm text-emerald-600 dark:text-emerald-400">
-                            {winningTeam?.grossScore}
-                          </span>
-                          <span className="font-stats text-[11px] text-slate-400">
-                            ({winningTeam?.netScore} net)
-                          </span>
-                        </div>
+                        <span className="text-[11px] font-medium text-slate-400 shrink-0 ml-2">
+                          {event.date}
+                        </span>
                       </div>
-                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        <div className="flex items-center gap-1.5 truncate">
-                          <Trophy className="w-3 h-3 text-amber-500 shrink-0" />
-                          <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">
+                      <div className="flex items-center justify-between group/row">
+                        <div className="flex items-center gap-2.5 truncate">
+                          <Trophy className="w-4 h-4 text-amber-500 shrink-0" />
+                          <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate group-hover/row:text-emerald-600 dark:group-hover/row:text-emerald-400 transition-colors">
                             {event.winningTeamName}
                           </span>
                         </div>
-                        <span className="shrink-0 ml-2">{event.date}</span>
+                        <div className="flex items-baseline gap-1.5 shrink-0 ml-2">
+                          <span className="font-stats font-extrabold text-base text-emerald-600 dark:text-emerald-400">
+                            {winningTeam?.grossScore}
+                          </span>
+                          <span className="font-stats text-[11px] text-slate-500 dark:text-slate-400">
+                            ({winningTeam?.netScore} net)
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
