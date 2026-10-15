@@ -70,30 +70,32 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
   onSelectMemberForHistory,
   onSelectTeamForHistory,
 }) => {
-  const sortedMembers = [...members].sort((a, b) => a.handicapIndex - b.handicapIndex);
+  // FILTER OUT GUESTS FOR OFFICIAL LEADERBOARDS
+  const officialMembers = members.filter(m => !m.isGuest);
+  const sortedMembers = [...officialMembers].sort((a, b) => a.handicapIndex - b.handicapIndex);
   
-  const eligible18Members = members.filter(m => m.bestRound && m.bestRound > 0);
-  const eligible9Members = members.filter(m => m.bestRound9 && m.bestRound9 > 0);
-  const eligibleGirMembers = members.filter(m => m.girPercent && m.girPercent > 0);
-  const eligiblePuttMembers = members.filter(m => m.avgPutts && m.avgPutts > 0);
+  const eligible18Members = officialMembers.filter(m => m.bestRound && m.bestRound > 0);
+  const eligible9Members = officialMembers.filter(m => m.bestRound9 && m.bestRound9 > 0);
+  const eligibleGirMembers = officialMembers.filter(m => m.girPercent && m.girPercent > 0);
+  const eligiblePuttMembers = officialMembers.filter(m => m.avgPutts && m.avgPutts > 0);
   
   const lowGrossMember = eligible18Members.length > 0 ? [...eligible18Members].sort((a, b) => (a.bestRound || 999) - (b.bestRound || 999))[0] : null;
   const low9Member = eligible9Members.length > 0 ? [...eligible9Members].sort((a, b) => (a.bestRound9 || 999) - (b.bestRound9 || 999))[0] : null;
   const dartSniperMember = eligibleGirMembers.length > 0 ? [...eligibleGirMembers].sort((a, b) => (b.girPercent || 0) - (a.girPercent || 0))[0] : null;
   const flatstickMember = eligiblePuttMembers.length > 0 ? [...eligiblePuttMembers].sort((a, b) => (a.avgPutts || 99) - (b.avgPutts || 99))[0] : null;
 
-  const lowGrossRound = lowGrossMember ? completedRounds.find(r => (r.playerId === lowGrossMember.id || r.playerName === lowGrossMember.name) && r.grossScore === lowGrossMember.bestRound) : null;
-  const low9Round = low9Member ? completedRounds.find(r => (r.playerId === low9Member.id || r.playerName === low9Member.name) && r.grossScore === low9Member.bestRound9) : null;
-  const dartSniperRound = dartSniperMember ? completedRounds.find(r => (r.playerId === dartSniperMember.id || r.playerName === dartSniperMember.name) && r.girPercent === dartSniperMember.girPercent) : null;
-  const flatstickRound = flatstickMember ? completedRounds.find(r => (r.playerId === flatstickMember.id || r.playerName === flatstickMember.name) && r.totalPutts === flatstickMember.avgPutts) : null;
-
   const drunkestRound = completedRounds.reduce((max, round) => 
     (round.buzzballCount || 0) > (max?.buzzballCount || 0) ? round : max
   , completedRounds[0]);
 
   const liquidCourageMember = drunkestRound?.buzzballCount && drunkestRound.buzzballCount > 0 
-    ? members.find(m => m.id === drunkestRound.playerId || m.name === drunkestRound.playerName) 
+    ? officialMembers.find(m => m.id === drunkestRound.playerId || m.name === drunkestRound.playerName) 
     : null;
+
+  const lowGrossRound = lowGrossMember ? completedRounds.find(r => (r.playerId === lowGrossMember.id || r.playerName === lowGrossMember.name) && r.grossScore === lowGrossMember.bestRound) : null;
+  const low9Round = low9Member ? completedRounds.find(r => (r.playerId === low9Member.id || r.playerName === low9Member.name) && r.grossScore === low9Member.bestRound9) : null;
+  const dartSniperRound = dartSniperMember ? completedRounds.find(r => (r.playerId === dartSniperMember.id || r.playerName === dartSniperMember.name) && r.girPercent === dartSniperMember.girPercent) : null;
+  const flatstickRound = flatstickMember ? completedRounds.find(r => (r.playerId === flatstickMember.id || r.playerName === flatstickMember.name) && r.totalPutts === flatstickMember.avgPutts) : null;
 
   // Calculate the lowest team event score
   let bestScrambleEvent: TeamEventRecord | null = null;
@@ -127,7 +129,6 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
     groupedRoundsMap.get(key)!.rounds.push(round);
   });
 
-  // Convert to array and sort by date descending
   const groupedRecentRounds = Array.from(groupedRoundsMap.values())
     .sort((a, b) => b.date.localeCompare(a.date));
 
@@ -190,7 +191,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             <div className="min-w-0">
               <span className="font-heading font-bold text-sm block leading-tight">Roster & Scramble Teams</span>
               <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate block mt-0.5">
-                {members.length} Golfers · {teams.length} Squads
+                {officialMembers.length} Golfers · {teams.length} Squads
               </span>
             </div>
           </button>
