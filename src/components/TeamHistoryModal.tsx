@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, Trophy, Award, Edit3, Trash2, Check, X } from 'lucide-react';
 import { TeamEventRecord, Course, HoleScore } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ExpandableTeamEventCardProps {
   event: TeamEventRecord;
@@ -13,11 +14,21 @@ interface ExpandableTeamEventCardProps {
 export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = ({ 
   event, courses = [], onUpdateTeamEvent, onDeleteTeamEvent, defaultExpanded = false 
 }) => {
+  const { currentUser, memberProfile, isAdmin } = useAuth();
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isEditing, setIsEditing] = useState(false);
   const [editDate, setEditDate] = useState(event.date || '');
   const [editScores, setEditScores] = useState<Record<number, HoleScore>>((event as any).holeScores || {});
   const [editBuzzballs, setEditBuzzballs] = useState<number>((event as any).buzzballCount || 0);
+
+  // PERMISSION CHECK: Admin or Scramble Roster match
+  const isSquadMember = event.teamLeaderboard.some(t => 
+    t.playerNames.some(pName => 
+      pName.toLowerCase() === (memberProfile?.name || '').toLowerCase() || 
+      (memberProfile?.nickname && pName.toLowerCase() === memberProfile.nickname.toLowerCase())
+    )
+  );
+  const canEditEvent = !!(currentUser && (isAdmin || isSquadMember));
 
   const course = courses.find(c => c.name === event.courseName) || courses[0];
   const getPar = (hNum: number) => course?.holes?.find((h) => h.number === hNum)?.par || 4;
@@ -99,7 +110,7 @@ export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = (
           <div className="min-w-0">
             <h5 className="font-heading font-extrabold text-sm text-slate-900 dark:text-slate-100 truncate flex items-center gap-2">
               {event.eventName}
-              {!isEditing && onUpdateTeamEvent && (
+              {!isEditing && onUpdateTeamEvent && canEditEvent && (
                 <button onClick={handleStartEdit} className="p-1 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer" title="Edit Scorecard">
                   <Edit3 className="w-3.5 h-3.5" />
                 </button>
@@ -147,7 +158,7 @@ export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = (
                   </div>
                 </div>
                 <div className="flex gap-2 self-end sm:self-auto">
-                  {onDeleteTeamEvent && (
+                  {onDeleteTeamEvent && canEditEvent && (
                     <button onClick={() => { if(window.confirm('Delete this team round?')) onDeleteTeamEvent(event.id); }} className="px-3 py-1.5 rounded-lg text-xs font-bold border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 cursor-pointer flex items-center gap-1 transition-colors">
                       <Trash2 className="w-3.5 h-3.5"/> Delete
                     </button>
