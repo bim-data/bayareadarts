@@ -122,6 +122,7 @@ export interface MemberProfile {
   phone?: string;
   avatarEmoji: string;
   badgeTitle: string;
+  role?: 'admin' | string;
   handicapIndex: number;
   handicapGoal?: number;
   roundsCount: number;
