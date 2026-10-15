@@ -17,6 +17,7 @@ export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = (
   const [isEditing, setIsEditing] = useState(false);
   const [editDate, setEditDate] = useState(event.date || '');
   const [editScores, setEditScores] = useState<Record<number, HoleScore>>((event as any).holeScores || {});
+  const [editBuzzballs, setEditBuzzballs] = useState<number>((event as any).buzzballCount || 0);
 
   const course = courses.find(c => c.name === event.courseName) || courses[0];
   const getPar = (hNum: number) => course?.holes?.find((h) => h.number === hNum)?.par || 4;
@@ -37,6 +38,7 @@ export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = (
       });
     }
     setEditScores(startingScores);
+    setEditBuzzballs((event as any).buzzballCount || 0);
     setEditDate(event.date || '');
     setIsEditing(true);
     setIsExpanded(true);
@@ -45,6 +47,7 @@ export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = (
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditScores((event as any).holeScores || {});
+    setEditBuzzballs((event as any).buzzballCount || 0);
     setEditDate(event.date || '');
   };
 
@@ -68,6 +71,7 @@ export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = (
     const payload = {
       date: editDate,
       holeScores: editScores,
+      buzzballCount: editBuzzballs,
       teamLeaderboard: updatedLeaderboard
     };
 
@@ -105,6 +109,11 @@ export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = (
               <span className="font-semibold text-emerald-600 dark:text-emerald-400 capitalize">{event.format}</span>
               <span>·</span>
               <span className="truncate">{event.date}</span>
+              {((event as any).buzzballCount || 0) > 0 && !isEditing && (
+                <span className="flex items-center gap-0.5 font-bold text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 rounded ml-1">
+                  🍹 {(event as any).buzzballCount}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -130,6 +139,12 @@ export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = (
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Edit Team Round</span>
                   <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-900 dark:text-slate-100" />
+                  <div className="flex items-center gap-1.5 bg-amber-100/50 dark:bg-amber-900/30 px-2 py-1 rounded-lg border border-amber-200/50 dark:border-amber-800/50">
+                    <span className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-500">🍹 Drinks</span>
+                    <button type="button" onClick={() => setEditBuzzballs(Math.max(0, editBuzzballs - 1))} className="w-5 h-5 rounded bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs cursor-pointer">-</button>
+                    <span className="font-stats font-bold text-xs w-4 text-center text-slate-900 dark:text-slate-100">{editBuzzballs}</span>
+                    <button type="button" onClick={() => setEditBuzzballs(editBuzzballs + 1)} className="w-5 h-5 rounded bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs cursor-pointer">+</button>
+                  </div>
                 </div>
                 <div className="flex gap-2 self-end sm:self-auto">
                   {onDeleteTeamEvent && (
@@ -153,6 +168,14 @@ export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = (
                           <button type="button" onClick={() => updateHole(hNum, 'strokes', Math.max(1, (score.strokes||getPar(hNum))-1))} className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700">-</button>
                           <span className="w-4 text-center font-bold text-slate-900 dark:text-slate-100">{score.strokes || getPar(hNum)}</span>
                           <button type="button" onClick={() => updateHole(hNum, 'strokes', (score.strokes||getPar(hNum))+1)} className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700">+</button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">Putts</span>
+                        <div className="flex items-center gap-1.5">
+                          <button type="button" onClick={() => updateHole(hNum, 'putts', Math.max(0, (score.putts||2)-1))} className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700">-</button>
+                          <span className="w-4 text-center font-bold text-slate-900 dark:text-slate-100">{score.putts || 2}</span>
+                          <button type="button" onClick={() => updateHole(hNum, 'putts', (score.putts||2)+1)} className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700">+</button>
                         </div>
                       </div>
                     </div>
