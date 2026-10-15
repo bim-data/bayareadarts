@@ -18,6 +18,7 @@ import { TeamHistoryModal } from './components/TeamHistoryModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { ScrambleTeamManagerModal } from './components/ScrambleTeamManagerModal';
 import { ClubhouseHubModal } from './components/ClubhouseHubModal';
+import { PlayerListModal } from './components/PlayerListModal';
 import { AuthScreen } from './components/AuthScreen'; 
 import { useAuth } from './contexts/AuthContext';
 import { doc, setDoc } from 'firebase/firestore';
@@ -100,6 +101,7 @@ export default function App() {
 
   const [isClubhouseHubOpen, setIsClubhouseHubOpen] = useState(false);
   const [clubhouseHubInitialTab, setClubhouseHubInitialTab] = useState<'profiles' | 'teams'>('profiles');
+  const [isPlayerListOpen, setIsPlayerListOpen] = useState(false);
   const [isUserProfileOpen, setIsUserProfileOpen] = useState(false);
   const [isNewRoundOpen, setIsNewRoundOpen] = useState(false);
   const [preselectedTeamId, setPreselectedTeamId] = useState<string | undefined>(undefined);
@@ -507,6 +509,7 @@ export default function App() {
         activeUser={activeUser}
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode(!darkMode)}
+        onOpenPlayerList={() => setIsPlayerListOpen(true)}
         onOpenNewRound={() => {
           if (!currentUser) return setIsAuthModalOpen(true);
           setIsNewRoundOpen(true);
@@ -577,13 +580,22 @@ export default function App() {
         )}
       </main>
 
+      <PlayerListModal 
+        isOpen={isPlayerListOpen}
+        onClose={() => setIsPlayerListOpen(false)}
+        members={members}
+        onSelectMember={(m) => {
+          setIsPlayerListOpen(false);
+          handleOpenMemberHistory(m);
+        }}
+      />
+
       <ClubhouseHubModal
         isOpen={isClubhouseHubOpen}
         onClose={() => setIsClubhouseHubOpen(false)}
         initialTab={clubhouseHubInitialTab}
         members={members}
         activeUserId={activeUserId}
-        onSelectActiveUser={() => {}}
         onUpdateProfile={handleUpdateProfile}
         onAddNewMember={handleAddNewMember}
         completedRounds={completedRounds}
@@ -601,6 +613,7 @@ export default function App() {
         onDeletePastRound={handleDeletePastRound}
         onUpdateTeamEvent={handleUpdateTeamEvent}
         onDeleteTeamEvent={handleDeleteTeamEvent}
+        onSelectMemberForHistory={handleOpenMemberHistory}
       />
 
       <NewRoundModal
