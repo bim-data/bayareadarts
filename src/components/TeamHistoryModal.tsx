@@ -270,4 +270,59 @@ export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = (
   );
 };
 
-export const TeamHistoryModal: React.FC<any> = () => null;
+export const TeamHistoryModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  event: TeamEventRecord | null;
+  courses?: Course[];
+  onUpdateTeamEvent?: (eventId: string, data: Partial<TeamEventRecord>) => void;
+  onDeleteTeamEvent?: (eventId: string) => void;
+}> = ({ isOpen, onClose, event, courses, onUpdateTeamEvent, onDeleteTeamEvent }) => {
+  if (!isOpen || !event) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
+      <div className="w-full sm:max-w-3xl h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:rounded-3xl bg-white dark:bg-slate-900 border-0 sm:border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden text-slate-900 dark:text-slate-100 transition-colors">
+        
+        <div className="shrink-0 p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
+              <Trophy className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-heading font-extrabold text-lg sm:text-xl text-slate-900 dark:text-slate-100 truncate">
+                Team Event Details
+              </h3>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-pointer shrink-0">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
+          <ExpandableTeamEventCard 
+            event={event} 
+            courses={courses}
+            onUpdateTeamEvent={(id, data) => {
+              if (onUpdateTeamEvent) onUpdateTeamEvent(id, data);
+              onClose();
+            }}
+            onDeleteTeamEvent={(id) => {
+              if (onDeleteTeamEvent) onDeleteTeamEvent(id);
+              onClose();
+            }}
+            defaultExpanded={true}
+          />
+        </div>
+
+        <div className="shrink-0 p-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+          <button onClick={onClose} className="btn-modern px-5 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-semibold cursor-pointer shadow-xs">
+            Close
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+};
