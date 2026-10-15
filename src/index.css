@@ -2,21 +2,49 @@
 
 @variant dark (&:is(.dark, .dark *));
 
+@theme {
+  /* Warm Charcoal & Gallery Paper Neutrals */
+  --color-slate-50: #fbfbfa;
+  --color-slate-100: #f4f4f5;
+  --color-slate-200: #e4e4e7;
+  --color-slate-300: #d4d4d8;
+  --color-slate-400: #a1a1aa;
+  --color-slate-500: #71717a;
+  --color-slate-600: #52525b;
+  --color-slate-700: #3f3f46;
+  --color-slate-800: #222226;
+  --color-slate-900: #18181b;
+  --color-slate-950: #111113;
+
+  /* British Racing Green */
+  --color-emerald-50: #f2fbf6;
+  --color-emerald-100: #dcfce7;
+  --color-emerald-200: #bbf7d0;
+  --color-emerald-300: #86efac;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #16a34a;
+  --color-emerald-600: #0f4d33;
+  --color-emerald-700: #0b3a26;
+  --color-emerald-800: #072719;
+  --color-emerald-900: #04180f;
+  --color-emerald-950: #020c07;
+}
+
 @layer base {
   :root {
-    --app-bg: #f8fafc;
-    --app-text: #0f172a;
+    --app-bg: #fbfbfa;
+    --app-text: #09090b;
     --card-bg: #ffffff;
-    --card-border: #e2e8f0;
-    --card-hover: #f1f5f9;
+    --card-border: #e4e4e7;
+    --card-hover: #f4f4f5;
   }
 
   .dark {
-    --app-bg: #0b0f17;
-    --app-text: #f8fafc;
-    --card-bg: #111827;
-    --card-border: #1e293b;
-    --card-hover: #1f2937;
+    --app-bg: #111113;
+    --app-text: #f4f4f5;
+    --card-bg: #18181b;
+    --card-border: #27272a;
+    --card-hover: #222226;
   }
 
   html {
@@ -72,9 +100,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #d4d4d8;
   border-radius: 9999px;
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #3f3f46;
 }
