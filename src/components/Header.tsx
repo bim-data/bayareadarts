@@ -19,6 +19,7 @@ interface HeaderProps {
   activeUser?: MemberProfile;
   darkMode: boolean;
   onToggleDarkMode: () => void;
+  onOpenPlayerList: () => void;
   onOpenNewRound: () => void;
   onOpenOcr: () => void;
   onOpenEditNickname: () => void;
@@ -35,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
   activeUser,
   darkMode,
   onToggleDarkMode,
+  onOpenPlayerList,
   onOpenNewRound,
   onOpenOcr,
   onOpenProfile,
@@ -75,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Round ({activeSession.roomCode})
             </button>
           )}
-          <button onClick={() => setCurrentTab('future')} className={`whitespace-nowrap transition-colors pb-1 border-b-2 cursor-pointer ${currentTab === 'future' ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'}`}>Future Rounds</button>
+          <button onClick={onOpenPlayerList} className={`whitespace-nowrap transition-colors pb-1 border-b-2 border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer`}>Player List</button>
           <button onClick={() => setCurrentTab('rankings')} className={`whitespace-nowrap transition-colors pb-1 border-b-2 cursor-pointer ${currentTab === 'rankings' ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'}`}>WHS Rankings</button>
           <button onClick={() => setCurrentTab('courses')} className={`whitespace-nowrap transition-colors pb-1 border-b-2 cursor-pointer ${currentTab === 'courses' ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'}`}>Courses</button>
           <button onClick={() => setCurrentTab('events')} className={`whitespace-nowrap transition-colors pb-1 border-b-2 cursor-pointer ${currentTab === 'events' ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'}`}>Scrambles & Events</button>
