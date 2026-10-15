@@ -5,7 +5,7 @@ import {
 import { MemberProfile, TeamGroup, CompletedRoundRecord, Course, TeamEventRecord } from '../types';
 import { calculateTeamScrambleHandicap } from './ScrambleTeamManagerModal';
 import { ExpandableRoundCard } from './ExpandableRoundCard';
-import { ExpandableTeamEventCard } from './TeamHistoryModal'; // Import our new expandable team card!
+import { ExpandableTeamEventCard } from './TeamHistoryModal'; 
 
 interface ClubhouseHubModalProps {
   isOpen: boolean;
@@ -27,6 +27,8 @@ interface ClubhouseHubModalProps {
   courses: Course[];
   onUpdatePastRound?: (roundId: string, data: Partial<CompletedRoundRecord>) => void;
   onDeletePastRound?: (roundId: string, playerId: string) => void;
+  onUpdateTeamEvent?: (eventId: string, data: Partial<TeamEventRecord>) => void;
+  onDeleteTeamEvent?: (eventId: string) => void;
 }
 
 const COLOR_OPTIONS = [
@@ -60,6 +62,8 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
   courses,
   onUpdatePastRound,
   onDeletePastRound,
+  onUpdateTeamEvent,
+  onDeleteTeamEvent,
 }) => {
   const [hubTab, setHubTab] = useState<'profiles' | 'teams'>(initialTab);
   const [profileSubTab, setProfileSubTab] = useState<'overview' | 'edit' | 'switch'>('overview');
@@ -642,7 +646,13 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                         </div>
                       ) : (
                         myTeamEvents.map((ev) => (
-                          <ExpandableTeamEventCard key={ev.id} event={ev} />
+                          <ExpandableTeamEventCard 
+                            key={ev.id} 
+                            event={ev} 
+                            courses={courses}
+                            onUpdateTeamEvent={onUpdateTeamEvent}
+                            onDeleteTeamEvent={onDeleteTeamEvent}
+                          />
                         ))
                       )}
                     </div>
