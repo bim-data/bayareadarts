@@ -32,10 +32,12 @@ export const AuthScreen: React.FC = () => {
           badgeTitle: 'Rookie',
           handicapIndex: 0.0,
           scoringAverage: 0,
+          firPercent: 0,
           girPercent: 0,
           avgPutts: 0,
           roundsCount: 0,
           bestRound: 0,
+          differentials: [],
         };
 
         await setDoc(docRef, newProfile);

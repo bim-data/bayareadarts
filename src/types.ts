@@ -33,6 +33,7 @@ export interface HoleScore {
   putts: number;
   fir: FirDirection; // Fairways in regulation (none for par 3)
   gir: boolean;      // Green in regulation
+  drinks?: number;
   driverPlayerId?: string; // For Scramble format: whose drive was chosen
   shotContributorId?: string; // For Scramble format: who contributed the key approach/putt
   shotContributorName?: string;
@@ -61,6 +62,8 @@ export interface TeamGroup {
     wins?: number;
   };
 }
+
+export type Team = TeamGroup;
 
 export interface ManualPastRoundPayload {
   courseId: string;
@@ -99,6 +102,7 @@ export interface RoundSession {
   date: string;
   format: GameFormat;
   isTeamRound: boolean; // True for Scramble & Best Ball
+  holesPlayed?: '18' | 'front9' | 'back9' | string;
   status: 'active' | 'completed';
   players: PlayerRoundData[];
   teams?: TeamGroup[];
@@ -126,6 +130,7 @@ export interface MemberProfile {
   firPercent: number;
   girPercent: number;
   bestRound: number;
+  bestRound9?: number;
   differentials: {
     roundId: string;
     date: string;
@@ -157,9 +162,11 @@ export interface CompletedRoundRecord {
   date: string;
   courseId: string;
   courseName: string;
+  teeId?: string;
   teeName: string;
   format: GameFormat;
   isTeamRound: boolean;
+  holesPlayed?: '18' | 'front9' | 'back9' | string;
   playerId: string;
   playerName: string;
   grossScore: number;
@@ -170,7 +177,10 @@ export interface CompletedRoundRecord {
   totalPutts: number;
   firCount: number;
   girCount: number;
+  girPercent?: number;
+  buzzballCount?: number;
   scores: Record<number, HoleScore>;
+  holeScores?: Record<number, HoleScore>;
 }
 
 export interface TeamEventRecord {

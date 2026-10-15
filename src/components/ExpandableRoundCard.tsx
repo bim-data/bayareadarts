@@ -152,7 +152,7 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
         <div className="text-right flex items-center gap-3">
           <div>
             <span className="font-stats font-extrabold text-sm text-slate-900 dark:text-slate-100">{round.grossScore}</span>
-            <span className="text-[11px] text-slate-400 ml-1">({round.netScore} net)</span>
+            <span className="text-[11px] text-slate-400 ml-1">({round.netScore})</span>
             <div className="text-[10px] font-stats text-emerald-600 dark:text-emerald-400 font-bold">Diff: {round.differential?.toFixed(1)}</div>
           </div>
           {!isEditing && (

@@ -209,6 +209,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
         const mockData: OcrScorecardResponse = {
           courseName: courses.find(c => c.id === selectedCourseId)?.name || courses[0]?.name || "Unknown Course",
           date: customDate,
+          confidenceScore: 0.95,
           detectedPlayers: [
             {
               id: "mock-1",
@@ -287,7 +288,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
       const displayTeamName = selectedTeam?.name || 'Custom Squad';
       
       const playerNames = selectedTeam 
-        ? selectedTeam.playerIds.map(id => members.find(m => m.id === id)?.name || 'Unknown Golfer')
+        ? selectedTeam.playerIds.map((id: string) => members.find(m => m.id === id)?.name || 'Unknown Golfer')
         : ['Scanned Player 1', 'Scanned Player 2'];
 
       onSaveTeamEvent({
@@ -439,7 +440,7 @@ export const ScorecardOcrModal: React.FC<ScorecardOcrModalProps> = ({
                     >
                       {teams.length > 0 ? (
                         teams.map((t) => {
-                          const rosterNames = t.playerIds.map(id => {
+                          const rosterNames = t.playerIds.map((id: string) => {
                             const m = members.find(m => m.id === id);
                             return m?.nickname || m?.name.split(' ')[0] || 'Unknown';
                           }).join(', ');

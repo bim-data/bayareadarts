@@ -2,7 +2,7 @@ import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'fireb
 import { db } from '../firebase'; // Ensure this points to the firebase.ts file we made earlier
 
 // 1. REAL-TIME READER: Listens for any changes and updates your app instantly
-export function subscribeToCollection(collectionName: string, callback: (data: any[]) => void) {
+export function subscribeToCollection<T = any>(collectionName: string, callback: (data: T[]) => void) {
   const colRef = collection(db, collectionName);
   
   // onSnapshot sets up a live connection to the database
@@ -10,7 +10,7 @@ export function subscribeToCollection(collectionName: string, callback: (data: a
     const items = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    }));
+    })) as unknown as T[];
     callback(items);
   });
 }
