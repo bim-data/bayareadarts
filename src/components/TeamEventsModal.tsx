@@ -1,12 +1,15 @@
 import React from 'react';
 import { X, Trophy, Shield } from 'lucide-react';
-import { TeamEventRecord } from '../types';
-import { ExpandableTeamEventCard } from './TeamHistoryModal'; // Import our new expandable team card!
+import { TeamEventRecord, Course } from '../types';
+import { ExpandableTeamEventCard } from './TeamHistoryModal'; 
 
 interface TeamEventsModalProps {
   isOpen: boolean;
   onClose: () => void;
   events: TeamEventRecord[];
+  courses?: Course[];
+  onUpdateTeamEvent?: (eventId: string, data: Partial<TeamEventRecord>) => void;
+  onDeleteTeamEvent?: (eventId: string) => void;
   onSelectTeamForHistory?: (event: TeamEventRecord, teamName?: string) => void;
 }
 
@@ -14,6 +17,9 @@ export const TeamEventsModal: React.FC<TeamEventsModalProps> = ({
   isOpen,
   onClose,
   events,
+  courses = [],
+  onUpdateTeamEvent,
+  onDeleteTeamEvent,
 }) => {
   if (!isOpen) return null;
 
@@ -62,7 +68,13 @@ export const TeamEventsModal: React.FC<TeamEventsModalProps> = ({
               </div>
             ) : (
               events.map((event) => (
-                <ExpandableTeamEventCard key={event.id} event={event} />
+                <ExpandableTeamEventCard 
+                  key={event.id} 
+                  event={event} 
+                  courses={courses}
+                  onUpdateTeamEvent={onUpdateTeamEvent}
+                  onDeleteTeamEvent={onDeleteTeamEvent}
+                />
               ))
             )}
           </div>
