@@ -574,7 +574,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                                 {round.playerName}
                               </span>
                             </div>
-                            <div className="flex items-baseline justify-end gap-1.5 shrink-0 ml-2 w-20">
+                            <div className="flex items-baseline justify-end gap-1.5 shrink-0 ml-2 w-24">
                               <span className="font-stats font-extrabold text-base text-emerald-600 dark:text-emerald-400 text-right">
                                 {round.grossScore}
                               </span>
@@ -625,20 +625,22 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                         </span>
                       </div>
                       
-                      <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 hover:border-amber-200 dark:hover:border-amber-800/60 transition-all group/row">
-                        <div className="flex items-center gap-2.5 truncate">
-                          <Trophy className="w-4 h-4 text-amber-500 shrink-0" />
-                          <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate group-hover/row:text-amber-600 dark:group-hover/row:text-amber-400 transition-colors">
-                            {event.winningTeamName}
-                          </span>
-                        </div>
-                        <div className="flex items-baseline justify-end gap-1.5 shrink-0 ml-2 w-20">
-                          <span className="font-stats font-extrabold text-base text-emerald-600 dark:text-emerald-400 text-right">
-                            {winningTeam?.grossScore}
-                          </span>
-                          <span className="font-stats text-[11px] text-slate-500 dark:text-slate-400 w-12 text-right">
-                            ({winningTeam?.netScore} net)
-                          </span>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 hover:border-amber-200 dark:hover:border-amber-800/60 transition-all group/row">
+                          <div className="flex items-center gap-2.5 truncate">
+                            <Trophy className="w-4 h-4 text-amber-500 shrink-0" />
+                            <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate group-hover/row:text-amber-600 dark:group-hover/row:text-amber-400 transition-colors">
+                              {event.winningTeamName}
+                            </span>
+                          </div>
+                          <div className="flex items-baseline justify-end gap-1.5 shrink-0 ml-2 w-24">
+                            <span className="font-stats font-extrabold text-base text-emerald-600 dark:text-emerald-400 text-right">
+                              {winningTeam?.grossScore}
+                            </span>
+                            <span className="font-stats text-[11px] text-slate-500 dark:text-slate-400 w-12 text-right">
+                              ({winningTeam?.netScore} net)
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
