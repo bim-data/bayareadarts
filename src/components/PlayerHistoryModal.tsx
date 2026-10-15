@@ -3,6 +3,7 @@ import { X, Star } from 'lucide-react';
 import { MemberProfile, CompletedRoundRecord, TeamEventRecord, Course } from '../types';
 import { ExpandableRoundCard } from './ExpandableRoundCard';
 import { ExpandableTeamEventCard } from './TeamHistoryModal';
+import { useAuth } from '../contexts/AuthContext';
 
 interface PlayerHistoryModalProps {
   isOpen: boolean;
@@ -35,6 +36,7 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
   onDeleteTeamEvent,
   initialExpandedRoundId,
 }) => {
+  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<'rounds' | 'differentials' | 'scrambles'>('rounds');
 
   if (!isOpen || !member) return null;
@@ -94,9 +96,11 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
                 <span>Edit My Profile</span>
               </button>
             ) : (
-              <span className="hidden sm:inline-flex text-[11px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                🔒 Read-Only
-              </span>
+              !isAdmin && (
+                <span className="hidden sm:inline-flex text-[11px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                  🔒 Read-Only
+                </span>
+              )
             )}
             <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
               <X className="w-5 h-5" />
