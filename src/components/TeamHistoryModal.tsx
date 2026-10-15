@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Trophy, Award, Edit3, Trash2, Check } from 'lucide-react';
+import { ChevronDown, Trophy, Award, Edit3, Trash2, Check, X } from 'lucide-react';
 import { TeamEventRecord, Course, HoleScore } from '../types';
 
 interface ExpandableTeamEventCardProps {
