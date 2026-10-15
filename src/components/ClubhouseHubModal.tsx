@@ -14,6 +14,7 @@ interface ClubhouseHubModalProps {
   initialTab?: 'profiles' | 'teams' | 'guests';
   members: MemberProfile[];
   activeUserId: string;
+  onSelectActiveUser: (userId: string) => void;
   onUpdateProfile: (updatedProfile: MemberProfile) => void;
   onAddNewMember?: (newMember: MemberProfile) => void;
   completedRounds: CompletedRoundRecord[];
@@ -42,7 +43,7 @@ const COLOR_OPTIONS = [
   { id: 'slate', label: 'Slate', bg: 'bg-slate-700', text: 'text-slate-700 dark:text-slate-300', border: 'border-slate-700', ring: 'ring-slate-500' },
 ];
 
-const EMOJI_OPTIONS = ['🎯', '🌉', '🚀', '🌁', '🦅', '⚡', '⛳', '🏆', '🔥', '🦁', '💣', '🌲', '⛳', '🧢', '🕶️', '👑'];
+const EMOJI_OPTIONS = ['🎯', '🌉', '🚀', '🌁', '🦅', '⚡', '⛳', '🏆', '🔥', '🦁', '💣', '🌲', '🧢', '🕶️', '👑', '👽'];
 
 export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
   isOpen,
@@ -78,6 +79,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
   const officialMembers = members.filter(m => !m.isGuest);
   const guestMembers = members.filter(m => m.isGuest);
 
+  // Active User Edit State
   const [editName, setEditName] = useState(activeUser?.name || '');
   const [editNickname, setEditNickname] = useState(activeUser?.nickname || '');
   const [editEmail, setEditEmail] = useState(activeUser?.email || '');
@@ -85,15 +87,23 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
   const [editAvatar, setEditAvatar] = useState(activeUser?.avatarEmoji || '🎯');
   const [editGoal, setEditGoal] = useState(activeUser?.handicapGoal ? String(activeUser.handicapGoal) : '');
 
+  // Manual Guest Creation State
   const [isAddingNewGolfer, setIsAddingNewGolfer] = useState(false);
   const [newGolferName, setNewGolferName] = useState('');
   const [newGolferNickname, setNewGolferNickname] = useState('');
   const [newGolferHcp, setNewGolferHcp] = useState('0.0');
 
+  // Manual Guest Edit State
+  const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
+  const [editGuestName, setEditGuestName] = useState('');
+  const [editGuestNickname, setEditGuestNickname] = useState('');
+  const [editGuestAvatar, setEditGuestAvatar] = useState('🎯');
+
   // Admin Merge Tool State
   const [mergeSource, setMergeSource] = useState<MemberProfile | null>(null);
   const [mergeTargetId, setMergeTargetId] = useState<string>('');
 
+  // Team Edit State
   const [isEditingTeam, setIsEditingTeam] = useState(false);
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [teamName, setTeamName] = useState('');
@@ -149,6 +159,8 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
     setProfileSubTab('overview');
   };
 
+  // --- GUEST MANAGEMENT ---
+
   const handleCreateGuestGolfer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGolferName.trim()) return;
@@ -156,7 +168,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
     const newMem: MemberProfile = {
       id: `member-${Date.now()}`,
       name: newGolferName.trim(),
-      nickname: newGolferNickname.trim() || newGolferName.trim(),
+      nickname: newGolferNickname.trim(), // Blank by default if none provided
       avatarEmoji: '🎯',
       badgeTitle: 'Guest',
       isGuest: true,
@@ -181,6 +193,27 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
     showToast(`Added ${newMem.name} as a manual guest!`);
   };
 
+  const handleStartEditGuest = (e: React.MouseEvent, guest: MemberProfile) => {
+    e.stopPropagation();
+    setEditingGuestId(guest.id);
+    setEditGuestName(guest.name);
+    setEditGuestNickname(guest.nickname || '');
+    setEditGuestAvatar(guest.avatarEmoji || '🎯');
+  };
+
+  const handleSaveGuestEdit = async (e: React.FormEvent, guest: MemberProfile) => {
+    e.preventDefault();
+    const updated: MemberProfile = {
+      ...guest,
+      name: editGuestName.trim() || guest.name,
+      nickname: editGuestNickname.trim(),
+      avatarEmoji: editGuestAvatar
+    };
+    await onUpdateProfile(updated);
+    setEditingGuestId(null);
+    showToast(`Updated guest ${updated.name}!`);
+  };
+
   const handleExecuteMerge = () => {
     if (!mergeSource || !mergeTargetId || !onMergeMembers) return;
     const targetMember = officialMembers.find(m => m.id === mergeTargetId);
@@ -193,6 +226,8 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
       showToast(`Merged ${mergeSource.name} into ${targetMember.name}!`);
     }
   };
+
+  // --- TEAM MANAGEMENT ---
 
   const handleStartCreateTeam = (size: number = 2) => {
     setEditingTeamId(null);
@@ -361,6 +396,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                 setHubTab('profiles');
                 setIsEditingTeam(false);
                 setEditingTeamId(null);
+                setMergeSource(null);
               }}
               className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 hubTab === 'profiles'
@@ -376,6 +412,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                 setHubTab('teams');
                 setIsEditingTeam(false);
                 setEditingTeamId(null);
+                setMergeSource(null);
               }}
               className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 hubTab === 'teams'
@@ -436,7 +473,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
             <div className="space-y-6">
               
               {/* Profile Sub-Navigation */}
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+              <div className="flex items-center border-b border-slate-100 dark:border-slate-800 pb-2">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setProfileSubTab('overview')}
@@ -459,77 +496,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                     Edit Info
                   </button>
                 </div>
-
-                <button
-                  onClick={() => setIsAddingNewGolfer(!isAddingNewGolfer)}
-                  className="btn-modern px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Manual Guest</span>
-                </button>
               </div>
-
-              {/* Add New Guest Golfer Form */}
-              {isAddingNewGolfer && (
-                <form onSubmit={handleCreateGuestGolfer} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100">
-                      Add Manual Guest Player
-                    </h4>
-                    <button
-                      type="button"
-                      onClick={() => setIsAddingNewGolfer(false)}
-                      className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    Guests do not have a login, and their scores do not affect official club leaderboards. They can be added to Scramble Squads and live rounds.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1">Full Name *</label>
-                      <input
-                        type="text"
-                        required
-                        value={newGolferName}
-                        onChange={(e) => setNewGolferName(e.target.value)}
-                        placeholder="e.g. Jordan Spieth"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1">Nickname</label>
-                      <input
-                        type="text"
-                        value={newGolferNickname}
-                        onChange={(e) => setNewGolferNickname(e.target.value)}
-                        placeholder="e.g. Golden Child"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1">Estimated HCP</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={newGolferHcp}
-                        onChange={(e) => setNewGolferHcp(e.target.value)}
-                        placeholder="0.0"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold"
-                      />
-                    </div>
-                  </div>
-                  <button
-                    type="submit"
-                    className="btn-modern w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Create Manual Guest</span>
-                  </button>
-                </form>
-              )}
 
               {/* Subtab 1: History and Stats */}
               {profileSubTab === 'overview' && (
@@ -1088,56 +1055,189 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
             </div>
           )}
 
-          {/* ================= SECTION 3: ADMIN GUEST MERGE TOOL ================= */}
+          {/* ================= SECTION 3: ADMIN GUEST DIRECTORY & MERGE ================= */}
           {hubTab === 'guests' && isAdmin && (
             <div className="space-y-6">
-              <div className="pb-3 border-b border-slate-100 dark:border-slate-800">
-                <h4 className="font-heading font-extrabold text-base text-slate-900 dark:text-slate-100">
-                  Guest Account Merge Tool
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Transfer all past rounds and scramble history from a manual guest account to an official registered player.
-                </p>
+              <div className="pb-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div>
+                  <h4 className="font-heading font-extrabold text-base text-slate-900 dark:text-slate-100">
+                    Guest Members
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Manage manual guest accounts and merge history to official players.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsAddingNewGolfer(!isAddingNewGolfer)}
+                  className="btn-modern px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Manual Guest</span>
+                </button>
               </div>
+
+              {/* Add New Guest Golfer Form */}
+              {isAddingNewGolfer && (
+                <form onSubmit={handleCreateGuestGolfer} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100">
+                      Add Manual Guest Player
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingNewGolfer(false)}
+                      className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1">Full Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={newGolferName}
+                        onChange={(e) => setNewGolferName(e.target.value)}
+                        placeholder="e.g. Jordan Spieth"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1">Nickname (Optional)</label>
+                      <input
+                        type="text"
+                        value={newGolferNickname}
+                        onChange={(e) => setNewGolferNickname(e.target.value)}
+                        placeholder="e.g. Golden Child"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1">Estimated HCP</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={newGolferHcp}
+                        onChange={(e) => setNewGolferHcp(e.target.value)}
+                        placeholder="0.0"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    className="btn-modern w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Create Manual Guest</span>
+                  </button>
+                </form>
+              )}
 
               {guestMembers.length === 0 ? (
                 <div className="p-6 text-center text-xs text-slate-400 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800/40">
                   No guest accounts currently exist in the database.
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {!mergeSource ? (
                     <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase text-slate-500 block mb-2">Step 1: Select Guest to Migrate</label>
-                      {guestMembers.map(guest => (
-                        <div key={guest.id} className="p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between gap-3 group">
-                          <div 
-                            className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
-                            onClick={() => {
-                              if (onSelectMemberForHistory) {
-                                onClose();
-                                onSelectMemberForHistory(guest);
-                              }
-                            }}
-                          >
-                            <span className="text-2xl shrink-0 group-hover:scale-105 transition-transform">{guest.avatarEmoji}</span>
-                            <div className="truncate">
-                              <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 transition-colors">
-                                {guest.name}
-                              </span>
-                              <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded">
-                                GUEST ACCOUNT
-                              </span>
+                      {guestMembers.map(guest => {
+                        const isEditingThisGuest = editingGuestId === guest.id;
+
+                        if (isEditingThisGuest) {
+                          return (
+                            <form key={guest.id} onSubmit={(e) => handleSaveGuestEdit(e, guest)} className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-emerald-200 dark:border-emerald-800/60 rounded-xl space-y-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1">Name</label>
+                                  <input 
+                                    value={editGuestName} 
+                                    onChange={(e) => setEditGuestName(e.target.value)} 
+                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1">Nickname (Optional)</label>
+                                  <input 
+                                    value={editGuestNickname} 
+                                    onChange={(e) => setEditGuestNickname(e.target.value)} 
+                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-[11px] font-bold uppercase text-slate-500 block mb-1.5">Avatar Mascot Emoji</label>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {EMOJI_OPTIONS.slice(0, 10).map((emoji) => (
+                                    <button
+                                      key={emoji}
+                                      type="button"
+                                      onClick={() => setEditGuestAvatar(emoji)}
+                                      className={`w-8 h-8 rounded-lg text-base flex items-center justify-center border cursor-pointer transition-transform ${
+                                        editGuestAvatar === emoji
+                                          ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950 scale-110 shadow-xs'
+                                          : 'border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                      }`}
+                                    >
+                                      {emoji}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-700/60">
+                                <button type="button" onClick={() => setEditingGuestId(null)} className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 cursor-pointer">Cancel</button>
+                                <button type="submit" className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm cursor-pointer">Save Changes</button>
+                              </div>
+                            </form>
+                          );
+                        }
+
+                        return (
+                          <div key={guest.id} className="p-3.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between gap-3 group">
+                            <div 
+                              className="flex items-center gap-3.5 min-w-0 flex-1 cursor-pointer"
+                              onClick={() => {
+                                if (onSelectMemberForHistory) {
+                                  onClose();
+                                  onSelectMemberForHistory(guest);
+                                }
+                              }}
+                            >
+                              <span className="text-2xl shrink-0 group-hover:scale-105 transition-transform">{guest.avatarEmoji}</span>
+                              <div className="truncate">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 transition-colors">
+                                    {guest.name}
+                                  </span>
+                                  {guest.nickname && (
+                                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">"{guest.nickname}"</span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded mt-1 inline-block">
+                                  GUEST ACCOUNT
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                onClick={(e) => handleStartEditGuest(e, guest)}
+                                className="p-1.5 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition-colors cursor-pointer"
+                                title="Edit Guest"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => setMergeSource(guest)}
+                                className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs font-bold cursor-pointer"
+                              >
+                                Merge
+                              </button>
                             </div>
                           </div>
-                          <button
-                            onClick={() => setMergeSource(guest)}
-                            className="px-4 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs font-bold shrink-0 cursor-pointer"
-                          >
-                            Merge
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/60 rounded-2xl space-y-4">
