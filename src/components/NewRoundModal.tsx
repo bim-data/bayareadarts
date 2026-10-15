@@ -239,9 +239,6 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
     const baseRating = selectedTee?.rating || 72;
     const rating = is9Hole ? baseRating / 2 : baseRating;
     const slope = selectedTee?.slope || 113;
-    const courseHandicap = Math.round((activeUser.handicapIndex / (is9Hole ? 2 : 1)) * (slope / 113) + (rating - (is9Hole ? 36 : 72)));
-    const netScore = gross - courseHandicap;
-    const differential = Number((((gross - rating) * 113) / slope).toFixed(1));
 
     // TEAM EVENT ROUTING
     if (participantMode === 'teams' && selectedTeamIds.length > 0) {
@@ -250,6 +247,10 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
       const playerNames = selectedSquad 
         ? selectedSquad.playerIds.map(id => members.find(m => m.id === id)?.name || 'Unknown Golfer')
         : [activeUser.name];
+
+      // Calculate approximate net score for the team
+      const teamHcp = selectedSquad ? calculateTeamScrambleHandicap(selectedSquad.playerIds, members) : 0;
+      const netScore = Math.round(gross - teamHcp);
 
       const teamPayload = {
         date: roundDate,
@@ -281,29 +282,42 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
     }
 
     // INDIVIDUAL RECORD ROUTING
-    const payload: Record<string, any> = {
-      playerId: activeUser.id, 
-      playerName: activeUser.name, 
-      date: roundDate, 
-      courseId: selectedCourse.id, 
-      courseName: selectedCourse.name,
-      teeId: selectedTee.id, 
-      teeName: selectedTee.name, 
-      format, 
-      entryMode: manualEntryMode, 
-      holesPlayed,
-      grossScore: gross, 
-      netScore, 
-      differential, 
-      totalPutts: putts, 
-      firPercent: fir, 
-      girPercent: gir,
-      buzzballCount: manualBuzzballs,
-      holeScores: manualEntryMode === 'hole_by_hole' ? manualHoleScores : undefined,
-    };
+    // Fallback to activeUser if the selectedPlayers array is somehow empty
+    const playersToSave = selectedPlayers.length > 0 
+      ? selectedPlayers 
+      : [{ playerId: activeUser.id, name: activeUser.name, handicapIndex: activeUser.handicapIndex, courseHandicap: 0, scores: {} }];
 
     try {
-      if (onManualRoundLogged) onManualRoundLogged(payload);
+      // Loop through all selected golfers and save an individual record for each!
+      for (const p of playersToSave) {
+        const courseHandicap = Math.round((p.handicapIndex / (is9Hole ? 2 : 1)) * (slope / 113) + (rating - (is9Hole ? 36 : 72)));
+        const netScore = gross - courseHandicap;
+        const differential = Number((((gross - rating) * 113) / slope).toFixed(1));
+
+        const payload: Record<string, any> = {
+          playerId: p.playerId, 
+          playerName: p.name, 
+          date: roundDate, 
+          courseId: selectedCourse.id, 
+          courseName: selectedCourse.name,
+          teeId: selectedTee.id, 
+          teeName: selectedTee.name, 
+          format, 
+          entryMode: manualEntryMode, 
+          holesPlayed,
+          grossScore: gross, 
+          netScore, 
+          differential, 
+          totalPutts: putts, 
+          firPercent: fir, 
+          girPercent: gir,
+          buzzballCount: manualBuzzballs,
+          holeScores: manualEntryMode === 'hole_by_hole' ? manualHoleScores : undefined,
+        };
+
+        if (onManualRoundLogged) onManualRoundLogged(payload);
+      }
+
       setManualSuccessMessage(`Round successfully recorded!`);
       setTimeout(() => { setIsSubmittingManual(false); onClose(); }, 1200);
     } catch (err) {
@@ -443,7 +457,9 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                     ].map((f) => (
                       <button 
                         key={f.id} 
-                        onClick={() => setFormat(f.id as any)} 
+                        onClick={() => {
+                          setFormat(f.id as any);
+                        }} 
                         className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${format === f.id ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}
                       >
                         <span className="font-heading font-bold text-xs block leading-tight">{f.label}</span>
