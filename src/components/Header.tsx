@@ -62,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
               BAY AREA DARTS
             </span>
             <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 tracking-wider uppercase">
-              Golf Club & Handicap
+              Score and Handicap Tracker
             </span>
           </div>
         </div>
