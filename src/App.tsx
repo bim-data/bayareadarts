@@ -136,11 +136,16 @@ export default function App() {
     const cleanProfile = Object.fromEntries(
       Object.entries(updatedProfile).filter(([_, v]) => v !== undefined)
     );
-    await updateRecord('members', cleanProfile.id, cleanProfile);
+    // 🔥 FIX: Use setDoc with { merge: true } to guarantee it updates the exact ID and never throws "No document to update"
+    await setDoc(doc(db, 'members', cleanProfile.id), cleanProfile, { merge: true });
   };
 
   const handleAddNewMember = async (newMember: MemberProfile) => {
-    await addRecord('members', newMember);
+    const cleanProfile = Object.fromEntries(
+      Object.entries(newMember).filter(([_, v]) => v !== undefined)
+    );
+    // 🔥 FIX: Use setDoc directly to ensure the exact ID we generated is preserved in the database
+    await setDoc(doc(db, 'members', cleanProfile.id), cleanProfile);
   };
 
   const handleTeamCreated = async (newTeam: TeamGroup) => {
@@ -348,7 +353,8 @@ export default function App() {
       differentials: newDifferentialsList
     };
 
-    await updateRecord('members', playerId, updatedProfile);
+    // Use setDoc here too to prevent "No document to update" errors if someone manually created a user outside the app
+    await setDoc(doc(db, 'members', playerId), updatedProfile, { merge: true });
   };
 
   const handleDeletePastRound = async (roundId: string, playerId: string) => {
