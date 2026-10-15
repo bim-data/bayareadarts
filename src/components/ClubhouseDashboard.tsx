@@ -141,13 +141,13 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
               </div>
               <div className="min-w-0">
                 <span className="text-[10px] sm:text-[11px] font-bold tracking-wider text-emerald-400 uppercase block">
-                  Clubhouse & Tournament Hub
+                  Clubhouse & Score Tracker
                 </span>
                 <h1 className="font-heading font-extrabold text-xl sm:text-3xl text-white tracking-tight truncate sm:whitespace-normal">
-                  Bay Area Darts Golf Club
+                  Bay Area Darts
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-200 font-normal mt-0.5 max-w-xl line-clamp-2 sm:line-clamp-none">
-                  Live multi-device foursome scoring, official WHS handicaps, and upcoming tee time planning across Northern California munis.
+                  Round, Score, and Buzzball Tracker
                 </p>
               </div>
             </div>
