@@ -120,6 +120,24 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
   // Sort team events by newest date first
   const sortedTeamEvents = [...teamEvents].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
+  // Auto-Group Individual Rounds into Unified Leaderboards by Date + Course
+  const groupedRoundsMap = new Map<string, { date: string; courseName: string; rounds: CompletedRoundRecord[] }>();
+  completedRounds.forEach(round => {
+    const key = `${round.date}_${round.courseId}`;
+    if (!groupedRoundsMap.has(key)) {
+      groupedRoundsMap.set(key, {
+        date: round.date || '',
+        courseName: round.courseName || '',
+        rounds: []
+      });
+    }
+    groupedRoundsMap.get(key)!.rounds.push(round);
+  });
+
+  // Convert to array and sort by date descending
+  const groupedRecentRounds = Array.from(groupedRoundsMap.values())
+    .sort((a, b) => b.date.localeCompare(a.date));
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-8">
       {/* 1. Modern Clubhouse Hero Card */}
@@ -141,13 +159,13 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
               </div>
               <div className="min-w-0">
                 <span className="text-[10px] sm:text-[11px] font-bold tracking-wider text-emerald-400 uppercase block">
-                  Clubhouse & Score Tracker
+                  Clubhouse & Tournament Hub
                 </span>
                 <h1 className="font-heading font-extrabold text-xl sm:text-3xl text-white tracking-tight truncate sm:whitespace-normal">
-                  Bay Area Darts
+                  Bay Area Darts Golf Club
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-200 font-normal mt-0.5 max-w-xl line-clamp-2 sm:line-clamp-none">
-                  Round, Score, and Buzzball Tracker
+                  Live multi-device foursome scoring, official WHS handicaps, and upcoming tee time planning across Northern California munis.
                 </p>
               </div>
             </div>
@@ -521,52 +539,56 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             onDeleteFutureRound={onDeleteFutureRound}
           />
 
-          {/* B. Recent Individual Rounds (Clickable to open player history) */}
+          {/* B. Recent Individual Rounds (Grouped by Date/Course) */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-heading font-bold text-base text-slate-900 dark:text-slate-100">
                 Recent Rounds
               </h3>
               <span className="text-[11px] text-slate-400">
-                Click round to view history
+                Click a player to view history
               </span>
             </div>
 
             <div className="card-elevated rounded-2xl divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-              {completedRounds.length === 0 ? (
+              {groupedRecentRounds.length === 0 ? (
                 <div className="p-4 text-center text-xs text-slate-400">No rounds recorded yet.</div>
               ) : (
-                completedRounds.slice(0, 5).map((round) => {
-                  const m = members.find((item) => item.id === round.playerId || item.name === round.playerName);
-                  return (
-                    <div
-                      key={round.id}
-                      onClick={() => m && onSelectMemberForHistory(m, round.id)}
-                      className="p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
-                      title="Click to view player score history"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-heading font-semibold text-xs text-slate-900 dark:text-slate-100 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                          {round.courseName}
-                        </span>
-                        <div className="flex items-baseline gap-1.5 shrink-0">
-                          <span className="font-stats font-bold text-sm text-slate-900 dark:text-slate-100">
-                            {round.grossScore}
-                          </span>
-                          <span className="font-stats text-[11px] text-slate-400">
-                            ({round.netScore} net)
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        <span>{round.playerName} · {round.date}</span>
-                        <span className="font-stats text-emerald-600 dark:text-emerald-400 font-semibold">
-                          Diff: {round.differential}
-                        </span>
-                      </div>
+                groupedRecentRounds.slice(0, 5).map((group, idx) => (
+                  <div key={idx} className="p-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors group">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-heading font-extrabold text-sm text-slate-900 dark:text-slate-100 truncate">
+                        {group.courseName}
+                      </span>
+                      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 shrink-0">
+                        {group.date}
+                      </span>
                     </div>
-                  );
-                })
+                    
+                    <div className="space-y-1.5">
+                      {group.rounds.sort((a, b) => a.grossScore - b.grossScore).map(round => {
+                        const m = members.find((item) => item.id === round.playerId || item.name === round.playerName);
+                        return (
+                          <div 
+                            key={round.id}
+                            onClick={() => m && onSelectMemberForHistory(m, round.id)}
+                            className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-800/60 cursor-pointer transition-all"
+                            title="Click to view player score history"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">{m?.avatarEmoji || '🏌️'}</span>
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{round.playerName}</span>
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="font-stats font-bold text-xs text-slate-900 dark:text-slate-100">{round.grossScore}</span>
+                              <span className="font-stats text-[10px] text-slate-400 w-12 text-right">({round.netScore} net)</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>
