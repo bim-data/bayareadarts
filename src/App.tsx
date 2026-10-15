@@ -354,6 +354,19 @@ export default function App() {
     await recalculatePlayerStats(playerId, { id: roundId, _deleted: true });
   };
 
+  const handleUpdateTeamEvent = async (eventId: string, updatedData: Partial<TeamEventRecord>) => {
+    try {
+      const cleanData = JSON.parse(JSON.stringify(updatedData));
+      await updateRecord('events', eventId, cleanData);
+    } catch (error) {
+      console.error("Failed to update team event:", error);
+    }
+  };
+
+  const handleDeleteTeamEvent = async (eventId: string) => {
+    await deleteRecord('events', eventId);
+  };
+
   const handleSaveIndividualRound = async (roundData: any) => {
     const roundId = roundData.id || `round-${Date.now()}`;
     await setDoc(doc(db, 'rounds', roundId), { ...roundData, id: roundId });
@@ -586,6 +599,8 @@ export default function App() {
         courses={courses}
         onUpdatePastRound={handleUpdatePastRound}
         onDeletePastRound={handleDeletePastRound}
+        onUpdateTeamEvent={handleUpdateTeamEvent}
+        onDeleteTeamEvent={handleDeleteTeamEvent}
       />
 
       <NewRoundModal
@@ -634,6 +649,71 @@ export default function App() {
         activeUserId={activeUserId}
         onSaveIndividualRound={handleSaveIndividualRound}
         onSaveTeamEvent={handleSaveTeamEvent}
+      />
+
+      {activeSession && (
+        <>
+          <FormatScorecardModal
+            isOpen={isScorecardMatrixOpen}
+            onClose={() => setIsScorecardMatrixOpen(false)}
+            session={activeSession}
+            course={activeCourse}
+          />
+          <LeaderboardModal
+            isOpen={isLeaderboardOpen}
+            onClose={() => setIsLeaderboardOpen(false)}
+            session={activeSession}
+            course={activeCourse}
+          />
+        </>
+      )}
+
+      <CourseLibraryModal
+        isOpen={isCourseLibraryOpen}
+        onClose={() => setIsCourseLibraryOpen(false)}
+        courses={courses}
+        onAddCourse={handleAddCourse}
+        onPlanFutureRound={(courseId) => {
+          setPreselectedCourseId(courseId);
+          setIsCourseLibraryOpen(false);
+          setIsCreateFutureRoundOpen(true);
+        }}
+      />
+
+      <HandicapLeaderboardModal
+        isOpen={isHandicapOpen}
+        onClose={() => setIsHandicapOpen(false)}
+        members={members}
+        onSelectMemberForHistory={handleOpenMemberHistory}
+      />
+
+      <TeamEventsModal
+        isOpen={isTeamEventsOpen}
+        onClose={() => setIsTeamEventsOpen(false)}
+        events={teamEvents}
+        courses={courses}
+        onUpdateTeamEvent={handleUpdateTeamEvent}
+        onDeleteTeamEvent={handleDeleteTeamEvent}
+        onSelectTeamForHistory={handleOpenTeamHistory}
+      />
+
+      <PlayerHistoryModal
+        isOpen={isPlayerHistoryOpen}
+        onClose={() => {
+          setIsPlayerHistoryOpen(false);
+          setSelectedHistoryRoundId(undefined);
+        }}
+        member={selectedMemberForHistory}
+        rounds={completedRounds}
+        teamEvents={teamEvents}
+        activeUserId={activeUserId}
+        onOpenEditProfile={() => handleOpenClubhouseHub('profiles')}
+        courses={courses}
+        onUpdatePastRound={handleUpdatePastRound}
+        onDeletePastRound={handleDeletePastRound}
+        onUpdateTeamEvent={handleUpdateTeamEvent}
+        onDeleteTeamEvent={handleDeleteTeamEvent}
+        initialExpandedRoundId={selectedHistoryRoundId}
       />
 
       {activeSession && (
