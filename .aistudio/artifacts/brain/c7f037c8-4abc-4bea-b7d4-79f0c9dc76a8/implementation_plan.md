@@ -1,163 +1,106 @@
-# YAML Flat-File Storage & GitHub Pages Static Hosting Architecture
+# Inline 9/9 Scorecard Editor & Past Round Entry
 
-Enable Bay Area Darts to run as a high-performance web application on GitHub Pages with zero blank-page errors, backed by human-readable separate YAML flat data files (`courses.yaml`, `members.yaml`, `teams.yaml`, `rounds.yaml`), 1-click YAML export and import tools to sync changes directly into your Git backup, and automated GitHub Actions deployment.
+Redesign the past round entry modal (`NewRoundModal`) and the expandable round editor (`ExpandableRoundCard`) to replace grid-based hole cards with a unified 9/9 top/bottom scorecard layout featuring inline score/putt steppers and live totals.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The following architectural decisions were confirmed with the user and shape this revised implementation plan:
-
-- **Confirmed Decision 1 (Separate YAML Flat Files)**: The primary data records will be structured as individual human-readable YAML files in a `data/` directory:
-  - `data/courses.yaml`: Course specs, tee boxes, yardages, hole pars, and handicap indexes.
-  - `data/members.yaml`: Golfer profiles, handicaps, differentials, and scoring averages.
-  - `data/teams.yaml`: Pre-configured scramble squads (1P, 2P, 3P, 4P) and rosters.
-  - `data/rounds.yaml`: Completed historical scorecards, gross/net scores, and hole details.
-  - `data/future-rounds.yaml`: Upcoming muni placeholders, confirmed dates, and RSVPs.
-- **Confirmed Decision 2 (Export & Import YAML for Git Backups)**: Because GitHub Pages is a static host without write permissions to the repository's git commit tree, the application will provide a dedicated **Clubhouse YAML Manager**:
-  - **1-Click YAML Export**: Golfers can download updated `members.yaml`, `rounds.yaml`, or all data files in one click after logging rounds to easily commit them to their Git repository.
-  - **Drag-and-Drop YAML Import**: Golfers can upload any updated YAML file to immediately hydrate or sync the browser state.
-- **Confirmed Decision 3 (Dual-Mode Local Disk Sync in Dev)**: When running locally or in AI Studio, `server.ts` will directly read and write to the `data/*.yaml` files on disk, ensuring changes made in development are saved straight to the YAML files.
-- **Confirmed Decision 4 (Relative Asset Paths for GitHub Pages)**: Set Vite `base: './'` so all compiled JavaScript, CSS, fonts, and images resolve accurately whether hosted on GitHub Pages (`https://<user>.github.io/<repo>/`), at a custom domain, or locally.
-- **Confirmed Decision 5 (Automated GitHub Actions Deployment)**: Provide a `.github/workflows/deploy.yml` workflow that automatically tests, builds, and deploys the site to GitHub Pages on every push to `main`.
+> Based on your clarifying choices:
+> 1. **Inline Stepper Controls**: Scores and putts will be adjusted directly in each hole cell using compact `+` and `-` stepper buttons with clear visual contrast.
+> 2. **Dedicated Putts Row**: A dedicated `Putts` row sits directly below the `Score` row for each 9-hole section (Hole, Par, Score, Putts).
+> 3. **Target Scope**: Applied to both round editing (`ExpandableRoundCard`) and manual new round score entry (`NewRoundModal`). Live in-round tracking (`ActiveGameModal` / live match play) remains untouched.
 
 ---
 
-## 1. Overview & Core Concept
+### 1. Overview & Core Concept
 
-- **What It Does**:
-  1. **Solves the Blank White Page**: Fixes the 3 root causes of GitHub Pages loading errors: relative asset path resolution (`base: './'`), automated production compilation (`dist/`), and client-side independence from the local Express server.
-  2. **Human-Readable YAML Storage**: Moves away from opaque binary or database stores to clean, git-diffable YAML files that you can view, edit, and back up directly in GitHub.
-  3. **Git-Synced Clubhouse Workflow**: Users can score rounds or manage scramble squads on GitHub Pages, export the updated YAML files, and push them to GitHub to keep their repository fully up to date.
-- **Target Audience / Persona**: Bay Area Darts golfers backing up their club records on GitHub and using GitHub Pages for mobile live scoring and clubhouse tracking.
-- **Key Value**: 100% free hosting, version-controlled club records in clean YAML, and a responsive web app that never shows a blank page.
+Currently, editing a past round or entering a new round hole-by-hole displays an arbitrary grid of separate cards (2x9 or 3x6) that is difficult to visually scan like a traditional golf scorecard.
+
+This update converts both interfaces into the authentic 9/9 two-deck scorecard format (Front 9 on top, Back 9 on bottom), where golfers can immediately read holes 1–9 and 10–18 horizontally, check course par, tweak strokes and putts with inline steppers, and watch OUT, IN, and TOT column sums update in real time.
 
 ---
 
-## 2. User Experience & Visual Design
+### 2. User Experience & Visual Design
 
-### Key User Flows
+#### A. 9/9 Top/Bottom Scorecard Layout
+Each 9-hole section contains:
+1. **Hole Header Row**: Hole numbers (1–9 or 10–18) plus `OUT` / `IN`.
+2. **Par Row**: Hole par figures plus subtotal course par.
+3. **Score Row (Strokes)**:
+   - Hole cell with compact `–` and `+` buttons flanking the stroke count.
+   - Dynamic score badges (circle for birdie/better, soft tint for par, square for bogey/higher) matching the standard scorecard design.
+   - Subtotal gross score in the `OUT` / `IN` column updating instantly.
+4. **Putts Row**:
+   - Sub-row labeled `Putts` with compact `–` and `+` stepper buttons and emerald putts counter.
+   - `OUT` / `IN` putts subtotal.
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        GITHUB PAGES & YAML WORKFLOW                    │
-│                                                                        │
-│   1. USER VISITS GITHUB PAGES                                          │
-│      • Browser downloads compiled SPA bundle via relative paths        │
-│      • App parses bundled data/*.yaml files (courses, members, squads) │
-│      • Instant dashboard load with zero network errors                 │
-│                                                                        │
-│   2. USER PLAYS & LOGS ROUNDS                                          │
-│      • Scores hole-by-hole, records putts, FIR/GIR, scramble honors    │
-│      • Round stats immediately update in browser state & localStorage  │
-│                                                                        │
-│   3. USER BACKS UP TO GITHUB (EXPORT YAML)                             │
-│      • Opens Clubhouse Roster & Teams ──► "YAML Backup & Git Sync"     │
-│      • Clicks "Export Updated YAML Files" (or single rounds.yaml)      │
-│      • Drops files into repository folder & commits to GitHub:         │
-│          git commit -am "Log Harding Park round" && git push           │
-│      • GitHub Actions builds & redeploys latest records automatically  │
-└────────────────────────────────────────────────────────────────────────┘
-```
+#### B. Unified Top-to-Bottom Total Column
+- Flush against the right edge of OUT and IN with zero empty gap.
+- Displays `TOT` header, full 18-hole par total, and real-time total gross score (and total putts).
+- Centered in the drawer/modal window (`w-fit mx-auto`) with responsive horizontal scroll for mobile devices.
 
-### Visual & Interactive Preservation
-- **Preserve Existing UI**: The dark/emerald clubhouse design, comic-style badges, live scorecards, and scramble squad builders remain untouched.
-- **Clubhouse YAML Management Modal / Tab**: Integrated into `ClubhouseHubModal`:
-  - Clean card displaying flat-file status: `courses.yaml`, `members.yaml`, `teams.yaml`, `rounds.yaml`.
-  - Buttons: `Download All YAML`, `Export rounds.yaml`, `Import / Restore YAML`.
-  - Copyable Git command helper: `git commit -am "Update club records" && git push`.
+#### C. Controls & Actions
+- **Round Editor (`ExpandableRoundCard`)**:
+  - Header toolbar retains Date picker, Drinks counter, Delete button, Cancel button, and Save button.
+  - Clicking Save persists updated hole scores, gross score, and putts to history.
+- **Manual New Round (`NewRoundModal`)**:
+  - Retains "⚡ Quick Par All Holes" button to prefill par across all holes with one click.
+  - Drinks selector and Submit round button positioned cleanly below the scorecard.
 
 ---
 
-## 3. Key Product Decisions & Trade-Offs
+### 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Separate YAML Files vs. Monolithic File**
-  - *Chosen Approach*: Separate YAML files (`courses.yaml`, `members.yaml`, `teams.yaml`, `rounds.yaml`, `future-rounds.yaml`).
-  - *Why*: Much cleaner Git diffs. Modifying member handicaps doesn't dirty the course list; logging a round only changes `rounds.yaml` and `members.yaml`.
-  - *Alternatives Considered*: Single `clubhouse.yaml` (confirmed rejected by user preference).
-- **Decision 2: Client-Side YAML Parser (`js-yaml`) vs. Pre-compiling to JSON**
-  - *Chosen Approach*: Use `js-yaml` in both Vite frontend and Express server, bundling raw YAML files via Vite.
-  - *Why*: Allows true dynamic import and export of `.yaml` files in the browser without requiring a Node build step for exports.
-  - *Alternatives Considered*: JSON only (confirmed preference for YAML).
-- **Decision 3: Export/Import vs. GitHub Personal Access Token (PAT)**
-  - *Chosen Approach*: 1-click YAML file export and drag-and-drop import.
-  - *Why*: Safe and frictionless. Asking golfers to generate GitHub Personal Access Tokens and store them in browser storage creates security risks and setup friction.
-  - *Alternatives Considered*: In-browser GitHub API commit tool via PAT.
+- **Dedicated Putts Row vs. Nested Sub-Badges**:
+  - *Decision*: A dedicated `Putts` row directly under the `Score` row for both Front 9 and Back 9.
+  - *Why*: Keeps stroke stepper buttons uncluttered, large enough for touch targets, and aligns with standard multi-row printed scorecards.
+- **Intrinsic Fit Width (`w-fit mx-auto`)**:
+  - *Decision*: Keep the scorecard snug to its 528px content width without stretched gaps between OUT/IN and TOT, centered in the container.
+  - *Why*: Prevents empty black void gaps on wide monitors while ensuring mobile viewports scroll horizontally.
 
 ---
 
-## 4. Technical Architecture & Data Strategy
+### 4. Technical Architecture & Data Strategy
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                              FRONTEND (VITE / REACT)                   │
-│                                                                        │
-│   ┌────────────────────────────────────────────────────────────────┐   │
-│   │                      src/App.tsx                               │   │
-│   │  • Clubhouse views, live scoring, modals                       │   │
-│   └───────────────────────────────┬────────────────────────────────┘   │
-│                                   │                                    │
-│                                   ▼                                    │
-│   ┌────────────────────────────────────────────────────────────────┐   │
-│   │                 src/services/yamlStorage.ts                    │   │
-│   │  • Parses & formats YAML using js-yaml                         │   │
-│   │  • Loads initial data from data/*.yaml                         │   │
-│   │  • In-memory cache + localStorage fallback                     │   │
-│   │  • Export functions: exportYamlFile(), exportAllZip()          │   │
-│   │  • Import function: importYamlFile()                           │   │
-│   └───────────────────────┬────────────────────────┬───────────────┘   │
-│                           │                        │                   │
-│         (Local Node.js)   ▼                        ▼  (GitHub Pages)   │
-│   ┌───────────────────────────────┐        ┌───────────────────────┐   │
-│   │          server.ts            │        │   Browser Memory /    │   │
-│   │   Reads/Writes data/*.yaml    │        │      localStorage     │   │
-│   │       directly to disk        │        │   + 1-Click Export    │   │
-│   └───────────────────────────────┘        └───────────────────────┘   │
-└────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                         FLAT DATA REPOSITORY FILES                     │
-│                                                                        │
-│   • data/courses.yaml       (Pars, yardages, slopes, tees)             │
-│   • data/members.yaml       (Profiles, WHS indexes, scoring averages)  │
-│   • data/teams.yaml         (1P, 2P, 3P, 4P Scramble squads & rosters) │
-│   • data/rounds.yaml        (Completed hole-by-hole scorecards)        │
-│   • data/future-rounds.yaml (Upcoming dates, RSVPs, reminders)         │
-└────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    ExpandableRoundCard / NewRoundModal      │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ Controls Header: Date | Drinks | Quick Par | Save/Submit│  │
+│  └────────────────────────────────────────────────────────┘  │
+│                                                             │
+│  ┌──────────────────────────────────────────────┬─────────┐  │
+│  │ FRONT 9 (Holes 1–9)                          │   OUT   │  │
+│  │ • Hole Header: 1  2  3  4  5  6  7  8  9     │   OUT   │  │
+│  │ • Par Row:     4  4  3  5  4  4  3  5  4     │    36   │  │
+│  │ • Score Row:  [-] 4 [+] ... [-] 5 [+]        │    39   │  │
+│  │ • Putts Row:  [-] 2 [+] ... [-] 2 [+]        │    18   │  │
+│  ├──────────────────────────────────────────────┼─────────┤  │
+│  │ BACK 9 (Holes 10–18)                         │   IN    │  │
+│  │ • Hole Header: 10 11 12 13 14 15 16 17 18    │   IN    │  │
+│  │ • Par Row:     4  5  3  4  4  3  5  4  4     │    36   │  │
+│  │ • Score Row:  [-] 4 [+] ... [-] 4 [+]        │    39   │  │
+│  │ • Putts Row:  [-] 2 [+] ... [-] 2 [+]        │    17   │  │
+│  └──────────────────────────────────────────────┴─────────┘  │
+│                            │                                 │
+│                            ▼                                 │
+│                 ┌────────────────────┐                       │
+│                 │ TOTAL (TOT) Column │  (Spanning Top-to-    │
+│                 │ • TOT Header       │   Bottom Flush Right) │
+│                 │ • Par 72           │                       │
+│                 │ • Gross: 78        │                       │
+│                 │ • Putts: 35        │                       │
+│                 └────────────────────┘                       │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Component & Build Strategy Details
-
-1. **Flat YAML Data Directory (`data/`)**:
-   - `data/courses.yaml`: Converted from `src/data/courses.ts` into clean, human-readable YAML.
-   - `data/members.yaml`: Converted from `src/data/members.ts`.
-   - `data/teams.yaml`: Converted from `INITIAL_SCRAMBLE_TEAMS`.
-   - `data/rounds.yaml`: Converted from initial completed rounds.
-   - `data/future-rounds.yaml`: Converted from `INITIAL_FUTURE_ROUNDS`.
-
-2. **YAML Parser & Storage Service (`src/services/yamlStorage.ts`)**:
-   - Uses `js-yaml` to serialize and deserialize data models.
-   - Dual-mode sync:
-     - On GitHub Pages: Reads bundled YAML, saves user edits to browser storage, provides `exportYaml(type)` download triggers.
-     - In Node dev (`server.ts`): Reads and writes directly to `data/*.yaml` using `fs.promises`.
-
-3. **Clubhouse YAML Management Modal (`src/components/YamlBackupModal.tsx`)**:
-   - Integrated into `ClubhouseHubModal` and dashboard.
-   - Shows file statuses with last-modified timestamps and item counts.
-   - 1-click download buttons:
-     - `Download All YAML Files (.zip or multi-file)`
-     - `Download rounds.yaml`
-     - `Download members.yaml`
-     - `Download teams.yaml`
-   - Drag & drop dropzone to load external YAML files into the app.
-
-4. **Vite Configuration (`vite.config.ts`)**:
-   - `base: './'` for relative asset links.
-   - Configure raw loader / asset handling for `.yaml` files.
-
-5. **GitHub Actions Workflow (`.github/workflows/deploy.yml`)**:
-   - Automatically builds on push to `main` branch.
-   - Deploys `dist/` directly to GitHub Pages using official GitHub Actions (`actions/deploy-pages@v4`).
-
-6. **GitHub Pages SPA Fallback (`public/404.html`)**:
-   - Prevents 404 errors on deep links and browser reloads on GitHub Pages.
+#### Component & State Handlers
+1. **`ExpandableRoundCard.tsx`**:
+   - `editScores` state (`Record<number, HoleScore>`) drives the score and putt steppers.
+   - Real-time `outGross`, `inGross`, `totalGross`, `outPutts`, `inPutts`, and `totalPutts` computed dynamically as steppers are clicked.
+   - `handleSaveEdit` aggregates scores and calls `onUpdatePastRound`.
+2. **`NewRoundModal.tsx`**:
+   - `manualHoleScores` state (`Record<number, HoleScore>`) drives the scorecard table in `manualEntryMode === 'hole_by_hole'`.
+   - `handleUpdateManualHole(hNum, strokes, putts)` updates cell values.
+   - `handleQuickParAllHoles` populates pars across all 18 holes.
+   - Single 9-hole rounds (`front_9` or `back_9`) supported dynamically by showing only the active half.

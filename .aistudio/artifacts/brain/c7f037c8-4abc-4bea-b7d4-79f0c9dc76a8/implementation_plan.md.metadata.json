@@ -1,6 +1,6 @@
 {
-  "summary": "Revised implementation plan incorporating separate YAML flat file storage (courses.yaml, members.yaml, teams.yaml, rounds.yaml), browser YAML export/import workflows for Git backups, relative Vite asset paths (base: './'), and automated GitHub Actions deployment for GitHub Pages.",
-  "updatedAt": "2026-10-12T15:26:44.671174179Z",
+  "summary": "Implementation plan for redesigning score editing and past round entry into an inline 9/9 top/bottom scorecard table with stepper buttons and dedicated putts rows.",
+  "updatedAt": "2026-10-15T16:05:39.408998806Z",
   "requestFeedback": true,
   "userFacing": true
 }

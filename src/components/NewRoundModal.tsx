@@ -642,36 +642,429 @@ export const NewRoundModal: React.FC<NewRoundModalProps> = ({
                       </div>
                     ) : (
                       <>
-                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                          {Array.from({ length: 18 }, (_, idx) => idx + 1)
-                            .filter(hNum => holesPlayed === '18' ? true : holesPlayed === 'front_9' ? hNum <= 9 : hNum >= 10)
-                            .map((hNum) => {
-                            const par = selectedCourse?.holes.find((h) => h.number === hNum)?.par || 4;
-                            const score = manualHoleScores[hNum]?.strokes || par;
-                            const putts = manualHoleScores[hNum]?.putts || 2;
-                            const diff = score - par;
-                            return (
-                              <div key={hNum} className={`p-2 rounded-xl border text-center transition-all ${diff < 0 ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800' : diff === 0 ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700'}`}>
-                                <div className="flex items-center justify-between text-[11px] text-slate-400 font-bold mb-1">
-                                  <span>#{hNum}</span>
-                                  <span>P{par}</span>
-                                </div>
-                                <div className="flex justify-center gap-1 mb-1.5">
-                                  <button onClick={() => handleUpdateManualHole(hNum, score - 1, putts)} className="w-6 h-6 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs cursor-pointer">-</button>
-                                  <span className="font-stats font-extrabold text-sm w-5 text-slate-900 dark:text-slate-100">{score}</span>
-                                  <button onClick={() => handleUpdateManualHole(hNum, score + 1, putts)} className="w-6 h-6 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-2xs cursor-pointer">+</button>
-                                </div>
-                                <div className="flex justify-center gap-1 pt-1.5 border-t border-slate-200/50 dark:border-slate-700/50">
-                                  <button onClick={() => handleUpdateManualHole(hNum, score, putts - 1)} className="w-5 h-5 rounded bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold text-[10px] shadow-2xs cursor-pointer">-</button>
-                                  <div className="flex flex-col items-center justify-center w-6">
-                                    <span className="text-[8px] uppercase font-bold text-slate-400 leading-none">Putts</span>
-                                    <span className="font-stats font-bold text-xs text-emerald-600 dark:text-emerald-400 leading-tight">{putts}</span>
+                        <div className="overflow-x-auto py-1">
+                          <div className="w-fit mx-auto border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
+                            {holesPlayed === '18' ? (
+                              <div className="flex w-fit">
+                                {/* Front 9 and Back 9 */}
+                                <div className="shrink-0">
+                                  {/* Front 9 */}
+                                  <div className="border-b border-slate-200 dark:border-slate-800">
+                                    {/* Header */}
+                                    <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/80">
+                                      <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Hole</div>
+                                      {Array.from({length: 9}, (_, i) => i + 1).map(h => (
+                                        <div key={h} className="w-12 shrink-0 p-2 text-center text-[11px] font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700">{h}</div>
+                                      ))}
+                                      <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-slate-700 dark:text-white bg-slate-200 dark:bg-slate-700 border-r border-slate-200 dark:border-slate-700">
+                                        OUT
+                                      </div>
+                                    </div>
+                                    {/* Par */}
+                                    <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                                      <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Par</div>
+                                      {Array.from({length: 9}, (_, i) => i + 1).map(h => {
+                                        const p = selectedCourse?.holes.find(hole => hole.number === h)?.par || 4;
+                                        return <div key={h} className="w-12 shrink-0 p-2 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 dark:border-slate-700">{p}</div>;
+                                      })}
+                                      <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 border-r border-slate-200 dark:border-slate-700">
+                                        {Array.from({length: 9}, (_, i) => selectedCourse?.holes.find(h => h.number === i + 1)?.par || 4).reduce((a, b) => a + b, 0)}
+                                      </div>
+                                    </div>
+                                    {/* Score */}
+                                    <div className="flex items-center bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+                                      <div className="w-16 shrink-0 p-2 border-r border-slate-200 dark:border-slate-700 flex flex-col justify-center">
+                                        <span className="text-[11px] font-bold text-slate-900 dark:text-white leading-tight truncate">Score</span>
+                                      </div>
+                                      {Array.from({length: 9}, (_, i) => i + 1).map(h => {
+                                        const par = selectedCourse?.holes.find(hole => hole.number === h)?.par || 4;
+                                        const score = manualHoleScores[h]?.strokes || par;
+                                        const putts = manualHoleScores[h]?.putts ?? 2;
+                                        return (
+                                          <div key={h} className="w-12 h-10 shrink-0 flex items-center justify-center font-stats text-sm border-r border-slate-100 dark:border-slate-800/50">
+                                            <div className="flex items-center justify-center gap-0.5">
+                                              <button
+                                                type="button"
+                                                onClick={() => handleUpdateManualHole(h, Math.max(1, score - 1), putts)}
+                                                className="w-3.5 h-6 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center cursor-pointer transition-colors"
+                                              >
+                                                -
+                                              </button>
+                                              <span className="font-stats font-bold text-xs w-3.5 text-center text-slate-900 dark:text-slate-100">
+                                                {score}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleUpdateManualHole(h, score + 1, putts)}
+                                                className="w-3.5 h-6 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center cursor-pointer transition-colors"
+                                              >
+                                                +
+                                              </button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                      <div className="w-12 shrink-0 h-10 flex items-center justify-center font-stats text-sm font-bold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/30 border-r border-slate-200 dark:border-slate-700">
+                                        {Array.from({length: 9}, (_, i) => {
+                                          const h = i + 1;
+                                          const par = selectedCourse?.holes.find(hole => hole.number === h)?.par || 4;
+                                          return manualHoleScores[h]?.strokes || par;
+                                        }).reduce((a, b) => a + b, 0)}
+                                      </div>
+                                    </div>
+                                    {/* Putts */}
+                                    <div className="flex items-center bg-slate-50/70 dark:bg-slate-900/40">
+                                      <div className="w-16 shrink-0 p-1.5 border-r border-slate-200 dark:border-slate-700 text-left">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Putts</span>
+                                      </div>
+                                      {Array.from({length: 9}, (_, i) => i + 1).map(h => {
+                                        const par = selectedCourse?.holes.find(hole => hole.number === h)?.par || 4;
+                                        const score = manualHoleScores[h]?.strokes || par;
+                                        const putts = manualHoleScores[h]?.putts ?? 2;
+                                        return (
+                                          <div key={h} className="w-12 h-8 shrink-0 flex items-center justify-center font-stats text-xs border-r border-slate-100 dark:border-slate-800/50">
+                                            <div className="flex items-center justify-center gap-0.5">
+                                              <button
+                                                type="button"
+                                                onClick={() => handleUpdateManualHole(h, score, Math.max(0, putts - 1))}
+                                                className="w-3.5 h-5 rounded bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 font-bold text-[10px] flex items-center justify-center cursor-pointer transition-colors"
+                                              >
+                                                -
+                                              </button>
+                                              <span className="font-stats font-bold text-xs w-3.5 text-center text-emerald-600 dark:text-emerald-400">
+                                                {putts}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleUpdateManualHole(h, score, putts + 1)}
+                                                className="w-3.5 h-5 rounded bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 font-bold text-[10px] flex items-center justify-center cursor-pointer transition-colors"
+                                              >
+                                                +
+                                              </button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                      <div className="w-12 shrink-0 h-8 flex items-center justify-center font-stats text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-slate-100/50 dark:bg-slate-800/40 border-r border-slate-200 dark:border-slate-700">
+                                        {Array.from({length: 9}, (_, i) => manualHoleScores[i + 1]?.putts ?? 2).reduce((a, b) => a + b, 0)}
+                                      </div>
+                                    </div>
                                   </div>
-                                  <button onClick={() => handleUpdateManualHole(hNum, score, putts + 1)} className="w-5 h-5 rounded bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-bold text-[10px] shadow-2xs cursor-pointer">+</button>
+
+                                  {/* Back 9 */}
+                                  <div>
+                                    {/* Header */}
+                                    <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/80">
+                                      <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Hole</div>
+                                      {Array.from({length: 9}, (_, i) => i + 10).map(h => (
+                                        <div key={h} className="w-12 shrink-0 p-2 text-center text-[11px] font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700">{h}</div>
+                                      ))}
+                                      <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-slate-700 dark:text-white bg-slate-200 dark:bg-slate-700 border-r border-slate-200 dark:border-slate-700">
+                                        IN
+                                      </div>
+                                    </div>
+                                    {/* Par */}
+                                    <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                                      <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Par</div>
+                                      {Array.from({length: 9}, (_, i) => i + 10).map(h => {
+                                        const p = selectedCourse?.holes.find(hole => hole.number === h)?.par || 4;
+                                        return <div key={h} className="w-12 shrink-0 p-2 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 dark:border-slate-700">{p}</div>;
+                                      })}
+                                      <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 border-r border-slate-200 dark:border-slate-700">
+                                        {Array.from({length: 9}, (_, i) => selectedCourse?.holes.find(h => h.number === i + 10)?.par || 4).reduce((a, b) => a + b, 0)}
+                                      </div>
+                                    </div>
+                                    {/* Score */}
+                                    <div className="flex items-center bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+                                      <div className="w-16 shrink-0 p-2 border-r border-slate-200 dark:border-slate-700 flex flex-col justify-center">
+                                        <span className="text-[11px] font-bold text-slate-900 dark:text-white leading-tight truncate">Score</span>
+                                      </div>
+                                      {Array.from({length: 9}, (_, i) => i + 10).map(h => {
+                                        const par = selectedCourse?.holes.find(hole => hole.number === h)?.par || 4;
+                                        const score = manualHoleScores[h]?.strokes || par;
+                                        const putts = manualHoleScores[h]?.putts ?? 2;
+                                        return (
+                                          <div key={h} className="w-12 h-10 shrink-0 flex items-center justify-center font-stats text-sm border-r border-slate-100 dark:border-slate-800/50">
+                                            <div className="flex items-center justify-center gap-0.5">
+                                              <button
+                                                type="button"
+                                                onClick={() => handleUpdateManualHole(h, Math.max(1, score - 1), putts)}
+                                                className="w-3.5 h-6 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center cursor-pointer transition-colors"
+                                              >
+                                                -
+                                              </button>
+                                              <span className="font-stats font-bold text-xs w-3.5 text-center text-slate-900 dark:text-slate-100">
+                                                {score}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleUpdateManualHole(h, score + 1, putts)}
+                                                className="w-3.5 h-6 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center cursor-pointer transition-colors"
+                                              >
+                                                +
+                                              </button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                      <div className="w-12 shrink-0 h-10 flex items-center justify-center font-stats text-sm font-bold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/30 border-r border-slate-200 dark:border-slate-700">
+                                        {Array.from({length: 9}, (_, i) => {
+                                          const h = i + 10;
+                                          const par = selectedCourse?.holes.find(hole => hole.number === h)?.par || 4;
+                                          return manualHoleScores[h]?.strokes || par;
+                                        }).reduce((a, b) => a + b, 0)}
+                                      </div>
+                                    </div>
+                                    {/* Putts */}
+                                    <div className="flex items-center bg-slate-50/70 dark:bg-slate-900/40">
+                                      <div className="w-16 shrink-0 p-1.5 border-r border-slate-200 dark:border-slate-700 text-left">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Putts</span>
+                                      </div>
+                                      {Array.from({length: 9}, (_, i) => i + 10).map(h => {
+                                        const par = selectedCourse?.holes.find(hole => hole.number === h)?.par || 4;
+                                        const score = manualHoleScores[h]?.strokes || par;
+                                        const putts = manualHoleScores[h]?.putts ?? 2;
+                                        return (
+                                          <div key={h} className="w-12 h-8 shrink-0 flex items-center justify-center font-stats text-xs border-r border-slate-100 dark:border-slate-800/50">
+                                            <div className="flex items-center justify-center gap-0.5">
+                                              <button
+                                                type="button"
+                                                onClick={() => handleUpdateManualHole(h, score, Math.max(0, putts - 1))}
+                                                className="w-3.5 h-5 rounded bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 font-bold text-[10px] flex items-center justify-center cursor-pointer transition-colors"
+                                              >
+                                                -
+                                              </button>
+                                              <span className="font-stats font-bold text-xs w-3.5 text-center text-emerald-600 dark:text-emerald-400">
+                                                {putts}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleUpdateManualHole(h, score, putts + 1)}
+                                                className="w-3.5 h-5 rounded bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 font-bold text-[10px] flex items-center justify-center cursor-pointer transition-colors"
+                                              >
+                                                +
+                                              </button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                      <div className="w-12 shrink-0 h-8 flex items-center justify-center font-stats text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-slate-100/50 dark:bg-slate-800/40 border-r border-slate-200 dark:border-slate-700">
+                                        {Array.from({length: 9}, (_, i) => manualHoleScores[i + 10]?.putts ?? 2).reduce((a, b) => a + b, 0)}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Total Column */}
+                                <div className="w-14 sm:w-16 shrink-0 flex flex-col bg-emerald-50/50 dark:bg-emerald-950/20">
+                                  <div className="p-2 text-center text-[11px] font-extrabold text-white bg-emerald-600 border-b border-emerald-700/60">
+                                    TOT
+                                  </div>
+                                  <div className="p-2 text-center text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-900/40 border-b border-emerald-200/60 dark:border-emerald-800/50">
+                                    {Array.from({length: 18}, (_, i) => selectedCourse?.holes.find(h => h.number === i + 1)?.par || 4).reduce((a, b) => a + b, 0)}
+                                  </div>
+                                  <div className="flex-1 flex flex-col items-center justify-center p-2 text-center">
+                                    <span className="font-stats font-extrabold text-base sm:text-lg text-emerald-600 dark:text-emerald-400 leading-none">
+                                      {Array.from({length: 18}, (_, i) => {
+                                        const h = i + 1;
+                                        const par = selectedCourse?.holes.find(hole => hole.number === h)?.par || 4;
+                                        return manualHoleScores[h]?.strokes || par;
+                                      }).reduce((a, b) => a + b, 0)}
+                                    </span>
+                                    <span className="text-[9px] font-bold text-emerald-700/80 dark:text-emerald-400/80 font-stats mt-1">
+                                      {Array.from({length: 18}, (_, i) => manualHoleScores[i + 1]?.putts ?? 2).reduce((a, b) => a + b, 0)} Putts
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
-                            );
-                          })}
+                            ) : holesPlayed === 'front_9' ? (
+                              /* 9-hole Front 9 */
+                              <div className="overflow-hidden">
+                                <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/80">
+                                  <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Hole</div>
+                                  {Array.from({length: 9}, (_, i) => i + 1).map(h => (
+                                    <div key={h} className="w-12 shrink-0 p-2 text-center text-[11px] font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700">{h}</div>
+                                  ))}
+                                  <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-white bg-emerald-600">TOT</div>
+                                </div>
+                                <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                                  <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Par</div>
+                                  {Array.from({length: 9}, (_, i) => i + 1).map(h => {
+                                    const p = selectedCourse?.holes.find(hole => hole.number === h)?.par || 4;
+                                    return <div key={h} className="w-12 shrink-0 p-2 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 dark:border-slate-700">{p}</div>;
+                                  })}
+                                  <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20">
+                                    {Array.from({length: 9}, (_, i) => selectedCourse?.holes.find(h => h.number === i + 1)?.par || 4).reduce((a, b) => a + b, 0)}
+                                  </div>
+                                </div>
+                                <div className="flex items-center bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+                                  <div className="w-16 shrink-0 p-2 border-r border-slate-200 dark:border-slate-700 flex flex-col justify-center">
+                                    <span className="text-[11px] font-bold text-slate-900 dark:text-white leading-tight truncate">Score</span>
+                                  </div>
+                                  {Array.from({length: 9}, (_, i) => i + 1).map(h => {
+                                    const par = selectedCourse?.holes.find(hole => hole.number === h)?.par || 4;
+                                    const score = manualHoleScores[h]?.strokes || par;
+                                    const putts = manualHoleScores[h]?.putts ?? 2;
+                                    return (
+                                      <div key={h} className="w-12 h-10 shrink-0 flex items-center justify-center font-stats text-sm border-r border-slate-100 dark:border-slate-800/50">
+                                        <div className="flex items-center justify-center gap-0.5">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateManualHole(h, Math.max(1, score - 1), putts)}
+                                            className="w-3.5 h-6 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center cursor-pointer transition-colors"
+                                          >
+                                            -
+                                          </button>
+                                          <span className="font-stats font-bold text-xs w-3.5 text-center text-slate-900 dark:text-slate-100">{score}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateManualHole(h, score + 1, putts)}
+                                            className="w-3.5 h-6 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center cursor-pointer transition-colors"
+                                          >
+                                            +
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                  <div className="w-12 shrink-0 h-10 flex items-center justify-center font-stats text-sm font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/10">
+                                    {Array.from({length: 9}, (_, i) => {
+                                      const h = i + 1;
+                                      const par = selectedCourse?.holes.find(hole => hole.number === h)?.par || 4;
+                                      return manualHoleScores[h]?.strokes || par;
+                                    }).reduce((a, b) => a + b, 0)}
+                                  </div>
+                                </div>
+                                <div className="flex items-center bg-slate-50/70 dark:bg-slate-900/40">
+                                  <div className="w-16 shrink-0 p-1.5 border-r border-slate-200 dark:border-slate-700 text-left">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Putts</span>
+                                  </div>
+                                  {Array.from({length: 9}, (_, i) => i + 1).map(h => {
+                                    const par = selectedCourse?.holes.find(hole => hole.number === h)?.par || 4;
+                                    const score = manualHoleScores[h]?.strokes || par;
+                                    const putts = manualHoleScores[h]?.putts ?? 2;
+                                    return (
+                                      <div key={h} className="w-12 h-8 shrink-0 flex items-center justify-center font-stats text-xs border-r border-slate-100 dark:border-slate-800/50">
+                                        <div className="flex items-center justify-center gap-0.5">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateManualHole(h, score, Math.max(0, putts - 1))}
+                                            className="w-3.5 h-5 rounded bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 font-bold text-[10px] flex items-center justify-center cursor-pointer transition-colors"
+                                          >
+                                            -
+                                          </button>
+                                          <span className="font-stats font-bold text-xs w-3.5 text-center text-emerald-600 dark:text-emerald-400">{putts}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateManualHole(h, score, putts + 1)}
+                                            className="w-3.5 h-5 rounded bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 font-bold text-[10px] flex items-center justify-center cursor-pointer transition-colors"
+                                          >
+                                            +
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                  <div className="w-12 shrink-0 h-8 flex items-center justify-center font-stats text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-slate-100/50 dark:bg-slate-800/40">
+                                    {Array.from({length: 9}, (_, i) => manualHoleScores[i + 1]?.putts ?? 2).reduce((a, b) => a + b, 0)}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              /* 9-hole Back 9 */
+                              <div className="overflow-hidden">
+                                <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/80">
+                                  <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Hole</div>
+                                  {Array.from({length: 9}, (_, i) => i + 10).map(h => (
+                                    <div key={h} className="w-12 shrink-0 p-2 text-center text-[11px] font-bold text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700">{h}</div>
+                                  ))}
+                                  <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-white bg-emerald-600">TOT</div>
+                                </div>
+                                <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                                  <div className="w-16 shrink-0 p-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left border-r border-slate-200 dark:border-slate-700">Par</div>
+                                  {Array.from({length: 9}, (_, i) => i + 10).map(h => {
+                                    const p = selectedCourse?.holes.find(hole => hole.number === h)?.par || 4;
+                                    return <div key={h} className="w-12 shrink-0 p-2 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 dark:border-slate-700">{p}</div>;
+                                  })}
+                                  <div className="w-12 shrink-0 p-2 text-center text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20">
+                                    {Array.from({length: 9}, (_, i) => selectedCourse?.holes.find(h => h.number === i + 10)?.par || 4).reduce((a, b) => a + b, 0)}
+                                  </div>
+                                </div>
+                                <div className="flex items-center bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+                                  <div className="w-16 shrink-0 p-2 border-r border-slate-200 dark:border-slate-700 flex flex-col justify-center">
+                                    <span className="text-[11px] font-bold text-slate-900 dark:text-white leading-tight truncate">Score</span>
+                                  </div>
+                                  {Array.from({length: 9}, (_, i) => i + 10).map(h => {
+                                    const par = selectedCourse?.holes.find(hole => hole.number === h)?.par || 4;
+                                    const score = manualHoleScores[h]?.strokes || par;
+                                    const putts = manualHoleScores[h]?.putts ?? 2;
+                                    return (
+                                      <div key={h} className="w-12 h-10 shrink-0 flex items-center justify-center font-stats text-sm border-r border-slate-100 dark:border-slate-800/50">
+                                        <div className="flex items-center justify-center gap-0.5">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateManualHole(h, Math.max(1, score - 1), putts)}
+                                            className="w-3.5 h-6 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center cursor-pointer transition-colors"
+                                          >
+                                            -
+                                          </button>
+                                          <span className="font-stats font-bold text-xs w-3.5 text-center text-slate-900 dark:text-slate-100">{score}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateManualHole(h, score + 1, putts)}
+                                            className="w-3.5 h-6 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center cursor-pointer transition-colors"
+                                          >
+                                            +
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                  <div className="w-12 shrink-0 h-10 flex items-center justify-center font-stats text-sm font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/10">
+                                    {Array.from({length: 9}, (_, i) => {
+                                      const h = i + 10;
+                                      const par = selectedCourse?.holes.find(hole => hole.number === h)?.par || 4;
+                                      return manualHoleScores[h]?.strokes || par;
+                                    }).reduce((a, b) => a + b, 0)}
+                                  </div>
+                                </div>
+                                <div className="flex items-center bg-slate-50/70 dark:bg-slate-900/40">
+                                  <div className="w-16 shrink-0 p-1.5 border-r border-slate-200 dark:border-slate-700 text-left">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Putts</span>
+                                  </div>
+                                  {Array.from({length: 9}, (_, i) => i + 10).map(h => {
+                                    const par = selectedCourse?.holes.find(hole => hole.number === h)?.par || 4;
+                                    const score = manualHoleScores[h]?.strokes || par;
+                                    const putts = manualHoleScores[h]?.putts ?? 2;
+                                    return (
+                                      <div key={h} className="w-12 h-8 shrink-0 flex items-center justify-center font-stats text-xs border-r border-slate-100 dark:border-slate-800/50">
+                                        <div className="flex items-center justify-center gap-0.5">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateManualHole(h, score, Math.max(0, putts - 1))}
+                                            className="w-3.5 h-5 rounded bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 font-bold text-[10px] flex items-center justify-center cursor-pointer transition-colors"
+                                          >
+                                            -
+                                          </button>
+                                          <span className="font-stats font-bold text-xs w-3.5 text-center text-emerald-600 dark:text-emerald-400">{putts}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateManualHole(h, score, putts + 1)}
+                                            className="w-3.5 h-5 rounded bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 font-bold text-[10px] flex items-center justify-center cursor-pointer transition-colors"
+                                          >
+                                            +
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                  <div className="w-12 shrink-0 h-8 flex items-center justify-center font-stats text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-slate-100/50 dark:bg-slate-800/40">
+                                    {Array.from({length: 9}, (_, i) => manualHoleScores[i + 10]?.putts ?? 2).reduce((a, b) => a + b, 0)}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl mt-4">
                           <div className="flex items-center gap-3">
