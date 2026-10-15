@@ -14,7 +14,6 @@ import { ClubLogoCustomizer } from './components/ClubLogoCustomizer';
 import { CreateFutureRoundModal } from './components/CreateFutureRoundModal';
 import { EditNicknameModal } from './components/EditNicknameModal';
 import { PlayerHistoryModal } from './components/PlayerHistoryModal';
-import { TeamHistoryModal } from './components/TeamHistoryModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { ScrambleTeamManagerModal } from './components/ScrambleTeamManagerModal';
 import { ClubhouseHubModal } from './components/ClubhouseHubModal';
@@ -774,13 +773,6 @@ export default function App() {
         onUpdatePastRound={handleUpdatePastRound}
         onDeletePastRound={handleDeletePastRound}
         initialExpandedRoundId={selectedHistoryRoundId}
-      />
-
-      <TeamHistoryModal
-        isOpen={isTeamHistoryOpen}
-        onClose={() => setIsTeamHistoryOpen(false)}
-        event={selectedTeamEventForHistory}
-        selectedTeamName={selectedTeamNameForHistory}
       />
 
       <ClubLogoCustomizer
