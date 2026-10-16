@@ -33,6 +33,13 @@ export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = (
   const course = courses.find(c => c.name === event.courseName) || courses[0];
   const getPar = (hNum: number) => course?.holes?.find((h) => h.number === hNum)?.par || 4;
   const currentTeam = event.teamLeaderboard[0];
+  const myTeam = event.teamLeaderboard.find(t => 
+    t.playerNames.some(pName => 
+      pName.toLowerCase() === (memberProfile?.name || '').toLowerCase() || 
+      (memberProfile?.nickname && pName.toLowerCase() === memberProfile.nickname.toLowerCase())
+    )
+  ) || event.teamLeaderboard[0];
+  const squadName = myTeam?.teamName || currentTeam?.teamName || event.winningTeamName;
 
   const handleStartEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -108,18 +115,33 @@ export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = (
             <Trophy className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <h5 className="font-heading font-extrabold text-sm text-slate-900 dark:text-slate-100 truncate flex items-center gap-2">
-              {event.eventName}
+            <div className="flex items-center gap-2 flex-wrap">
+              <h5 className="font-heading font-extrabold text-sm text-slate-900 dark:text-slate-100 truncate">
+                {event.eventName}
+              </h5>
+              {squadName && (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">
+                  🛡️ Squad: {squadName}
+                </span>
+              )}
               {!isEditing && onUpdateTeamEvent && canEditEvent && (
                 <button onClick={handleStartEdit} className="p-1 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer" title="Edit Scorecard">
                   <Edit3 className="w-3.5 h-3.5" />
                 </button>
               )}
-            </h5>
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 flex-wrap mt-0.5">
+            </div>
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 flex-wrap mt-0.5">
               <span className="font-semibold text-emerald-600 dark:text-emerald-400 capitalize">{event.format}</span>
               <span>·</span>
               <span className="truncate">{event.date}</span>
+              {myTeam?.playerNames && myTeam.playerNames.length > 0 && (
+                <>
+                  <span>·</span>
+                  <span className="text-slate-500 dark:text-slate-400 truncate max-w-[220px] sm:max-w-[340px]">
+                    Roster: {myTeam.playerNames.join(', ')}
+                  </span>
+                </>
+              )}
               {((event as any).buzzballCount || 0) > 0 && !isEditing && (
                 <span className="flex items-center gap-0.5 font-bold text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 rounded ml-1">
                   🍹 {(event as any).buzzballCount}
@@ -132,7 +154,7 @@ export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = (
         <div className="flex items-center gap-3 shrink-0">
           <div className="text-right">
             <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">Score</span>
-            <span className="font-stats font-extrabold text-sm text-emerald-600 dark:text-emerald-400">{currentTeam?.grossScore} Gross</span>
+            <span className="font-stats font-extrabold text-sm text-emerald-600 dark:text-emerald-400">{(myTeam || currentTeam)?.grossScore} Gross</span>
           </div>
           {!isEditing && (
             <div className={`w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
@@ -204,7 +226,7 @@ export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = (
                     <div className="flex items-center bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
                       <div className="w-16 shrink-0 p-2 border-r border-slate-200 dark:border-slate-700 flex flex-col justify-center">
                         <span className="text-[11px] font-bold text-slate-900 dark:text-white leading-tight truncate">
-                          {isEditing ? 'Score' : currentTeam?.teamName}
+                          {isEditing ? 'Score' : (squadName || currentTeam?.teamName)}
                         </span>
                       </div>
                       {Array.from({length: 9}, (_, i) => i + 1).map(h => {
@@ -316,7 +338,7 @@ export const ExpandableTeamEventCard: React.FC<ExpandableTeamEventCardProps> = (
                     <div className="flex items-center bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
                       <div className="w-16 shrink-0 p-2 border-r border-slate-200 dark:border-slate-700 flex flex-col justify-center">
                         <span className="text-[11px] font-bold text-slate-900 dark:text-white leading-tight truncate">
-                          {isEditing ? 'Score' : currentTeam?.teamName}
+                          {isEditing ? 'Score' : (squadName || currentTeam?.teamName)}
                         </span>
                       </div>
                       {Array.from({length: 9}, (_, i) => i + 10).map(h => {
