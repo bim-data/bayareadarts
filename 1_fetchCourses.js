@@ -5,7 +5,7 @@ const API_KEY = 'YWVWXINIAUWWFIZ6NTKQOHOUNE'; // Paste your fresh API key here
 
 // ⚠️ MAX 17 COURSES PER RUN (2 API calls used per course)
 const TARGET_COURSES = [
-  { name: "Los Lagos Golf Course", location: "San Jose, CA" },
+  { name: "Los Lagos", location: "San Jose" },
 ];
 
 const DIRECT_URL = 'https://api.golfcourseapi.com/v1';
@@ -50,15 +50,15 @@ async function runFetch() {
 
   for (const target of TARGET_COURSES) {
     try {
-      // Handle both string formats and {name, location} object formats
+      // Check if it's an object or a plain string
       const isObject = typeof target === 'object';
       const targetName = isObject ? target.name : target;
-      const targetLocation = isObject && target.location ? ` ${target.location}` : '';
-      const searchQuery = `${targetName}${targetLocation}`;
+      const targetCity = isObject && target.location ? target.location.toLowerCase().trim() : null;
 
-      console.log(`\n🔍 Searching for: ${searchQuery}...`);
+      console.log(`\n🔍 Searching for: ${targetName}...`);
       
-      const searchUrl = `${DIRECT_URL}/search?search_query=${encodeURIComponent(searchQuery)}&fuzzy_match=true`;
+      // SEARCH API USING ONLY THE COURSE NAME
+      const searchUrl = `${DIRECT_URL}/search?search_query=${encodeURIComponent(targetName)}&fuzzy_match=true`;
       const searchRes = await fetch(searchUrl, fetchOptions);
       
       if (!searchRes.ok) {
@@ -67,21 +67,33 @@ async function runFetch() {
       }
       
       const searchData = await searchRes.json();
-      const firstResult = (searchData.courses || [])[0];
+      let match = null;
+
+      // Filter by city if a location was provided
+      if (targetCity && searchData.courses && searchData.courses.length > 0) {
+        match = searchData.courses.find(c => 
+          (c.location?.city || '').toLowerCase() === targetCity
+        );
+      } 
       
-      if (!firstResult) {
-        console.log(`⚠️ No matches found for "${searchQuery}". Skipping.`);
+      // If no location was provided or we couldn't find an exact city match, fallback to the first result
+      if (!match) {
+        match = (searchData.courses || [])[0];
+      }
+      
+      if (!match) {
+        console.log(`⚠️ No matches found for "${targetName}". Skipping.`);
         continue;
       }
 
-      const rawName = firstResult.course_name || firstResult.club_name || 'Unknown Course';
-      console.log(`📥 Found match: ${rawName}. Fetching details...`);
+      const rawName = match.course_name || match.club_name || 'Unknown Course';
+      console.log(`📥 Found match: ${rawName} (${match.location?.city || 'Unknown City'}). Fetching details...`);
 
-      const detailsUrl = `${DIRECT_URL}/courses/${firstResult.id}`;
+      const detailsUrl = `${DIRECT_URL}/courses/${match.id}`;
       const detailsRes = await fetch(detailsUrl, fetchOptions);
       
       if (!detailsRes.ok) {
-        console.log(`❌ Details fetch failed for ${firstResult.id} (Status: ${detailsRes.status})`);
+        console.log(`❌ Details fetch failed for ${match.id} (Status: ${detailsRes.status})`);
         continue;
       }
 
@@ -99,7 +111,6 @@ async function runFetch() {
       
       rawTees.forEach(t => {
         const tName = t.tee_name || 'Standard';
-        // If we haven't seen this tee name yet, save it. This naturally prioritizes the male ratings since they were spread first.
         if (!uniqueTeesMap.has(tName)) {
           uniqueTeesMap.set(tName, t);
         }
