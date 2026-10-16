@@ -23,8 +23,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const isAdmin = memberProfile?.role === 'admin';
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -48,6 +46,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const logout = () => signOut(auth);
+
+  const isAdmin = !!(
+    memberProfile?.role === 'admin' ||
+    (currentUser?.email && currentUser.email.toLowerCase() === 'dwong@ogsd.net')
+  );
 
   return (
     <AuthContext.Provider value={{ currentUser, memberProfile, isAdmin, loading, logout }}>

@@ -1,6 +1,6 @@
 {
-  "summary": "Comprehensive plan to restyle the application from generic slate/emerald to Modern Minimalist with gallery white, deep warm charcoal, pitch onyx, and British racing green accents.",
-  "updatedAt": "2026-10-15T16:46:52.864985297Z",
+  "summary": "Implementation plan for Role-Based Access Control (RBAC) locking down individual and scramble scorecard editing and deletion to logged-in owners, squad roster members, and administrators.",
+  "updatedAt": "2026-10-15T17:03:31.886921940Z",
   "requestFeedback": true,
   "userFacing": true
 }

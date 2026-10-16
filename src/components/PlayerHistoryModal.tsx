@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Star } from 'lucide-react';
+import { X, Star, ShieldCheck } from 'lucide-react';
 import { MemberProfile, CompletedRoundRecord, TeamEventRecord, Course } from '../types';
 import { ExpandableRoundCard } from './ExpandableRoundCard';
 import { ExpandableTeamEventCard } from './TeamHistoryModal';
@@ -64,6 +64,50 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
     ? (playerRounds.reduce((acc, r) => acc + Math.round(((r.girPercent || 0) / 100) * 18), 0) / playerRounds.length).toFixed(1)
     : '0';
 
+  // Calculate Pars and Birdies across player's individual rounds
+  let totalPars = 0;
+  let totalBirdies = 0;
+
+  playerRounds.forEach((round) => {
+    if (round.isTeamRound || round.format === 'scramble' || round.format === 'best_ball') return;
+    if (!round.holeScores) return;
+    const course = courses.find((c) => c.id === round.courseId || c.name.toLowerCase() === (round.courseName || '').toLowerCase());
+    
+    Object.entries(round.holeScores).forEach(([holeNumStr, score]) => {
+      const hNum = Number(holeNumStr);
+      const holeInfo = course?.holes?.find((h) => h.number === hNum);
+      const par = holeInfo ? holeInfo.par : 4;
+      if (score.strokes === par) totalPars += 1;
+      if (score.strokes === par - 1) totalBirdies += 1;
+    });
+  });
+
+  // Calculate Lowest Team Scramble Score
+  let lowScrambleScore: number | null = null;
+
+  playerTeamEvents.forEach((ev) => {
+    ev.teamLeaderboard.forEach((t) => {
+      const isPlayerInTeam = t.playerNames.some(
+        (pName) =>
+          pName.toLowerCase().includes((member.name || '').toLowerCase()) ||
+          (member.nickname && pName.toLowerCase().includes(member.nickname.toLowerCase()))
+      );
+      if (isPlayerInTeam && t.grossScore > 0) {
+        if (lowScrambleScore === null || t.grossScore < lowScrambleScore) {
+          lowScrambleScore = t.grossScore;
+        }
+      }
+    });
+  });
+
+  playerRounds.forEach((r) => {
+    if ((r.format === 'scramble' || r.isTeamRound) && r.grossScore > 0) {
+      if (lowScrambleScore === null || r.grossScore < lowScrambleScore) {
+        lowScrambleScore = r.grossScore;
+      }
+    }
+  });
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
       <div className="w-full sm:max-w-3xl h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:rounded-3xl bg-white dark:bg-slate-900 border-0 sm:border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden text-slate-900 dark:text-slate-100 transition-colors">
@@ -81,6 +125,11 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
                     "{member.nickname}"
                   </span>
                 )}
+                {member.role === 'admin' && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 rounded border border-amber-300 dark:border-amber-700">
+                    Admin
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Official WHS Index: <strong className="text-emerald-600 dark:text-emerald-400 font-stats">{member.handicapIndex > 0 ? member.handicapIndex.toFixed(1) : `+${Math.abs(member.handicapIndex).toFixed(1)}`}</strong> · Badge: {member.badgeTitle}
@@ -94,6 +143,15 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
                 className="btn-modern px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer"
               >
                 <span>Edit My Profile</span>
+              </button>
+            ) : isAdmin ? (
+              <button
+                onClick={() => { onClose(); if (onOpenEditProfile) onOpenEditProfile(); }}
+                className="btn-modern px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer shadow-xs"
+                title="Administrator Profile Edit"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Admin Edit</span>
               </button>
             ) : (
               !isAdmin && (
@@ -110,30 +168,42 @@ export const PlayerHistoryModal: React.FC<PlayerHistoryModalProps> = ({
 
         {/* Removed internal nested scrolling so the entire modal body scrolls cleanly! */}
         <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5">
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Scoring Avg</span>
-              <span className="font-stats font-bold text-lg text-slate-900 dark:text-slate-100">{member.scoringAverage || 0}</span>
+          <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+            <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60 flex flex-col justify-center">
+              <span className="text-[10px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide block whitespace-nowrap">Scoring Avg</span>
+              <span className="font-stats font-bold text-base sm:text-xl text-slate-900 dark:text-slate-100 mt-0.5">{member.scoringAverage || 0}</span>
             </div>
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Avg Putts</span>
-              <span className="font-stats font-bold text-lg text-emerald-600 dark:text-emerald-400">{member.avgPutts || 0}</span>
+            <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60 flex flex-col justify-center">
+              <span className="text-[10px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide block whitespace-nowrap">Avg Putts</span>
+              <span className="font-stats font-bold text-base sm:text-xl text-emerald-600 dark:text-emerald-400 mt-0.5">{member.avgPutts || 0}</span>
             </div>
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Avg GIR</span>
-              <span className="font-stats font-bold text-lg text-emerald-600 dark:text-emerald-400">{avgGirCount} / 18</span>
+            <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60 flex flex-col justify-center">
+              <span className="text-[10px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide block whitespace-nowrap">Avg GIR</span>
+              <span className="font-stats font-bold text-base sm:text-xl text-emerald-600 dark:text-emerald-400 mt-0.5">{avgGirCount} / 18</span>
             </div>
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Low 18</span>
-              <span className="font-stats font-bold text-lg text-amber-500">{member.bestRound || 0}</span>
+            <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60 flex flex-col justify-center">
+              <span className="text-[10px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide block whitespace-nowrap">Low 18</span>
+              <span className="font-stats font-bold text-base sm:text-xl text-amber-500 mt-0.5">{member.bestRound || '-'}</span>
             </div>
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block">Low 9</span>
-              <span className="font-stats font-bold text-lg text-amber-500">{member.bestRound9 || 0}</span>
+            <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60 flex flex-col justify-center">
+              <span className="text-[10px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide block whitespace-nowrap">Low 9</span>
+              <span className="font-stats font-bold text-base sm:text-xl text-amber-500 mt-0.5">{member.bestRound9 || '-'}</span>
             </div>
-            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-center border border-amber-200/80 dark:border-amber-800/60">
-              <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-500 uppercase tracking-wide block">🍹 Drinks</span>
-              <span className="font-stats font-bold text-lg text-amber-600 dark:text-amber-400">{avgDrinks}</span>
+            <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60 flex flex-col justify-center">
+              <span className="text-[10px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide block whitespace-nowrap" title="Lowest Team Scramble Score">Low Scramble</span>
+              <span className="font-stats font-bold text-base sm:text-xl text-amber-500 mt-0.5">{lowScrambleScore !== null ? lowScrambleScore : '-'}</span>
+            </div>
+            <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60 flex flex-col justify-center">
+              <span className="text-[10px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide block whitespace-nowrap" title="Total Career Pars">Total Pars</span>
+              <span className="font-stats font-bold text-base sm:text-xl text-emerald-600 dark:text-emerald-400 mt-0.5">{totalPars}</span>
+            </div>
+            <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-center border border-slate-200/80 dark:border-slate-700/60 flex flex-col justify-center">
+              <span className="text-[10px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide block whitespace-nowrap" title="Total Career Birdies">Total Birdies</span>
+              <span className="font-stats font-bold text-base sm:text-xl text-blue-600 dark:text-blue-400 mt-0.5">{totalBirdies}</span>
+            </div>
+            <div className="p-2.5 sm:p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-center border border-amber-200/80 dark:border-amber-800/60 flex flex-col justify-center">
+              <span className="text-[10px] sm:text-xs font-semibold text-amber-600 dark:text-amber-500 uppercase tracking-wide block whitespace-nowrap">🍹 Avg Drinks</span>
+              <span className="font-stats font-bold text-base sm:text-xl text-amber-600 dark:text-amber-400 mt-0.5">{avgDrinks}</span>
             </div>
           </div>
 

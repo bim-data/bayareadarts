@@ -145,7 +145,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
   let mostBirdiesMember: MemberProfile | null = null;
   let maxBirdies = 0;
 
-  playerStats.forEach((stats, memberId) => {
+  for (const [memberId, stats] of playerStats.entries()) {
     if (stats.pars > maxPars) {
       maxPars = stats.pars;
       mostParsMember = officialMembers.find(m => m.id === memberId) || null;
@@ -154,7 +154,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
       maxBirdies = stats.birdies;
       mostBirdiesMember = officialMembers.find(m => m.id === memberId) || null;
     }
-  });
+  }
 
   // Sort team events by newest date first
   const sortedTeamEvents = [...teamEvents].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
@@ -352,58 +352,58 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                 <div
                   key={member.id}
                   onClick={() => isMe ? onOpenProfile() : onSelectMemberForHistory(member)}
-                  className={`p-4 flex items-center justify-between gap-3 transition-colors cursor-pointer group ${
+                  className={`p-3 sm:p-4 flex items-center justify-between gap-2.5 sm:gap-3 transition-colors cursor-pointer group ${
                     isMe
                       ? 'bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
                       : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                   }`}
                   title={isMe ? 'Click to manage your profile, email, and view personal scores' : 'Click to view player score history (Read-Only)'}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-stats text-xs font-bold shrink-0">
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-stats text-[11px] sm:text-xs font-bold shrink-0">
                       #{index + 1}
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-lg sm:text-xl shrink-0 group-hover:scale-105 transition-transform">
                       {member.avatarEmoji}
                     </div>
-                   <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-nowrap">
+                        <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors truncate">
                           {member.name}
                         </span>
                         {member.nickname && (
-                          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0 truncate max-w-[80px] sm:max-w-[120px]">
                             "{member.nickname}"
                           </span>
                         )}
                         {isMe && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-600 text-white uppercase tracking-wider">
+                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-600 text-white uppercase tracking-wider shrink-0">
                             YOU
                           </span>
                         )}
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 hidden sm:inline">
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 hidden md:inline truncate shrink-0">
                           ({member.badgeTitle})
                         </span>
                       </div>
-                      <div className="flex items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        <span>Avg: <strong className="text-slate-700 dark:text-slate-300 font-stats">{member.scoringAverage}</strong></span>
-                        <span>·</span>
-                        <span>GIR: <strong className="text-slate-700 dark:text-slate-300 font-stats">{member.girPercent}%</strong></span>
-                        <span>·</span>
-                        <span>Putts: <strong className="text-slate-700 dark:text-slate-300 font-stats">{member.avgPutts}</strong></span>
-                        <span>·</span>
-                        <span>{member.roundsCount} rds</span>
+                      <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
+                        <span className="whitespace-nowrap">Avg: <strong className="text-slate-700 dark:text-slate-300 font-stats">{member.scoringAverage}</strong></span>
+                        <span className="text-slate-300 dark:text-slate-600">·</span>
+                        <span className="whitespace-nowrap">{member.roundsCount} {member.roundsCount === 1 ? 'rd' : 'rds'}</span>
+                        <span className="hidden sm:inline text-slate-300 dark:text-slate-600">·</span>
+                        <span className="hidden sm:inline whitespace-nowrap">GIR: <strong className="text-slate-700 dark:text-slate-300 font-stats">{member.girPercent}%</strong></span>
+                        <span className="hidden sm:inline text-slate-300 dark:text-slate-600">·</span>
+                        <span className="hidden sm:inline whitespace-nowrap">Putts: <strong className="text-slate-700 dark:text-slate-300 font-stats">{member.avgPutts}</strong></span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-1 sm:ml-2">
                     <div className="text-right">
-                      <div className="inline-block px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl">
-                        <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
+                      <div className="inline-block px-2.5 sm:px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl">
+                        <div className="text-[9px] sm:text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide whitespace-nowrap">
                           WHS Index
                         </div>
-                        <div className="font-stats font-bold text-base text-emerald-700 dark:text-emerald-300 leading-none">
+                        <div className="font-stats font-bold text-sm sm:text-base text-emerald-700 dark:text-emerald-300 leading-none">
                           {member.roundsCount < 3 
                             ? 'NH' 
                             : member.handicapIndex > 0 
@@ -414,7 +414,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                         </div>
                       </div>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" />
+                    <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors shrink-0" />
                   </div>
                 </div>
               );
@@ -423,24 +423,24 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
           </div>
 
           {/* B. Club Accolades Summary Cards (Clickable for History) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
             
             <div 
               onClick={() => mostParsMember && onSelectMemberForHistory(mostParsMember)}
-              className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-800 transition-all cursor-pointer group"
+              className="card-modern p-3.5 sm:p-4 rounded-2xl flex items-center gap-3 sm:gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-800 transition-all cursor-pointer group"
               title="Click to view scorecard history"
             >
-              <div className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 ⛳
               </div>
-              <div className="truncate min-w-0">
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
                   PAR MACHINE
                 </span>
                 <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
                   {mostParsMember?.name || 'TBD'}
                 </span>
-                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
+                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400 truncate block">
                   {maxPars > 0 ? `${maxPars} All-Time Pars` : 'No pars yet'}
                 </span>
               </div>
@@ -448,20 +448,20 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
 
             <div 
               onClick={() => mostBirdiesMember && onSelectMemberForHistory(mostBirdiesMember)}
-              className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-800 transition-all cursor-pointer group"
+              className="card-modern p-3.5 sm:p-4 rounded-2xl flex items-center gap-3 sm:gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-800 transition-all cursor-pointer group"
               title="Click to view scorecard history"
             >
-              <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🐦
               </div>
-              <div className="truncate min-w-0">
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
                   BIRDIE HUNTER
                 </span>
                 <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
                   {mostBirdiesMember?.name || 'TBD'}
                 </span>
-                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
+                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400 truncate block">
                   {maxBirdies > 0 ? `${maxBirdies} All-Time Birdies` : 'No birdies yet'}
                 </span>
               </div>
@@ -469,20 +469,20 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
 
             <div 
               onClick={() => dartSniperRound && dartSniperMember && onSelectMemberForHistory(dartSniperMember, dartSniperRound.id)}
-              className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-red-300 dark:hover:border-red-800 transition-all cursor-pointer group"
+              className="card-modern p-3.5 sm:p-4 rounded-2xl flex items-center gap-3 sm:gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-red-300 dark:hover:border-red-800 transition-all cursor-pointer group"
               title="Click to view scorecard history"
             >
-              <div className="w-11 h-11 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🎯
               </div>
-              <div className="truncate min-w-0">
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
                   DART SNIPER (GIR)
                 </span>
                 <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
                   {dartSniperMember?.name || 'TBD'}
                 </span>
-                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
+                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400 truncate block">
                   {dartSniperMember ? `${dartSniperMember.girPercent}% Greens Hit` : 'No rounds yet'}
                 </span>
               </div>
@@ -490,20 +490,20 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
 
             <div 
               onClick={() => flatstickRound && flatstickMember && onSelectMemberForHistory(flatstickMember, flatstickRound.id)}
-              className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-800 transition-all cursor-pointer group"
+              className="card-modern p-3.5 sm:p-4 rounded-2xl flex items-center gap-3 sm:gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-800 transition-all cursor-pointer group"
               title="Click to view scorecard history"
             >
-              <div className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🪄
               </div>
-              <div className="truncate min-w-0">
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
                   FLATSTICK KING
                 </span>
                 <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
                   {flatstickMember?.name || 'TBD'}
                 </span>
-                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
+                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400 truncate block">
                   {flatstickMember ? `${flatstickMember.avgPutts} Putts / 18` : 'No rounds yet'}
                 </span>
               </div>
@@ -511,20 +511,20 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
 
             <div 
               onClick={() => lowGrossRound && lowGrossMember && onSelectMemberForHistory(lowGrossMember, lowGrossRound.id)}
-              className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-800 transition-all cursor-pointer group"
+              className="card-modern p-3.5 sm:p-4 rounded-2xl flex items-center gap-3 sm:gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-800 transition-all cursor-pointer group"
               title="Click to view scorecard history"
             >
-              <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 ⚡
               </div>
-              <div className="truncate min-w-0">
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
                   LOW 18 RECORD
                 </span>
                 <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
                   {lowGrossMember?.name || 'TBD'}
                 </span>
-                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
+                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400 truncate block">
                   {lowGrossMember ? `${lowGrossMember.bestRound} Gross` : 'No rounds yet'}
                 </span>
               </div>
@@ -532,20 +532,20 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
 
             <div 
               onClick={() => low9Round && low9Member && onSelectMemberForHistory(low9Member, low9Round.id)}
-              className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-800 transition-all cursor-pointer group"
+              className="card-modern p-3.5 sm:p-4 rounded-2xl flex items-center gap-3 sm:gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-800 transition-all cursor-pointer group"
               title="Click to view scorecard history"
             >
-              <div className="w-11 h-11 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🔥
               </div>
-              <div className="truncate min-w-0">
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
                   LOW 9 RECORD
                 </span>
                 <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
                   {low9Member?.name || 'TBD'}
                 </span>
-                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
+                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400 truncate block">
                   {low9Member ? `${low9Member.bestRound9} Gross` : 'No rounds yet'}
                 </span>
               </div>
@@ -553,20 +553,20 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
 
             <div 
               onClick={() => drunkestRound && liquidCourageMember && onSelectMemberForHistory(liquidCourageMember, drunkestRound.id)}
-              className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-800 transition-all cursor-pointer group"
+              className="card-modern p-3.5 sm:p-4 rounded-2xl flex items-center gap-3 sm:gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-800 transition-all cursor-pointer group"
               title="Click to view scorecard history"
             >
-              <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🍹
               </div>
-              <div className="truncate min-w-0">
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
                   LIQUID COURAGE AWARD
                 </span>
                 <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
                   {liquidCourageMember?.name || 'TBD'}
                 </span>
-                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
+                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400 truncate block">
                   {drunkestRound?.buzzballCount ? `${drunkestRound.buzzballCount} Drinks` : 'No rounds yet'}
                 </span>
               </div>
@@ -574,20 +574,20 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
 
             <div 
               onClick={() => bestScrambleEvent && onSelectTeamForHistory(bestScrambleEvent, bestScrambleTeamName)}
-              className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-800 transition-all cursor-pointer group"
+              className="card-modern p-3.5 sm:p-4 rounded-2xl flex items-center gap-3 sm:gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-800 transition-all cursor-pointer group"
               title="Click to view team scorecard history"
             >
-              <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🏆
               </div>
-              <div className="truncate min-w-0">
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
                   LOW SCRAMBLE
                 </span>
                 <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
                   {bestScrambleTeamName || 'TBD'}
                 </span>
-                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
+                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400 truncate block">
                   {bestScrambleScore !== 999 ? `${bestScrambleScore} Gross` : 'No scrambles yet'}
                 </span>
               </div>
