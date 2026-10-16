@@ -1,168 +1,128 @@
 [
   {
-    "id": "los-lagos-gc",
-    "name": "Los Lagos Gc",
-    "city": "San Jose",
-    "region": "Other",
-    "notes": "Municipal course along Coyote Creek in South San Jose",
+    "id": "sunken-gardens-gc",
+    "name": "Sunken Gardens Golf Course",
+    "city": "Sunnyvale",
+    "region": "South Bay",
+    "notes": "9 Hole municipal executive course",
     "tees": [
       {
-        "id": "los-lagos-gc-tee-0",
-        "name": "Blue",
-        "color": "#2563EB",
-        "rating": 65.9,
-        "slope": 116,
-        "totalYardage": 5398
-      },
-      {
-        "id": "los-lagos-gc-tee-1",
-        "name": "Blue/White Combo",
-        "color": "#2563EB",
-        "rating": 64.3,
-        "slope": 113,
-        "totalYardage": 5008
-      },
-      {
-        "id": "los-lagos-gc-tee-2",
-        "name": "White",
-        "color": "#F8FAFC",
-        "rating": 64,
-        "slope": 111,
-        "totalYardage": 4907
-      },
-      {
-        "id": "los-lagos-gc-tee-3",
-        "name": "Red",
-        "color": "#DC2626",
-        "rating": 62.2,
-        "slope": 106,
-        "totalYardage": 4439
-      },
-      {
-        "id": "los-lagos-gc-tee-4",
-        "name": "Gold",
-        "color": "#D97706",
-        "rating": 60.7,
-        "slope": 98,
-        "totalYardage": 3889
-      },
-      {
-        "id": "los-lagos-gc-tee-5",
-        "name": "Women'S Combo",
-        "color": "#94A3B8",
-        "rating": 68.9,
-        "slope": 120,
-        "totalYardage": 5026
+        "id": "sunken-gardens-gc-tee-0",
+        "name": "Black",
+        "color": "#1E293B",
+        "rating": 56,
+        "slope": 80,
+        "totalYardage": 3002
       }
     ],
     "holes": [
       {
         "number": 1,
-        "par": 5,
-        "yardage": 496,
-        "handicapIndex": 3
+        "par": 3,
+        "yardage": 162,
+        "handicapIndex": 11
       },
       {
         "number": 2,
-        "par": 3,
-        "yardage": 154,
-        "handicapIndex": 11
+        "par": 4,
+        "yardage": 262,
+        "handicapIndex": 7
       },
       {
         "number": 3,
         "par": 3,
-        "yardage": 122,
-        "handicapIndex": 15
+        "yardage": 152,
+        "handicapIndex": 5
       },
       {
         "number": 4,
-        "par": 4,
-        "yardage": 307,
-        "handicapIndex": 7
+        "par": 3,
+        "yardage": 123,
+        "handicapIndex": 15
       },
       {
         "number": 5,
         "par": 3,
-        "yardage": 146,
-        "handicapIndex": 13
+        "yardage": 128,
+        "handicapIndex": 1
       },
       {
         "number": 6,
-        "par": 5,
-        "yardage": 572,
-        "handicapIndex": 1
+        "par": 4,
+        "yardage": 268,
+        "handicapIndex": 13
       },
       {
         "number": 7,
         "par": 3,
-        "yardage": 113,
+        "yardage": 108,
         "handicapIndex": 17
       },
       {
         "number": 8,
         "par": 3,
-        "yardage": 194,
-        "handicapIndex": 9
+        "yardage": 156,
+        "handicapIndex": 3
       },
       {
         "number": 9,
-        "par": 5,
-        "yardage": 486,
-        "handicapIndex": 5
+        "par": 3,
+        "yardage": 142,
+        "handicapIndex": 9
       },
       {
         "number": 10,
-        "par": 5,
-        "yardage": 527,
-        "handicapIndex": 4
+        "par": 3,
+        "yardage": 162,
+        "handicapIndex": 12
       },
       {
         "number": 11,
         "par": 4,
-        "yardage": 335,
-        "handicapIndex": 12
+        "yardage": 262,
+        "handicapIndex": 8
       },
       {
         "number": 12,
         "par": 3,
-        "yardage": 175,
-        "handicapIndex": 10
+        "yardage": 152,
+        "handicapIndex": 6
       },
       {
         "number": 13,
         "par": 3,
-        "yardage": 170,
-        "handicapIndex": 14
+        "yardage": 123,
+        "handicapIndex": 16
       },
       {
         "number": 14,
         "par": 3,
-        "yardage": 168,
-        "handicapIndex": 16
+        "yardage": 128,
+        "handicapIndex": 2
       },
       {
         "number": 15,
         "par": 4,
-        "yardage": 318,
-        "handicapIndex": 8
+        "yardage": 268,
+        "handicapIndex": 14
       },
       {
         "number": 16,
         "par": 3,
-        "yardage": 148,
+        "yardage": 108,
         "handicapIndex": 18
       },
       {
         "number": 17,
-        "par": 4,
-        "yardage": 386,
-        "handicapIndex": 6
+        "par": 3,
+        "yardage": 156,
+        "handicapIndex": 4
       },
       {
         "number": 18,
-        "par": 5,
-        "yardage": 581,
-        "handicapIndex": 2
+        "par": 3,
+        "yardage": 142,
+        "handicapIndex": 10
       }
     ]
   }
