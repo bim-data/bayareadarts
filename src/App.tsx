@@ -76,7 +76,7 @@ export default function App() {
     const unsubCourses = subscribeToCollection<Course>('courses', setCourses);
     const unsubMembers = subscribeToCollection<MemberProfile>('members', setMembers);
     
-    // Subscribe to rounds and force sort by Date descending!
+    // Subscribe to rounds and force sort by Date descending
     const unsubRounds = subscribeToCollection<CompletedRoundRecord>('rounds', (data) => {
       const sorted = [...data].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
       setCompletedRounds(sorted);
@@ -192,7 +192,7 @@ export default function App() {
       registeredPlayerIds: futureRoundData.registeredPlayerIds || [],
     };
     
-    // Strip out undefined values (like empty notes) so Firebase doesn't crash
+    // Strip out undefined values
     const cleanRound = Object.fromEntries(
       Object.entries(newRound).filter(([_, v]) => v !== undefined)
     );
@@ -217,7 +217,7 @@ export default function App() {
     await deleteRecord('future_rounds', futureRoundId);
   };
 
-  // Helper to accurately calculate WHS Index with strict Number casting
+  // Helper to accurately calculate WHS Index
   const calculateWHSIndex = (diffs: number[]) => {
     if (diffs.length < 3) return 0;
     
@@ -252,7 +252,7 @@ export default function App() {
     return Math.floor(finalIndex * 10) / 10;
   };
 
-  // Helper to recalculate a player's stats after a round is saved/edited/deleted
+  // MAIN STAT CALCULATOR (WITH 9 HOLE FIXES)
   const recalculatePlayerStats = async (playerId: string, extraRound?: any) => {
     const member = members.find(m => m.id === playerId);
     if (!member) return;
@@ -281,9 +281,12 @@ export default function App() {
 
     const roundsCount = individualRounds.length;
     
-    // Isolate 18-hole vs 9-hole rounds for high-level stats
-    const rounds18 = individualRounds.filter(r => r.holesPlayed === '18' || !r.holesPlayed);
-    const rounds9 = individualRounds.filter(r => r.holesPlayed === 'front_9' || r.holesPlayed === 'back_9');
+    // Strictly isolate 18-hole vs 9-hole rounds
+    const is18HoleRound = (val?: string) => !val || val === '18';
+    const is9HoleRound = (val?: string) => val === 'front9' || val === 'front_9' || val === 'back9' || val === 'back_9';
+
+    const rounds18 = individualRounds.filter(r => is18HoleRound(r.holesPlayed));
+    const rounds9 = individualRounds.filter(r => is9HoleRound(r.holesPlayed));
 
     const bestRound = rounds18.length > 0 ? Math.min(...rounds18.map(r => Number(r.grossScore) || 999)) : 0;
     const bestRound9 = rounds9.length > 0 ? Math.min(...rounds9.map(r => Number(r.grossScore) || 999)) : 0;
@@ -303,13 +306,13 @@ export default function App() {
 
     // Build the Differentials History using ALL individual rounds (9-Hole rounds included!)
     const recentDiffsRaw = individualRounds
-      .filter(r => r.differential !== undefined && !isNaN(Number(r.differential)))
+      .filter(r => r.differential !== undefined && r.differential !== null && !isNaN(Number(r.differential)))
       .slice(0, 20);
 
     // 2024 WHS 9-Hole Treatment: Scale 9-Hole Differentials up to 18-hole equivalents
     const scaledDifferentials = recentDiffsRaw.map(r => {
       let diffNum = Number(r.differential);
-      const is9Hole = r.holesPlayed === 'front_9' || r.holesPlayed === 'back_9';
+      const is9Hole = is9HoleRound(r.holesPlayed);
       
       if (is9Hole) {
          // 2024 Rule: 9-Hole Diff + Expected Score Diff for remaining 9 holes
@@ -636,6 +639,22 @@ export default function App() {
         onDeletePastRound={handleDeletePastRound}
         onUpdateTeamEvent={handleUpdateTeamEvent}
         onDeleteTeamEvent={handleDeleteTeamEvent}
+        onMergeMembers={async (guestId, officialId) => {
+          // Find the guest rounds
+          const guestRounds = completedRounds.filter(r => r.playerId === guestId);
+          // Transfer them
+          for (const r of guestRounds) {
+             const official = members.find(m => m.id === officialId);
+             await updateRecord('rounds', r.id, { 
+               playerId: officialId, 
+               playerName: official?.name || r.playerName 
+             });
+          }
+          // Recalculate
+          await recalculatePlayerStats(officialId);
+          // Delete guest
+          await deleteRecord('members', guestId);
+        }}
         onSelectMemberForHistory={handleOpenMemberHistory}
       />
 
