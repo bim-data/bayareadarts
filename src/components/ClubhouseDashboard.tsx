@@ -112,6 +112,50 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
     });
   });
 
+  // Calculate Pars and Birdies for all players
+  const playerStats = new Map<string, { pars: number, birdies: number }>();
+  officialMembers.forEach(m => {
+    playerStats.set(m.id, { pars: 0, birdies: 0 });
+  });
+
+  completedRounds.forEach(round => {
+    if (round.isTeamRound || round.format === 'scramble' || round.format === 'best_ball') return;
+    if (!round.holeScores) return;
+
+    const member = officialMembers.find(m => m.id === round.playerId || m.name === round.playerName);
+    if (!member) return;
+
+    const course = courses.find(c => c.id === round.courseId);
+    if (!course) return;
+
+    const stats = playerStats.get(member.id)!;
+    
+    Object.entries(round.holeScores).forEach(([holeNumStr, score]) => {
+      const hNum = Number(holeNumStr);
+      const holeInfo = course.holes.find(h => h.number === hNum);
+      const par = holeInfo ? holeInfo.par : 4;
+      
+      if (score.strokes === par) stats.pars += 1;
+      if (score.strokes === par - 1) stats.birdies += 1;
+    });
+  });
+
+  let mostParsMember: MemberProfile | null = null;
+  let maxPars = 0;
+  let mostBirdiesMember: MemberProfile | null = null;
+  let maxBirdies = 0;
+
+  playerStats.forEach((stats, memberId) => {
+    if (stats.pars > maxPars) {
+      maxPars = stats.pars;
+      mostParsMember = officialMembers.find(m => m.id === memberId) || null;
+    }
+    if (stats.birdies > maxBirdies) {
+      maxBirdies = stats.birdies;
+      mostBirdiesMember = officialMembers.find(m => m.id === memberId) || null;
+    }
+  });
+
   // Sort team events by newest date first
   const sortedTeamEvents = [...teamEvents].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
@@ -379,18 +423,61 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
           </div>
 
           {/* B. Club Accolades Summary Cards (Clickable for History) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            
+            <div 
+              onClick={() => mostParsMember && onSelectMemberForHistory(mostParsMember)}
+              className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-800 transition-all cursor-pointer group"
+              title="Click to view scorecard history"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+                ⛳
+              </div>
+              <div className="truncate min-w-0">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  PAR MACHINE
+                </span>
+                <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                  {mostParsMember?.name || 'TBD'}
+                </span>
+                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
+                  {maxPars > 0 ? `${maxPars} All-Time Pars` : 'No pars yet'}
+                </span>
+              </div>
+            </div>
+
+            <div 
+              onClick={() => mostBirdiesMember && onSelectMemberForHistory(mostBirdiesMember)}
+              className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-800 transition-all cursor-pointer group"
+              title="Click to view scorecard history"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+                🐦
+              </div>
+              <div className="truncate min-w-0">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  BIRDIE HUNTER
+                </span>
+                <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                  {mostBirdiesMember?.name || 'TBD'}
+                </span>
+                <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
+                  {maxBirdies > 0 ? `${maxBirdies} All-Time Birdies` : 'No birdies yet'}
+                </span>
+              </div>
+            </div>
+
             <div 
               onClick={() => dartSniperRound && dartSniperMember && onSelectMemberForHistory(dartSniperMember, dartSniperRound.id)}
               className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-red-300 dark:hover:border-red-800 transition-all cursor-pointer group"
-              title="Click to view scorecard"
+              title="Click to view scorecard history"
             >
               <div className="w-11 h-11 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🎯
               </div>
               <div className="truncate min-w-0">
                 <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
-                  DART SNIPER (GIR %)
+                  DART SNIPER (GIR)
                 </span>
                 <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
                   {dartSniperMember?.name || 'TBD'}
@@ -404,7 +491,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             <div 
               onClick={() => flatstickRound && flatstickMember && onSelectMemberForHistory(flatstickMember, flatstickRound.id)}
               className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-800 transition-all cursor-pointer group"
-              title="Click to view scorecard"
+              title="Click to view scorecard history"
             >
               <div className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🪄
@@ -417,7 +504,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                   {flatstickMember?.name || 'TBD'}
                 </span>
                 <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
-                  {flatstickMember ? `${flatstickMember.avgPutts} Putts / Rd` : 'No rounds yet'}
+                  {flatstickMember ? `${flatstickMember.avgPutts} Putts / 18` : 'No rounds yet'}
                 </span>
               </div>
             </div>
@@ -425,7 +512,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             <div 
               onClick={() => lowGrossRound && lowGrossMember && onSelectMemberForHistory(lowGrossMember, lowGrossRound.id)}
               className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-800 transition-all cursor-pointer group"
-              title="Click to view scorecard"
+              title="Click to view scorecard history"
             >
               <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 ⚡
@@ -446,7 +533,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             <div 
               onClick={() => low9Round && low9Member && onSelectMemberForHistory(low9Member, low9Round.id)}
               className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-800 transition-all cursor-pointer group"
-              title="Click to view scorecard"
+              title="Click to view scorecard history"
             >
               <div className="w-11 h-11 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🔥
@@ -467,7 +554,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             <div 
               onClick={() => drunkestRound && liquidCourageMember && onSelectMemberForHistory(liquidCourageMember, drunkestRound.id)}
               className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-800 transition-all cursor-pointer group"
-              title="Click to view scorecard"
+              title="Click to view scorecard history"
             >
               <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🍹
@@ -480,7 +567,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                   {liquidCourageMember?.name || 'TBD'}
                 </span>
                 <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400">
-                  {drunkestRound?.buzzballCount ? `${drunkestRound.buzzballCount} Drinks & a ${drunkestRound.grossScore}` : 'No rounds yet'}
+                  {drunkestRound?.buzzballCount ? `${drunkestRound.buzzballCount} Drinks` : 'No rounds yet'}
                 </span>
               </div>
             </div>
@@ -488,7 +575,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             <div 
               onClick={() => bestScrambleEvent && onSelectTeamForHistory(bestScrambleEvent, bestScrambleTeamName)}
               className="card-modern p-4 rounded-2xl flex items-center gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-800 transition-all cursor-pointer group"
-              title="Click to view team scorecard"
+              title="Click to view team scorecard history"
             >
               <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🏆
