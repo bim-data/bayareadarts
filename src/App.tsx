@@ -136,7 +136,6 @@ export default function App() {
     const cleanProfile = Object.fromEntries(
       Object.entries(updatedProfile).filter(([_, v]) => v !== undefined)
     );
-    // 🔥 FIX: Use setDoc with { merge: true } to guarantee it updates the exact ID and never throws "No document to update"
     await setDoc(doc(db, 'members', cleanProfile.id), cleanProfile, { merge: true });
   };
 
@@ -144,7 +143,6 @@ export default function App() {
     const cleanProfile = Object.fromEntries(
       Object.entries(newMember).filter(([_, v]) => v !== undefined)
     );
-    // 🔥 FIX: Use setDoc directly to ensure the exact ID we generated is preserved in the database
     await setDoc(doc(db, 'members', cleanProfile.id), cleanProfile);
   };
 
@@ -283,7 +281,7 @@ export default function App() {
 
     const roundsCount = individualRounds.length;
     
-    // Strictly isolate 18-hole vs 9-hole rounds
+    // Isolate 18-hole vs 9-hole rounds for high-level stats
     const rounds18 = individualRounds.filter(r => r.holesPlayed === '18' || !r.holesPlayed);
     const rounds9 = individualRounds.filter(r => r.holesPlayed === 'front_9' || r.holesPlayed === 'back_9');
 
@@ -303,12 +301,33 @@ export default function App() {
       ? Math.round(roundsWithGir.reduce((acc, r) => acc + Number(r.girPercent || 0), 0) / roundsWithGir.length) 
       : 0;
 
-    // Build the Differentials History using ONLY 18-hole rounds
-    const recentDiffsRaw = rounds18
+    // Build the Differentials History using ALL individual rounds (9-Hole rounds included!)
+    const recentDiffsRaw = individualRounds
       .filter(r => r.differential !== undefined && !isNaN(Number(r.differential)))
       .slice(0, 20);
 
-    const diffValues = recentDiffsRaw.map(r => Number(r.differential));
+    // 2024 WHS 9-Hole Treatment: Scale 9-Hole Differentials up to 18-hole equivalents
+    const scaledDifferentials = recentDiffsRaw.map(r => {
+      let diffNum = Number(r.differential);
+      const is9Hole = r.holesPlayed === 'front_9' || r.holesPlayed === 'back_9';
+      
+      if (is9Hole) {
+         // 2024 Rule: 9-Hole Diff + Expected Score Diff for remaining 9 holes
+         // Expected Score Diff approx = half of current index
+         const expectedDiff = (member.handicapIndex && member.handicapIndex > 0) 
+            ? (member.handicapIndex / 2) 
+            : diffNum; // If no established index, double the 9-hole performance
+         diffNum = Number((diffNum + expectedDiff).toFixed(1));
+      }
+      
+      return {
+        ...r,
+        scaledDiff: diffNum,
+        is9Hole
+      };
+    });
+
+    const diffValues = scaledDifferentials.map(r => r.scaledDiff);
     const newHandicapIndex = calculateWHSIndex(diffValues);
 
     const sortedVals = [...diffValues].sort((a, b) => a - b);
@@ -324,19 +343,18 @@ export default function App() {
     const thresholdValue = sortedVals[toCount - 1] || 999;
     let countedSoFar = 0;
 
-    const newDifferentialsList = recentDiffsRaw.map((r) => {
+    const newDifferentialsList = scaledDifferentials.map((r) => {
       let isUsed = false;
-      const diffNum = Number(r.differential);
-      if (diffNum <= thresholdValue && countedSoFar < toCount) {
+      if (r.scaledDiff <= thresholdValue && countedSoFar < toCount) {
         isUsed = true;
         countedSoFar++;
       }
       return {
         roundId: r.id,
-        courseName: r.courseName,
+        courseName: r.courseName + (r.is9Hole ? ' (9-Hole Scaled)' : ''),
         date: r.date,
         grossScore: Number(r.grossScore) || 0,
-        differential: diffNum || 0,
+        differential: r.scaledDiff,
         usedInIndex: isUsed
       };
     });
@@ -353,7 +371,6 @@ export default function App() {
       differentials: newDifferentialsList
     };
 
-    // Use setDoc here too to prevent "No document to update" errors if someone manually created a user outside the app
     await setDoc(doc(db, 'members', playerId), updatedProfile, { merge: true });
   };
 
