@@ -36,15 +36,16 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
   const matchingDiff = member?.differentials?.find(
     (d) =>
       d.roundId === round.id ||
-      (d.courseName === round.courseName &&
+      (d.courseName.includes(round.courseName) &&
         d.date === round.date &&
         d.grossScore === round.grossScore)
   );
   const isCountedInIndex = Boolean(matchingDiff?.usedInIndex);
 
-  const isFront9 = round.holesPlayed !== 'back_9';
-  const isBack9 = round.holesPlayed !== 'front_9';
-  const is18 = isFront9 && isBack9;
+  // SAFE 9-HOLE CHECKS (Handling both 'front9' and 'front_9' styles)
+  const isFront9Only = round.holesPlayed === 'front9' || round.holesPlayed === 'front_9';
+  const isBack9Only = round.holesPlayed === 'back9' || round.holesPlayed === 'back_9';
+  const is18 = !isFront9Only && !isBack9Only;
 
   const handleStartEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -56,7 +57,7 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
     
     if (Object.keys(startingScores).length < (is18 ? 18 : 9)) {
       Array.from({length: 18}, (_, i) => i + 1).forEach((i) => {
-        if (is18 || (isFront9 && i <= 9) || (isBack9 && i >= 10)) {
+        if (is18 || (isFront9Only && i <= 9) || (isBack9Only && i >= 10)) {
           if (!startingScores[i]) {
             const par = getPar(i);
             startingScores[i] = { strokes: par, putts: 2, fir: par === 3 ? 'none' : 'hit', gir: true };
@@ -101,8 +102,8 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
     Object.entries(editScores).forEach(([h, score]) => {
       const hNum = Number(h);
       if (is9Hole) {
-        if (round.holesPlayed === 'front_9' && hNum > 9) return;
-        if (round.holesPlayed === 'back_9' && hNum < 10) return;
+        if (isFront9Only && hNum > 9) return;
+        if (isBack9Only && hNum < 10) return;
       }
       
       gross += (score.strokes || 4);
@@ -181,7 +182,7 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
           </div>
           {round.differential !== undefined && (
             <span className="font-stats font-bold text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm whitespace-nowrap">
-              {round.differential.toFixed(1)} Diff
+              {matchingDiff ? matchingDiff.differential.toFixed(1) : round.differential.toFixed(1)} Diff
             </span>
           )}
           <div className="flex items-center gap-1 shrink-0">
@@ -277,7 +278,7 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
             </div>
           ) : (
             <div className="w-fit mx-auto border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
-              {isFront9 && isBack9 ? (
+              {is18 ? (
                 <div className="flex w-fit">
                   {/* Front 9 and Back 9 Table */}
                   <div className="shrink-0">
@@ -536,7 +537,7 @@ export const ExpandableRoundCard: React.FC<ExpandableRoundCardProps> = ({ round,
                     </div>
                   </div>
                 </div>
-              ) : isFront9 ? (
+              ) : isFront9Only ? (
                 /* 9-hole Front 9 */
                 <div className="overflow-hidden">
                   <div className="flex items-center border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/80">
