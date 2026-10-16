@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, User, Users, Plus, Check, Trash2, Edit3, Shield, AlertCircle, Mail, FileCode, Star, Link, ArrowRight
+  X, User, Users, Plus, Check, Trash2, Edit3, Shield, AlertCircle, Mail, FileCode, Star, Link, ArrowRight, Download
 } from 'lucide-react';
-import { MemberProfile, TeamGroup, CompletedRoundRecord, Course, TeamEventRecord } from '../types';
+import { MemberProfile, TeamGroup, CompletedRoundRecord, Course, TeamEventRecord, HoleScore } from '../types';
 import { calculateTeamScrambleHandicap } from './ScrambleTeamManagerModal';
 import { ExpandableRoundCard } from './ExpandableRoundCard';
 import { ExpandableTeamEventCard } from './TeamHistoryModal'; 
@@ -32,6 +32,8 @@ interface ClubhouseHubModalProps {
   onDeleteTeamEvent?: (eventId: string) => void;
   onMergeMembers?: (guestId: string, officialId: string) => void;
   onSelectMemberForHistory?: (member: MemberProfile) => void;
+  onManualRoundLogged?: (data: Record<string, any>) => Promise<void>;
+  onManualTeamEventLogged?: (data: Record<string, any>) => Promise<void>;
 }
 
 const COLOR_OPTIONS = [
@@ -68,10 +70,12 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
   onDeleteTeamEvent,
   onMergeMembers,
   onSelectMemberForHistory,
+  onManualRoundLogged,
+  onManualTeamEventLogged
 }) => {
   const { isAdmin } = useAuth();
   const [hubTab, setHubTab] = useState<'profiles' | 'teams' | 'guests'>(initialTab);
-  const [profileSubTab, setProfileSubTab] = useState<'overview' | 'edit'>('overview');
+  const [profileSubTab, setProfileSubTab] = useState<'overview' | 'edit' | 'import'>('overview');
   const [historyTab, setHistoryTab] = useState<'rounds' | 'differentials' | 'scrambles'>('rounds');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   
@@ -102,6 +106,12 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
   // Admin Merge Tool State
   const [mergeSource, setMergeSource] = useState<MemberProfile | null>(null);
   const [mergeTargetId, setMergeTargetId] = useState<string>('');
+
+  // Admin Import State
+  const [roundsFile, setRoundsFile] = useState<File | null>(null);
+  const [holesFile, setHolesFile] = useState<File | null>(null);
+  const [importLog, setImportLog] = useState<string[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
 
   // Team Edit State
   const [isEditingTeam, setIsEditingTeam] = useState(false);
@@ -224,6 +234,170 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
       setMergeSource(null);
       setMergeTargetId('');
       showToast(`Merged ${mergeSource.name} into ${targetMember.name}!`);
+    }
+  };
+
+  // --- CSV IMPORTER ---
+  const handleRunImport = async () => {
+    if (!roundsFile || !holesFile) {
+      showToast("Please select both CSV files.");
+      return;
+    }
+
+    setIsImporting(true);
+    setImportLog(["Reading CSV files..."]);
+
+    try {
+      const roundsText = await roundsFile.text();
+      const holesText = await holesFile.text();
+
+      const parseCSV = (str: string) => {
+        const lines = str.split(/\r?\n/).filter(l => l.trim());
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        return lines.slice(1).map(line => {
+          const values = line.split(',');
+          const obj: Record<string, string> = {};
+          headers.forEach((h, i) => {
+            obj[h] = values[i] ? values[i].trim() : '';
+          });
+          return obj;
+        });
+      };
+
+      const formatDate = (dateStr: string) => {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+          const m = parts[0].padStart(2, '0');
+          const d = parts[1].padStart(2, '0');
+          const y = parts[2];
+          return `${y}-${m}-${d}`;
+        }
+        return dateStr;
+      };
+
+      const rawRounds = parseCSV(roundsText);
+      const rawHoles = parseCSV(holesText);
+
+      const validRounds = rawRounds.filter(r => r['player name'] && r['date'] && r['course name']);
+      setImportLog(prev => [...prev, `Found ${validRounds.length} round records.`]);
+
+      for (const round of validRounds) {
+        try {
+          const pName = round['player name']?.trim();
+          const rDate = round['date']?.trim();
+          const rCourse = round['course name']?.trim();
+          const rHoles = round['completed holes']?.trim() === '9' ? 'front_9' : '18';
+          const formattedDate = formatDate(rDate);
+
+          // Match course
+          const matchedCourse = courses.find(c => c.id === rCourse || c.name.toLowerCase().includes(rCourse.toLowerCase().replace(/-/g, ' ')));
+          if (!matchedCourse) {
+            setImportLog(prev => [...prev, `❌ Skipped: Course not found -> ${rCourse}`]);
+            continue;
+          }
+
+          // Match holes
+          const roundHoles = rawHoles.filter(h => h.date?.trim() === rDate && h['course name']?.trim() === rCourse);
+          
+          const holeScores: Record<number, HoleScore> = {};
+          let totalPutts = 0;
+          let totalGross = 0;
+
+          roundHoles.forEach(h => {
+            const hNum = parseInt(h['hole number']);
+            const strokes = parseInt(h['total strokes']);
+            const putts = parseInt(h['putts']);
+            if (!isNaN(hNum) && !isNaN(strokes)) {
+              holeScores[hNum] = {
+                strokes,
+                putts: isNaN(putts) ? 2 : putts,
+                fir: 'none',
+                gir: false
+              };
+              totalPutts += (isNaN(putts) ? 2 : putts);
+              totalGross += strokes;
+            }
+          });
+
+          const gross = totalGross > 0 ? totalGross : (parseInt(round['gross score']) || 0);
+
+          // Is Team or Individual?
+          const teamMatch = teams.find(t => t.name.toLowerCase() === pName.toLowerCase());
+          if (teamMatch) {
+            // Build Team Event
+            if (onManualTeamEventLogged) {
+              await onManualTeamEventLogged({
+                date: formattedDate,
+                eventName: `${matchedCourse.name} Team Scramble`,
+                courseName: matchedCourse.name,
+                format: 'scramble',
+                winningTeamName: teamMatch.name,
+                teamLeaderboard: [{
+                  teamName: teamMatch.name,
+                  grossScore: gross,
+                  playerNames: teamMatch.playerIds.map(id => members.find(m => m.id === id)?.name || id)
+                }],
+                holeScores: Object.keys(holeScores).length > 0 ? holeScores : undefined
+              });
+              setImportLog(prev => [...prev, `✅ Team Event Saved: ${teamMatch.name} at ${matchedCourse.name}`]);
+            }
+          } else {
+            // Individual Round
+            const memberMatch = members.find(m => m.name.toLowerCase() === pName.toLowerCase() || (m.nickname && m.nickname.toLowerCase() === pName.toLowerCase()));
+            if (memberMatch) {
+              const teeName = roundHoles.length > 0 ? (roundHoles[0]['tee name'] || 'White') : 'White';
+              const tee = matchedCourse.tees.find(t => t.name.toLowerCase() === teeName.toLowerCase()) || matchedCourse.tees[0];
+              
+              const baseRating = tee?.rating || 72;
+              const slope = tee?.slope || 113;
+              const is9Hole = rHoles === 'front_9' || rHoles === 'back_9';
+              const rating = is9Hole ? baseRating / 2 : baseRating;
+
+              const courseHandicap = Math.round(((memberMatch.handicapIndex || 0) / (is9Hole ? 2 : 1)) * (slope / 113) + (rating - (is9Hole ? 36 : 72)));
+              const netScore = gross - courseHandicap;
+              const differential = Number((((gross - rating) * 113) / slope).toFixed(1));
+
+              if (onManualRoundLogged) {
+                await onManualRoundLogged({
+                  playerId: memberMatch.id,
+                  playerName: memberMatch.name,
+                  courseId: matchedCourse.id,
+                  courseName: matchedCourse.name,
+                  teeId: tee?.id || '',
+                  teeName: tee?.name || teeName,
+                  date: formattedDate,
+                  format: 'stroke',
+                  isTeamRound: false,
+                  holesPlayed: rHoles,
+                  grossScore: gross,
+                  netScore: netScore,
+                  differential: differential,
+                  courseRating: rating,
+                  slopeRating: slope,
+                  totalPutts: totalPutts > 0 ? totalPutts : undefined,
+                  firPercent: 50,
+                  girPercent: 50,
+                  holeScores: Object.keys(holeScores).length > 0 ? holeScores : undefined
+                });
+                setImportLog(prev => [...prev, `✅ Round Saved: ${memberMatch.name} at ${matchedCourse.name}`]);
+              }
+            } else {
+              setImportLog(prev => [...prev, `❌ Skipped: Player/Team not found -> ${pName}`]);
+            }
+          }
+
+          // Small delay so we don't spam UI freeze
+          await new Promise(r => setTimeout(r, 200));
+        } catch (err) {
+          setImportLog(prev => [...prev, `🚨 Row Error: ${err}`]);
+        }
+      }
+      
+      setImportLog(prev => [...prev, `🎉 Import Complete! All indexes updated.`]);
+    } catch (error) {
+      setImportLog(prev => [...prev, `🚨 Fatal Error: ${error}`]);
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -473,29 +647,39 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
             <div className="space-y-6">
               
               {/* Profile Sub-Navigation */}
-              <div className="flex items-center border-b border-slate-100 dark:border-slate-800 pb-2">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                <button
+                  onClick={() => setProfileSubTab('overview')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                    profileSubTab === 'overview'
+                      ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  History and Stats
+                </button>
+                <button
+                  onClick={() => setProfileSubTab('edit')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                    profileSubTab === 'edit'
+                      ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  Edit Info
+                </button>
+                {isAdmin && (
                   <button
-                    onClick={() => setProfileSubTab('overview')}
+                    onClick={() => setProfileSubTab('import')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
-                      profileSubTab === 'overview'
-                        ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      profileSubTab === 'import'
+                        ? 'bg-amber-600 text-white shadow-2xs'
+                        : 'text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'
                     }`}
                   >
-                    History and Stats
+                    Import CSV
                   </button>
-                  <button
-                    onClick={() => setProfileSubTab('edit')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
-                      profileSubTab === 'edit'
-                        ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-2xs'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    Edit Info
-                  </button>
-                </div>
+                )}
               </div>
 
               {/* Subtab 1: History and Stats */}
@@ -627,7 +811,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                               </div>
                               <div className="flex items-center gap-4 text-right shrink-0">
                                 <span className="font-stats text-slate-800 dark:text-slate-200">{diff.grossScore} Gross</span>
-                                <span className="font-stats font-bold text-emerald-600 dark:text-emerald-400 text-sm">{diff.differential} Diff</span>
+                                <span className="font-stats font-bold text-emerald-600 dark:text-emerald-400 text-sm">{diff.differential.toFixed(1)} Diff</span>
                               </div>
                             </div>
                           ))
@@ -749,6 +933,60 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                   </button>
                 </form>
               )}
+
+              {/* Subtab 3: Import Legacy CSV (Admin Only) */}
+              {profileSubTab === 'import' && isAdmin && (
+                <div className="space-y-4">
+                  <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60 rounded-2xl">
+                    <h4 className="font-heading font-extrabold text-sm text-amber-900 dark:text-amber-100 mb-2">Legacy Data Importer</h4>
+                    <p className="text-xs text-amber-800 dark:text-amber-300/80 mb-4">
+                      Upload the <strong>rounds.csv</strong> and <strong>holes.csv</strong> files. The system will match them by Date + Course, generate the exact WHS payloads, and recalculate player stats securely.
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="text-[11px] font-bold uppercase text-amber-700 dark:text-amber-500 block mb-1">1. Rounds CSV</label>
+                        <input 
+                          type="file" 
+                          accept=".csv"
+                          onChange={(e) => setRoundsFile(e.target.files?.[0] || null)}
+                          className="w-full text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:bg-amber-200 dark:file:bg-amber-800 file:text-amber-800 dark:file:text-amber-100 hover:file:bg-amber-300 cursor-pointer" 
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold uppercase text-amber-700 dark:text-amber-500 block mb-1">2. Holes CSV</label>
+                        <input 
+                          type="file" 
+                          accept=".csv"
+                          onChange={(e) => setHolesFile(e.target.files?.[0] || null)}
+                          className="w-full text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:bg-amber-200 dark:file:bg-amber-800 file:text-amber-800 dark:file:text-amber-100 hover:file:bg-amber-300 cursor-pointer" 
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handleRunImport}
+                      disabled={isImporting || !roundsFile || !holesFile}
+                      className={`w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors ${
+                        !isImporting && roundsFile && holesFile
+                          ? 'bg-amber-600 hover:bg-amber-700 text-white cursor-pointer shadow-sm' 
+                          : 'bg-amber-200 dark:bg-amber-900/40 text-amber-500 dark:text-amber-600 cursor-not-allowed'
+                      }`}
+                    >
+                      <Download className="w-4 h-4" />
+                      {isImporting ? 'Processing Import...' : 'Run Data Import'}
+                    </button>
+                  </div>
+
+                  {importLog.length > 0 && (
+                    <div className="p-3 bg-slate-900 rounded-xl h-48 overflow-y-auto font-mono text-[10px] text-emerald-400">
+                      {importLog.map((log, i) => (
+                        <div key={i} className="mb-1">{log}</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -787,7 +1025,7 @@ export const ClubhouseHubModal: React.FC<ClubhouseHubModalProps> = ({
                       </button>
                       <button
                         onClick={() => handleStartCreateTeam(3)}
-                        className="btn-modern py-2 px-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="btn-modern py-2 px-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-slate-800 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
                         title="Create 3-Man Trio"
                       >
                         <Users className="w-3.5 h-3.5 shrink-0" />
