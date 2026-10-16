@@ -316,10 +316,9 @@ export default function App() {
       
       if (is9Hole) {
          // 2024 Rule: 9-Hole Diff + Expected Score Diff for remaining 9 holes
-         // Expected Score Diff approx = half of current index
          const expectedDiff = (member.handicapIndex && member.handicapIndex > 0) 
             ? (member.handicapIndex / 2) 
-            : diffNum; // If no established index, double the 9-hole performance
+            : diffNum; 
          diffNum = Number((diffNum + expectedDiff).toFixed(1));
       }
       
@@ -468,15 +467,22 @@ export default function App() {
 
   const handleManualRoundLogged = async (data: Record<string, any>) => {
     try {
-      const roundId = `round-${Date.now()}`;
+      const roundId = `round-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       const newRound = {
         id: roundId,
         ...data,
         createdAt: Date.now()
       };
-      await setDoc(doc(db, 'rounds', roundId), newRound);
-      console.log("Successfully saved past round:", newRound);
-      if (data.playerId) await recalculatePlayerStats(data.playerId, newRound);
+      
+      const cleanData = Object.fromEntries(
+        Object.entries(newRound).filter(([_, v]) => v !== undefined)
+      );
+
+      await setDoc(doc(db, 'rounds', roundId), cleanData);
+      
+      if (data.playerId) {
+        await recalculatePlayerStats(data.playerId, cleanData);
+      }
     } catch (error) {
       console.error("Failed to save past round to Firebase:", error);
     }
@@ -640,9 +646,7 @@ export default function App() {
         onUpdateTeamEvent={handleUpdateTeamEvent}
         onDeleteTeamEvent={handleDeleteTeamEvent}
         onMergeMembers={async (guestId, officialId) => {
-          // Find the guest rounds
           const guestRounds = completedRounds.filter(r => r.playerId === guestId);
-          // Transfer them
           for (const r of guestRounds) {
              const official = members.find(m => m.id === officialId);
              await updateRecord('rounds', r.id, { 
@@ -650,12 +654,12 @@ export default function App() {
                playerName: official?.name || r.playerName 
              });
           }
-          // Recalculate
           await recalculatePlayerStats(officialId);
-          // Delete guest
           await deleteRecord('members', guestId);
         }}
         onSelectMemberForHistory={handleOpenMemberHistory}
+        onManualRoundLogged={handleManualRoundLogged}
+        onManualTeamEventLogged={handleSaveTeamEvent}
       />
 
       <NewRoundModal
