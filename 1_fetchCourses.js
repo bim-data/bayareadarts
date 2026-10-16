@@ -5,8 +5,7 @@ const API_KEY = 'YWVWXINIAUWWFIZ6NTKQOHOUNE'; // Paste your fresh API key here
 
 // ⚠️ MAX 17 COURSES PER RUN (2 API calls used per course)
 const TARGET_COURSES = [
-  "Canyon Lakes Golf Course",
-  // Add up to 9 more here...
+  { name: "Los Lagos Golf Course", location: "San Jose, CA" },
 ];
 
 const DIRECT_URL = 'https://api.golfcourseapi.com/v1';
@@ -49,15 +48,21 @@ async function runFetch() {
   console.log(`Starting targeted import for ${TARGET_COURSES.length} courses...`);
   const coursesToSave = [];
 
-  for (const courseName of TARGET_COURSES) {
+  for (const target of TARGET_COURSES) {
     try {
-      console.log(`\n🔍 Searching for: ${courseName}...`);
+      // Handle both string formats and {name, location} object formats
+      const isObject = typeof target === 'object';
+      const targetName = isObject ? target.name : target;
+      const targetLocation = isObject && target.location ? ` ${target.location}` : '';
+      const searchQuery = `${targetName}${targetLocation}`;
+
+      console.log(`\n🔍 Searching for: ${searchQuery}...`);
       
-      const searchUrl = `${DIRECT_URL}/search?search_query=${encodeURIComponent(courseName)}&fuzzy_match=true`;
+      const searchUrl = `${DIRECT_URL}/search?search_query=${encodeURIComponent(searchQuery)}&fuzzy_match=true`;
       const searchRes = await fetch(searchUrl, fetchOptions);
       
       if (!searchRes.ok) {
-        console.log(`❌ Search failed for ${courseName} (Status: ${searchRes.status})`);
+        console.log(`❌ Search failed for ${targetName} (Status: ${searchRes.status})`);
         continue;
       }
       
@@ -65,7 +70,7 @@ async function runFetch() {
       const firstResult = (searchData.courses || [])[0];
       
       if (!firstResult) {
-        console.log(`⚠️ No matches found for "${courseName}". Skipping.`);
+        console.log(`⚠️ No matches found for "${searchQuery}". Skipping.`);
         continue;
       }
 
@@ -139,7 +144,7 @@ async function runFetch() {
       await new Promise(resolve => setTimeout(resolve, 1500));
 
     } catch (err) {
-      console.error(`🚨 Error processing ${courseName}:`, err);
+      console.error(`🚨 Error processing ${target}:`, err);
     }
   }
 
