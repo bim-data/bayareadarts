@@ -554,7 +554,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             <div 
               onClick={() => drunkestRound && liquidCourageMember && onSelectMemberForHistory(liquidCourageMember, drunkestRound.id)}
               className="card-modern p-3.5 sm:p-4 rounded-2xl flex items-center gap-3 sm:gap-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-800 transition-all cursor-pointer group"
-              title="Click to view scorecard history"
+              title={drunkestRound ? `Click to view scorecard (${drunkestRound.courseName} · ${drunkestRound.grossScore} Gross with ${drunkestRound.buzzballCount} drinks)` : "Click to view scorecard history"}
             >
               <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                 🍹
@@ -567,7 +567,9 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
                   {liquidCourageMember?.name || 'TBD'}
                 </span>
                 <span className="font-stats text-xs font-semibold text-slate-600 dark:text-slate-400 truncate block">
-                  {drunkestRound?.buzzballCount ? `${drunkestRound.buzzballCount} Drinks` : 'No rounds yet'}
+                  {drunkestRound?.buzzballCount 
+                    ? `${drunkestRound.buzzballCount} ${drunkestRound.buzzballCount === 1 ? 'Drink' : 'Drinks'} · ${drunkestRound.grossScore} Gross` 
+                    : 'No rounds yet'}
                 </span>
               </div>
             </div>
