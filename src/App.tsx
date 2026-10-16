@@ -21,7 +21,7 @@ import { ClubhouseHubModal } from './components/ClubhouseHubModal';
 import { PlayerListModal } from './components/PlayerListModal';
 import { AuthScreen } from './components/AuthScreen'; 
 import { useAuth } from './contexts/AuthContext';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
 import { X } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
@@ -252,13 +252,17 @@ export default function App() {
     return Math.floor(finalIndex * 10) / 10;
   };
 
-  // MAIN STAT CALCULATOR (WITH 9 HOLE FIXES)
+  // MAIN STAT CALCULATOR (WITH 9 HOLE FIXES AND RACE CONDITION PROTECTION)
   const recalculatePlayerStats = async (playerId: string, extraRound?: any) => {
     const member = members.find(m => m.id === playerId);
     if (!member) return;
 
-    let playerRounds = completedRounds.filter(r => r.playerId === playerId);
+    // Fetch completely fresh data directly from Firebase to avoid React state race conditions during bulk imports
+    const q = query(collection(db, 'rounds'), where('playerId', '==', playerId));
+    const snapshot = await getDocs(q);
+    let playerRounds = snapshot.docs.map(doc => doc.data() as CompletedRoundRecord);
     
+    // Inject the newly saved/deleted round just in case Firebase cache hasn't caught up
     if (extraRound) {
       if (extraRound._deleted) {
         playerRounds = playerRounds.filter(r => r.id !== extraRound.id);
@@ -272,7 +276,7 @@ export default function App() {
     // Force string-based sorting for YYYY-MM-DD dates to ensure order
     playerRounds.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-    // PROTECT HANDICAP: Filter out scrambles and team events from individual stats
+    // PROTECT HANDICAP & STATS: Filter out scrambles and team events from individual stats
     const individualRounds = playerRounds.filter(r => 
       r.format !== 'scramble' && 
       r.format !== 'best_ball' && 
@@ -296,7 +300,11 @@ export default function App() {
     
     const roundsWithPutts = individualRounds.filter(r => r.totalPutts && Number(r.totalPutts) > 0);
     const avgPutts = roundsWithPutts.length > 0 
-      ? Number((roundsWithPutts.reduce((acc, r) => acc + Number(r.totalPutts), 0) / roundsWithPutts.length).toFixed(1)) 
+      ? Number((roundsWithPutts.reduce((acc, r) => {
+          // Normalize 9-hole putts to an 18-hole equivalent for the stat average
+          const putts = Number(r.totalPutts);
+          return acc + (is9HoleRound(r.holesPlayed) ? putts * 2 : putts);
+        }, 0) / roundsWithPutts.length).toFixed(1)) 
       : 0;
 
     const roundsWithGir = individualRounds.filter(r => r.girPercent !== undefined);
