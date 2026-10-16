@@ -5,7 +5,7 @@ const API_KEY = 'YWVWXINIAUWWFIZ6NTKQOHOUNE'; // Paste your fresh API key here
 
 // ⚠️ MAX 17 COURSES PER RUN (2 API calls used per course)
 const TARGET_COURSES = [
-  { name: "Los Lagos", location: "San Jose" },
+  { name: "Sunken Garden", location: "Sunnyvale" },
 ];
 
 const DIRECT_URL = 'https://api.golfcourseapi.com/v1';
