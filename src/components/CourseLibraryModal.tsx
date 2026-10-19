@@ -112,6 +112,26 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
       // Ensure holes are sorted by hole number 1-18
       const sortedHoles = [...editHoles].sort((a, b) => a.number - b.number);
 
+      let lat = selectedCourse.latitude;
+      let lng = selectedCourse.longitude;
+
+      // Automatically geocode the address if provided
+      if (editAddress.trim()) {
+        try {
+          const query = `${editAddress.trim()}, ${editCity.trim()}, ${editState.trim()}`;
+          const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.lat && data.lng) {
+              lat = data.lat;
+              lng = data.lng;
+            }
+          }
+        } catch (e) {
+          console.warn('Geocoding during save skipped:', e);
+        }
+      }
+
       const updatedCourse: Course = {
         ...selectedCourse,
         name: editName.trim() || selectedCourse.name,
@@ -121,6 +141,7 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
         region: editRegion,
         notes: editNotes.trim(),
         holes: sortedHoles,
+        ...(lat && lng ? { latitude: lat, longitude: lng } : {}),
       };
 
       if (onUpdateCourse) {
@@ -329,8 +350,14 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
                         <span className="flex items-center gap-1">
                           <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           <span>
-                            {selectedCourse.city}
-                            {selectedCourse.state ? `, ${selectedCourse.state}` : ''}
+                            {(() => {
+                              const city = (selectedCourse.city || '').trim();
+                              const state = (selectedCourse.state || 'CA').trim();
+                              if (city.toLowerCase().includes(state.toLowerCase()) || city.toLowerCase().includes('california')) {
+                                return city;
+                              }
+                              return `${city}, ${state}`;
+                            })()}
                           </span>
                         </span>
                         <span>&middot;</span>
@@ -496,6 +523,13 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
                   <CourseDirectoryMap
                     courses={filteredLocalCourses}
                     onSelectCourse={(c) => setSelectedCourse(c)}
+                    onUpdateCourseCoords={async (courseId, lat, lng) => {
+                      const target = courses.find((c) => c.id === courseId);
+                      if (target && onUpdateCourse) {
+                        const updated = { ...target, latitude: lat, longitude: lng };
+                        await onUpdateCourse(updated);
+                      }
+                    }}
                   />
                 </div>
               ) : (

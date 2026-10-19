@@ -120,6 +120,52 @@ app.get('/api/courses/search', (req: Request, res: Response) => {
   res.json({ courses: matched });
 });
 
+// Geocoding Proxy via OpenStreetMap Nominatim
+const geocodeCache = new Map<string, { lat: number; lng: number; displayName: string }>();
+
+app.get('/api/geocode', async (req: Request, res: Response) => {
+  const query = ((req.query.q as string) || '').trim();
+  if (!query) {
+    return res.status(400).json({ error: 'Query parameter q is required' });
+  }
+
+  const cacheKey = query.toLowerCase();
+  if (geocodeCache.has(cacheKey)) {
+    return res.json(geocodeCache.get(cacheKey));
+  }
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'BayAreaDartsGolfApp/1.0 (dwong@ogsd.net)',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    });
+
+    if (!response.ok) {
+      return res.status(502).json({ error: 'Geocoding service unavailable' });
+    }
+
+    const data: any = await response.json();
+    if (Array.isArray(data) && data.length > 0) {
+      const first = data[0];
+      const result = {
+        lat: parseFloat(first.lat),
+        lng: parseFloat(first.lon),
+        displayName: first.display_name,
+      };
+      geocodeCache.set(cacheKey, result);
+      return res.json(result);
+    }
+
+    return res.status(404).json({ error: 'No coordinates found for address' });
+  } catch (err: any) {
+    console.error('Geocoding error:', err);
+    return res.status(500).json({ error: 'Internal geocoding error' });
+  }
+});
+
 app.post('/api/courses', (req: Request, res: Response) => {
   const newCourse: Course = req.body;
   if (!newCourse.name) {
