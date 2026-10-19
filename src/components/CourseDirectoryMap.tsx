@@ -142,14 +142,11 @@ export const CourseDirectoryMap: React.FC<CourseDirectoryMapProps> = ({
       // Add zoom control top-right
       L.control.zoom({ position: 'topright' }).addTo(map);
 
-      // CartoDB Dark Matter tiles (matching dark golf UI theme)
-      L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-        {
-          maxZoom: 19,
-          subdomains: 'abcd',
-        }
-      ).addTo(map);
+      // OpenStreetMap standard tiles (open, free, no API key required)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      }).addTo(map);
 
       mapInstanceRef.current = map;
     }
