@@ -42,7 +42,7 @@ import {
 export default function App() {
   const [currentTab, setCurrentTab] = useState<'clubhouse' | 'live' | 'rankings' | 'courses' | 'events' | 'future'>('clubhouse');
   
-  const { currentUser, memberProfile, loading: authLoading } = useAuth();
+  const { currentUser, memberProfile, isAdmin, loading: authLoading } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
@@ -178,6 +178,12 @@ export default function App() {
 
   const handleAddCourse = async (course: Course) => {
     await addRecord('courses', course);
+  };
+
+  const handleUpdateCourse = async (updatedCourse: Course) => {
+    const cleanData = JSON.parse(JSON.stringify(updatedCourse));
+    await updateRecord('courses', updatedCourse.id, cleanData);
+    setCourses((prev) => prev.map((c) => (c.id === updatedCourse.id ? updatedCourse : c)));
   };
 
   const handleSaveMemberNickname = async (memberId: string, nickname: string, avatarEmoji: string, badgeTitle: string) => {
@@ -740,6 +746,8 @@ export default function App() {
         onClose={() => setIsCourseLibraryOpen(false)}
         courses={courses}
         onAddCourse={handleAddCourse}
+        onUpdateCourse={handleUpdateCourse}
+        isAdmin={isAdmin}
         onPlanFutureRound={(courseId) => {
           setPreselectedCourseId(courseId); // Save the course!
           setIsCourseLibraryOpen(false);

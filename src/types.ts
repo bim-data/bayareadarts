@@ -20,10 +20,14 @@ export interface Course {
   id: string;
   name: string;
   city: string;
+  state?: string;
+  address?: string;
   region: 'SF' | 'East Bay' | 'Peninsula' | 'South Bay' | 'North Bay' | 'Other';
   holes: HoleInfo[];
   tees: TeeBox[];
   notes?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export type FirDirection = 'left' | 'hit' | 'right' | 'none';

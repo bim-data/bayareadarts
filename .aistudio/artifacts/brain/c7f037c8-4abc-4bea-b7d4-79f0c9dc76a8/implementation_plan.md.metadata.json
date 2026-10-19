@@ -1,6 +1,6 @@
 {
-  "summary": "Implementation plan for Role-Based Access Control (RBAC) locking down individual and scramble scorecard editing and deletion to logged-in owners, squad roster members, and administrators.",
-  "updatedAt": "2026-10-15T17:03:31.886921940Z",
+  "summary": "Implementation plan for Course Directory enhancements: hole-by-hole scorecard view (hole number, par, yardage, handicap), admin inline edit mode for course details and layout with Firestore persistence, and List/Map mode toggle with interactive geocoded course mapping.",
+  "updatedAt": "2026-10-19T21:43:37.200868908Z",
   "requestFeedback": true,
   "userFacing": true
 }

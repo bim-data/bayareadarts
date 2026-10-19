@@ -1,115 +1,108 @@
-# Role-Based Access Control (RBAC) for Scorecard Editing & Deletion
+# Implementation Plan: Course Directory Scorecard, Admin Layout Editor & Map View
 
-Lock down score editing and deletion across player profiles, clubhouse drawers, and scramble events so that unauthorized visitors and non-owners cannot modify or delete scores.
-
-## User Review & Critical Decisions
-
-> [!IMPORTANT]
-> The user confirmed the following security and permission rules:
-> - **Admin Designation**: In the database, the member profile has a `role` field set to `"admin"` (`role: "admin"`). Regular players do not have this field.
-> - **Unauthorized Appearance**: Hide edit and delete buttons completely on read-only cards (no disabled padlock buttons or clutter).
-> - **Individual Rounds**: Only the logged-in player who owns the round or an administrator can edit or delete.
-> - **Scramble Squad Rounds**: Any player on the squad roster or an administrator can edit or delete.
-
-- **Confirmed Decision 1**: Add `role?: 'admin' | string;` to `MemberProfile` in `src/types.ts`.
-- **Confirmed Decision 2**: Expose `isAdmin` in `AuthContext` (`memberProfile?.role === 'admin'`).
-- **Confirmed Decision 3**: Centralize permission checking in `ExpandableRoundCard` and `ExpandableTeamEventCard` so that edit and delete buttons are only rendered when authorization criteria are strictly met.
+Expand the Course Directory with an expandable-style scorecard (hole number, par, yardage, and handicap index), an inline Admin Course Editor for updating hole layouts and course metadata directly from the UI into Firestore, and an interactive List/Map toggle mode.
 
 ---
 
-## 1. Overview & Core Concept
+## 1. User Requirements & Confirmed Specifications
 
-- **What It Does**: Establishes strict ownership and role verification for score records. Prevents anonymous visitors or other players from modifying another golfer's scorecard, handicap data, or scramble results.
-- **Target Audience**: Golf club members and administrators who need data integrity for WHS handicaps and club tournaments.
-- **Key Value**: Enforces true "Read-Only" protection when viewing other golfers' profiles while giving administrators full management capabilities.
+1. **Course Scorecard View**:
+   - In course detail view (when a course is selected from the directory), display a hole-by-hole scorecard in the exact visual style of the app's expandable scorecard (`ExpandableRoundCard`).
+   - Include rows:
+     - **Hole**: 1 to 9 (OUT), 10 to 18 (IN), and TOTAL (for 18-hole courses) or 1 to 9 (OUT) for 9-hole courses.
+     - **Par**: Hole pars, plus OUT, IN, and TOTAL par summaries.
+     - **Yardage**: Per-hole yardages, plus OUT, IN, and TOTAL yardage calculations.
+     - **Handicap (HCP)**: Per-hole stroke index difficulty (1–18).
+   - Match existing dark/light theme, border radius, crisp typography, and tabular figures.
 
----
+2. **Admin Course & Layout Editor**:
+   - Available to admins (checked via `useAuth().isAdmin`).
+   - Admin action button ("Edit Course" / "Edit Layout") on the course detail card.
+   - When in Edit Mode:
+     - Inline text inputs for **City**, **Area / Region** (Peninsula, East Bay, SF, South Bay, North Bay, Other), and **Address** (wired up for future dataset additions).
+     - Scorecard inputs for **Par** (quick increment/decrement or number entry), **Yardage** (editable text field as confirmed by user), and **Handicap** (stroke index difficulty).
+     - Dynamic auto-calculation of OUT, IN, and TOTAL pars and yardages as the admin types.
+     - **Save Changes** button that writes directly to Firestore via `updateRecord('courses', course.id, ...)` with feedback toast/notification.
+     - **Cancel** button to revert unsaved draft edits.
 
-## 2. User Experience & Permission Matrix
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                             PERMISSION MATRIX                               │
-├─────────────────────┬───────────────────┬───────────────────┬───────────────┤
-│ User State          │ Own Round Cards   │ Other Player Cards│ Scramble Squad│
-├─────────────────────┼───────────────────┼───────────────────┼───────────────┤
-│ Logged Out / Guest  │ Hidden (Read-Only)│ Hidden (Read-Only)│ Hidden        │
-│ Regular Player (Me) │ Full Edit/Delete  │ Hidden (Read-Only)│ Edit if on    │
-│                     │                   │                   │ squad roster  │
-│ Admin (role=admin)  │ Full Edit/Delete  │ Full Edit/Delete  │ Full Edit/Del │
-└─────────────────────┴───────────────────┴───────────────────┴───────────────┘
-```
-
-### Visual & Interactive Behavior
-1. **Player History Modal (`PlayerHistoryModal.tsx`)**:
-   - When viewing another player's profile: The top bar retains the `🔒 Read-Only` pill, and all child scorecard items (`ExpandableRoundCard`) hide the edit and delete buttons completely.
-   - When viewing your own profile (or when an Admin views any profile): The cards show the Edit and Delete action controls.
-2. **Clubhouse Hub Modal (`ClubhouseHubModal.tsx`)**:
-   - The user's personal scores drawer allows edit/delete.
-   - When browsing other members in the switch view, edit/delete buttons are hidden unless the active user is an admin.
-3. **Scramble Team Events (`TeamHistoryModal.tsx` & `ExpandableTeamEventCard`)**:
-   - Edit and Delete buttons on team event scorecards are hidden unless the current logged-in user is an administrator or is listed on the roster of that squad.
+3. **List & Map Mode in Course Directory**:
+   - Clean segmented toggle switch at the top of the Course Directory modal: `List` and `Map`.
+   - **List Mode**: The existing scannable course cards, search filter, and tee summary.
+   - **Map Mode**:
+     - Interactive map centered on Northern California / Bay Area courses.
+     - Geocoded course pins mapped by address (or accurate city coordinates fallback for Bay Area cities: Palo Alto, Walnut Creek, Pleasanton, San Ramon, San Jose, San Francisco, Oakland, Berkeley, Sunnyvale, etc.).
+     - Course pin markers display course names on hover/click with an info card popup (name, city, area badge, tee count, and "View Scorecard" action).
+     - Live synchronization with search filter (filtering text updates pins dynamically).
+     - Clicking a course pin opens the course detail & scorecard view.
 
 ---
 
-## 3. Technical Architecture & Implementation Steps
+## 2. Architecture & Design Specifications
 
-```
-┌───────────────────────────────────────────────────────────────────────────┐
-│                      AUTH & PERMISSION ARCHITECTURE                       │
-└─────────────────────────────────────┬─────────────────────────────────────┘
-                                      │
-              ┌───────────────────────┴───────────────────────┐
-              ▼                                               ▼
-    [ AuthContext.tsx ]                               [ src/types.ts ]
-    - currentUser (Firebase User)                     - MemberProfile.role:
-    - memberProfile (Firestore doc)                     'admin' | undefined
-    - isAdmin (boolean helper)
-              │
-              └───────────────────────┬───────────────────────┘
-                                      ▼
-                      [ Permission Evaluation Helper ]
-            canEditRound(round, currentUser, memberProfile, isAdmin)
-            canEditScramble(event, currentUser, memberProfile, isAdmin)
-                                      │
-              ┌───────────────────────┴───────────────────────┐
-              ▼                                               ▼
-    [ ExpandableRoundCard.tsx ]                    [ ExpandableTeamEventCard ]
-    - Evaluates canEdit                           - Checks roster membership
-    - Conditionally renders Edit & Delete          - Conditionally renders Edit/Del
-```
-
-### Detailed Component Updates:
-1. **`src/types.ts`**:
-   - Add `role?: 'admin' | string;` to `interface MemberProfile`.
-2. **`src/contexts/AuthContext.tsx`**:
-   - Add `isAdmin: boolean` to `AuthContextType`, defined as `memberProfile?.role === 'admin'`.
-3. **`src/components/ExpandableRoundCard.tsx`**:
-   - Add permission check:
-     `const canEdit = !!(currentUser && (isAdmin || currentUser.uid === round.playerId || memberProfile?.id === round.playerId || memberProfile?.name.toLowerCase() === round.playerName.toLowerCase()));`
-   - Only render the Edit button and Delete button if `canEdit` is true.
-4. **`src/components/TeamHistoryModal.tsx` (`ExpandableTeamEventCard`)**:
-   - Add permission check for scramble events:
-     `const isSquadMember = event.teamLeaderboard.some(t => t.playerNames.some(pName => pName.toLowerCase() === (memberProfile?.name || '').toLowerCase() || (memberProfile?.nickname && pName.toLowerCase() === memberProfile.nickname.toLowerCase())));`
-     `const canEditEvent = !!(currentUser && (isAdmin || isSquadMember));`
-   - Only render the Edit button and Delete button if `canEditEvent` is true.
-5. **`src/components/PlayerHistoryModal.tsx`**:
-   - Ensure `ExpandableRoundCard` and `ExpandableTeamEventCard` are passed authorization context so that viewing another player's profile is strictly read-only.
+- **Design System**: Strictly adhere to the Universal Frontend Design Constitution and SaaS/Dashboard guidelines:
+  - Tabular numerals (`font-mono` / `tabular-nums`) for all numbers, yards, and pars.
+  - Quiet, unboxed metadata separators (`·`) for city, state, and region.
+  - Clean segmented control for List/Map toggle (functional `<button>` tabs with subtle active backgrounds, zero AI-slop pill badges).
+  - High-contrast, dark-mode-native scorecard grid matching `ExpandableRoundCard` exactly (subtle 1px border lines, distinct OUT/IN/TOTAL summary headers).
+- **Data Flow & Persistence**:
+  - `src/types.ts`: Update `Course` interface with optional `address?: string`, `state?: string`, `latitude?: number`, `longitude?: number`.
+  - `src/services/db.ts`: Leverage existing `updateRecord('courses', courseId, cleanCourseData)` for real-time Firestore synchronization.
+  - `src/components/CourseLibraryModal.tsx`:
+    - Add `isAdmin` from `useAuth` (or prop).
+    - Add `viewMode`: `'list' | 'map'`.
+    - Add scorecard renderer with Front 9 / Back 9 / Out / In / Total.
+    - Add admin editing state and save handler `onUpdateCourse(course)`.
+    - Render interactive map component with responsive container and geocoding dictionary.
 
 ---
 
-## Verification Plan
+## 3. Step-by-Step Implementation Steps
 
-1. **Unauthenticated / Guest Test**:
-   - Log out of the application.
-   - Open any player profile in the roster. Verify that no edit stepper buttons, edit pencil icons, or delete trash cans appear. The scorecard expands cleanly in read-only mode.
-2. **Logged-In Player Test (Non-Admin)**:
-   - Log in as a regular player.
-   - Open your own profile: verify edit and delete buttons are fully functional.
-   - Open another player's profile: verify edit and delete buttons are completely hidden.
-   - Open a scramble event: verify you can only edit events where you are on the team roster.
-3. **Administrator Test (`role: "admin"`)**:
-   - Log in as an account with `role: "admin"`.
-   - Open another player's profile and scramble event: verify edit and delete buttons are visible and functional.
-4. **Compilation Verification**:
-   - Run `lint_applet` and `compile_applet` to confirm zero TypeScript or build issues.
+### Step 1: Type Definitions (`src/types.ts`)
+- Update `Course` interface to include:
+  - `address?: string`
+  - `state?: string`
+  - `latitude?: number`
+  - `longitude?: number`
+
+### Step 2: Course Scorecard Table Component (`src/components/CourseScorecardTable.tsx`)
+- Build a dedicated, reusable scorecard component modeled after `ExpandableRoundCard.tsx`:
+  - Front 9 table (Holes 1–9 + OUT).
+  - Back 9 table (Holes 10–18 + IN, if 18 holes).
+  - Combined TOTAL summary column.
+  - Rows:
+    - **Hole**: 1..9 | OUT | 10..18 | IN | TOTAL
+    - **Par**: Hole pars + OUT / IN / TOTAL totals
+    - **Yardage**: Per-hole yardage + OUT / IN / TOTAL totals
+    - **Handicap (HCP)**: Per-hole difficulty index (1–18)
+  - Supports both **Read-Only** view and **Admin Edit** mode:
+    - In Edit Mode: Par controls, text input for Yardage (`type="text" pattern="[0-9]*"`), and Handicap input.
+    - Live recalculation of OUT, IN, and TOTAL yardage and par sums.
+
+### Step 3: Interactive Course Map (`src/components/CourseDirectoryMap.tsx`)
+- Implement a responsive interactive map with Leaflet or lightweight Canvas/SVG interactive map with CartoDB/OpenStreetMap tiles:
+  - Preloaded coordinates for Bay Area / Northern California golf regions and cities (Palo Alto, San Jose, Sunnyvale, Walnut Creek, Pleasanton, San Ramon, San Francisco, Oakland, Berkeley, Half Moon Bay, Napa, Sonoma, Monterey, etc.).
+  - Geocode handler that falls back from `address` to `city, CA`.
+  - Custom pin markers styled to match the dark emerald brand aesthetic.
+  - Clickable markers with course card preview and quick "View Details & Scorecard" button.
+  - Smooth zoom/pan controls and auto-fit bounds based on visible/filtered courses.
+
+### Step 4: Integrate Scorecard, Admin Editor, and Map Toggle in `CourseLibraryModal.tsx`
+- Add List / Map segmented toggle at the top next to the search input.
+- In Course Detail view:
+  - Render the Course Scorecard Table directly beneath the Available Tees.
+  - If user is admin (`isAdmin`), render "Edit Course Layout" button.
+  - When editing:
+    - Allow updating City, Region/Area, and Address.
+    - Allow modifying hole Pars, Yardages, and Handicap Indices in the scorecard table.
+    - "Save to Firebase" button that calls `onUpdateCourse(updatedCourse)` and displays save status toast.
+    - "Cancel" button to discard changes.
+- In `App.tsx`:
+  - Pass `onUpdateCourse` handler that calls `updateRecord('courses', updatedCourse.id, cleanData)` and updates local state.
+  - Provide `isAdmin` to `CourseLibraryModal`.
+
+### Step 5: Verification & Testing
+- Test viewing course scorecards for 9-hole and 18-hole courses.
+- Test Admin edit mode: modify yardage, par, handicap, city, and region, then save and verify persistent Firestore update.
+- Test Map mode toggle: search filter synchronization, pin selection, and detail navigation.
+- Verify production build with `compile_applet` and test responsiveness across mobile and desktop.
