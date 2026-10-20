@@ -145,6 +145,19 @@ const KNOWN_COURSE_COORDINATES: Record<string, [number, number]> = {
   // Coyote Creek
   'coyote creek': [37.195, -121.688],
   '1 coyote creek golf dr': [37.195, -121.688],
+
+  // Monterey / Pebble Beach / Santa Cruz
+  'poppy hills': [36.5878, -121.936],
+  'pebble beach': [36.5684, -121.9486],
+  'spyglass hill': [36.586, -121.961],
+  'del monte': [36.593, -121.868],
+  'bayonet': [36.634, -121.815],
+  'black horse': [36.634, -121.815],
+  'pacific grove': [36.629, -121.932],
+  'quail lodge': [36.536, -121.848],
+  'carmel valley': [36.518, -121.805],
+  'de laveaga': [36.996, -122.001],
+  'seascape': [36.966, -121.868],
 };
 
 // City coordinates dictionary covering the Bay Area & Northern California
@@ -222,6 +235,8 @@ const REGION_CENTERS: Record<string, [number, number]> = {
   'East Bay': [37.78, -121.98],
   'South Bay': [37.33, -121.9],
   'North Bay': [38.1, -122.45],
+  'Santa Cruz': [36.9741, -122.0308],
+  'Monterey': [36.6002, -121.8947],
   'Other': [37.7, -122.1],
 };
 

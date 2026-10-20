@@ -22,7 +22,7 @@ export interface Course {
   city: string;
   state?: string;
   address?: string;
-  region: 'SF' | 'East Bay' | 'Peninsula' | 'South Bay' | 'North Bay' | 'Other';
+  region: 'SF' | 'East Bay' | 'Peninsula' | 'South Bay' | 'North Bay' | 'Santa Cruz' | 'Monterey' | 'Other' | string;
   holes: HoleInfo[];
   tees: TeeBox[];
   notes?: string;

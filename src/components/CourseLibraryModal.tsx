@@ -29,6 +29,16 @@ interface CourseLibraryModalProps {
   isAdmin?: boolean;
 }
 
+const STANDARD_REGIONS = [
+  'Peninsula',
+  'East Bay',
+  'SF',
+  'South Bay',
+  'North Bay',
+  'Santa Cruz',
+  'Monterey',
+];
+
 export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
   isOpen,
   onClose,
@@ -44,13 +54,23 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
+  // Compute dynamic list of regions from defaults + any regions currently in courses
+  const availableRegions = Array.from(
+    new Set([
+      ...STANDARD_REGIONS,
+      ...courses.map((c) => c.region).filter((r): r is string => Boolean(r && r !== 'Other')),
+    ])
+  );
+
   // Admin edit mode state
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editCity, setEditCity] = useState('');
   const [editState, setEditState] = useState('CA');
   const [editAddress, setEditAddress] = useState('');
-  const [editRegion, setEditRegion] = useState<Course['region']>('Other');
+  const [editRegion, setEditRegion] = useState<string>('Other');
+  const [customRegionInput, setCustomRegionInput] = useState('');
+  const [isCreatingCustomRegion, setIsCreatingCustomRegion] = useState(false);
   const [editNotes, setEditNotes] = useState('');
   const [editHoles, setEditHoles] = useState<HoleInfo[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -64,7 +84,20 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
       setEditCity(selectedCourse.city || '');
       setEditState(selectedCourse.state || 'CA');
       setEditAddress(selectedCourse.address || '');
-      setEditRegion(selectedCourse.region || 'Other');
+
+      const courseReg = selectedCourse.region || 'Other';
+      setEditRegion(courseReg);
+      if (courseReg === 'Other') {
+        setIsCreatingCustomRegion(false);
+        setCustomRegionInput('');
+      } else if (!STANDARD_REGIONS.includes(courseReg)) {
+        setIsCreatingCustomRegion(false);
+        setCustomRegionInput(courseReg);
+      } else {
+        setIsCreatingCustomRegion(false);
+        setCustomRegionInput('');
+      }
+
       setEditNotes(selectedCourse.notes || '');
       setEditHoles(selectedCourse.holes ? JSON.parse(JSON.stringify(selectedCourse.holes)) : []);
       setIsEditing(false);
@@ -132,13 +165,18 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
         }
       }
 
+      const finalRegion =
+        isCreatingCustomRegion || editRegion === 'Other'
+          ? (customRegionInput.trim() || 'Other')
+          : editRegion;
+
       const updatedCourse: Course = {
         ...selectedCourse,
         name: editName.trim() || selectedCourse.name,
         city: editCity.trim() || selectedCourse.city,
         state: editState.trim() || 'CA',
         address: editAddress.trim(),
-        region: editRegion,
+        region: finalRegion,
         notes: editNotes.trim(),
         holes: sortedHoles,
         ...(lat && lng ? { latitude: lat, longitude: lng } : {}),
@@ -166,7 +204,10 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
       setEditCity(selectedCourse.city || '');
       setEditState(selectedCourse.state || 'CA');
       setEditAddress(selectedCourse.address || '');
-      setEditRegion(selectedCourse.region || 'Other');
+      const courseReg = selectedCourse.region || 'Other';
+      setEditRegion(courseReg);
+      setIsCreatingCustomRegion(false);
+      setCustomRegionInput(courseReg !== 'Other' ? courseReg : '');
       setEditNotes(selectedCourse.notes || '');
       setEditHoles(selectedCourse.holes ? JSON.parse(JSON.stringify(selectedCourse.holes)) : []);
     }
@@ -275,21 +316,69 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
                         </div>
 
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                            Area / Region
-                          </label>
-                          <select
-                            value={editRegion}
-                            onChange={(e) => setEditRegion(e.target.value as Course['region'])}
-                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold focus:ring-1 focus:ring-emerald-500 focus:outline-hidden text-slate-900 dark:text-white"
-                          >
-                            <option value="Peninsula">Peninsula</option>
-                            <option value="East Bay">East Bay</option>
-                            <option value="SF">SF</option>
-                            <option value="South Bay">South Bay</option>
-                            <option value="North Bay">North Bay</option>
-                            <option value="Other">Other</option>
-                          </select>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                              Area / Region
+                            </label>
+                            {isCreatingCustomRegion ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsCreatingCustomRegion(false);
+                                  setEditRegion(STANDARD_REGIONS[0]);
+                                }}
+                                className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer"
+                              >
+                                Select from list
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsCreatingCustomRegion(true);
+                                  setEditRegion('Other');
+                                }}
+                                className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer"
+                              >
+                                + Create New
+                              </button>
+                            )}
+                          </div>
+
+                          {!isCreatingCustomRegion ? (
+                            <select
+                              value={editRegion}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === 'Other') {
+                                  setEditRegion('Other');
+                                  setIsCreatingCustomRegion(true);
+                                } else {
+                                  setEditRegion(val);
+                                  setIsCreatingCustomRegion(false);
+                                }
+                              }}
+                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold focus:ring-1 focus:ring-emerald-500 focus:outline-hidden text-slate-900 dark:text-white"
+                            >
+                              {availableRegions.map((r) => (
+                                <option key={r} value={r}>
+                                  {r}
+                                </option>
+                              ))}
+                              <option value="Other">Other (+ Create New Region...)</option>
+                            </select>
+                          ) : (
+                            <div className="space-y-1">
+                              <input
+                                type="text"
+                                autoFocus
+                                value={customRegionInput}
+                                onChange={(e) => setCustomRegionInput(e.target.value)}
+                                placeholder="Enter region (e.g. Carmel Valley, Napa Valley)"
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-emerald-500 dark:border-emerald-500 rounded-lg text-xs font-bold focus:ring-1 focus:ring-emerald-500 focus:outline-hidden text-slate-900 dark:text-white"
+                              />
+                            </div>
+                          )}
                         </div>
 
                         <div>
