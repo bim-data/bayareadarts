@@ -34,10 +34,11 @@ interface FutureRoundsSectionProps {
   activeUser?: MemberProfile;
   onOpenProfile?: () => void;
   onOpenCreateFutureRound: () => void;
-  onEditFutureRound?: (futureRound: FutureRound) => void;
+  onEditFutureRound: (futureRound: FutureRound) => void;
   onRsvpPlayer: (futureRoundId: string, memberId: string, action: 'join' | 'leave') => void;
   onStartFutureRound: (futureRoundId: string) => void;
   onDeleteFutureRound: (futureRoundId: string) => void;
+  onOpenLogin?: () => void;
 }
 
 export const FutureRoundsSection: React.FC<FutureRoundsSectionProps> = ({
@@ -51,6 +52,7 @@ export const FutureRoundsSection: React.FC<FutureRoundsSectionProps> = ({
   onRsvpPlayer,
   onStartFutureRound,
   onDeleteFutureRound,
+  onOpenLogin,
 }) => {
   const [selectedRsvpRoundId, setSelectedRsvpRoundId] = useState<string | null>(null);
   const [copiedRoundId, setCopiedRoundId] = useState<string | null>(null);
@@ -143,7 +145,13 @@ export const FutureRoundsSection: React.FC<FutureRoundsSectionProps> = ({
         </div>
 
         <button
-          onClick={onOpenCreateFutureRound}
+          onClick={() => {
+            if (!activeUser && onOpenLogin) {
+              onOpenLogin();
+            } else {
+              onOpenCreateFutureRound();
+            }
+          }}
           className="btn-modern px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" />
@@ -227,8 +235,8 @@ export const FutureRoundsSection: React.FC<FutureRoundsSectionProps> = ({
                   </div>
                 </div>
 
-                {/* 7-Day Drop Countdown & Notification Box */}
-                {!isConfirmed && (
+                {/* 7-Day Drop Countdown & Notification Box (Logged in members only) */}
+                {!isConfirmed && activeUser && (
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 space-y-2.5">
                     <div className="flex items-start gap-1.5 text-xs text-slate-600 dark:text-slate-300">
                       <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
@@ -339,28 +347,36 @@ export const FutureRoundsSection: React.FC<FutureRoundsSectionProps> = ({
                               {m.name.split(' ')[0]} {m.nickname ? `"${m.nickname}"` : ''}
                             </span>
                           </div>
-                          <button
-                            onClick={() => onRsvpPlayer(fr.id, m.id, 'leave')}
-                            title="Remove from slot"
-                            className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 cursor-pointer"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
+                          {activeUser && (
+                            <button
+                              onClick={() => onRsvpPlayer(fr.id, m.id, 'leave')}
+                              title="Remove from slot"
+                              className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 cursor-pointer"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
                         </div>
                       );
                     })}
 
-                    {/* Empty Slots */}
-                    {Array.from({ length: openSlots }).map((_, i) => (
-                      <div
-                        key={i}
-                        onClick={() => setSelectedRsvpRoundId(fr.id)}
-                        className="p-1.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center justify-center gap-1 text-xs font-medium cursor-pointer transition-colors"
-                      >
-                        <UserPlus className="w-3 h-3" />
-                        <span>+ Claim Spot</span>
+                    {/* Empty Slots (Claimable only when logged in) */}
+                    {activeUser ? (
+                      Array.from({ length: openSlots }).map((_, i) => (
+                        <div
+                          key={i}
+                          onClick={() => setSelectedRsvpRoundId(fr.id)}
+                          className="p-1.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center justify-center gap-1 text-xs font-medium cursor-pointer transition-colors"
+                        >
+                          <UserPlus className="w-3 h-3" />
+                          <span>+ Claim Spot</span>
+                        </div>
+                      ))
+                    ) : registeredMembers.length === 0 ? (
+                      <div className="col-span-2 py-2 text-center text-xs text-slate-400 italic">
+                        Open foursome (Sign in to claim spot)
                       </div>
-                    ))}
+                    ) : null}
                   </div>
                 </div>
 
@@ -370,10 +386,9 @@ export const FutureRoundsSection: React.FC<FutureRoundsSectionProps> = ({
                   </p>
                 )}
 
-                {/* Bottom Actions: Delete (left), Edit (middle), Start Round (right) */}
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                  {/* Edit and Delete available only when logged in */}
-                  {activeUser && (
+                {/* Bottom Actions: Delete (left), Edit (middle), Start Round (right) - Logged in only */}
+                {activeUser ? (
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 shrink-0">
                       {/* 1. Delete on the left */}
                       {confirmDeleteId === fr.id ? (
@@ -408,30 +423,28 @@ export const FutureRoundsSection: React.FC<FutureRoundsSectionProps> = ({
                       )}
 
                       {/* 2. Edit between delete and start round button */}
-                      {onEditFutureRound && (
-                        <button
-                          type="button"
-                          onClick={() => onEditFutureRound(fr)}
-                          className="px-2.5 py-1.5 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
-                          title="Edit round (date, course, time, format)"
-                        >
-                          <Edit3 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                          <span>Edit</span>
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => onEditFutureRound(fr)}
+                        className="px-2.5 py-1.5 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold shrink-0"
+                        title="Edit round (date, course, time, format)"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>Edit</span>
+                      </button>
                     </div>
-                  )}
 
-                  {/* 3. Start Round on the right */}
-                  <button
-                    type="button"
-                    onClick={() => onStartFutureRound(fr.id)}
-                    className="btn-modern flex-1 py-1.5 px-3 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
-                  >
-                    <Play className="w-3 h-3 fill-current" />
-                    <span>Tee Off (Start Live Round)</span>
-                  </button>
-                </div>
+                    {/* 3. Start Round on the right */}
+                    <button
+                      type="button"
+                      onClick={() => onStartFutureRound(fr.id)}
+                      className="btn-modern flex-1 py-1.5 px-3 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                    >
+                      <Play className="w-3 h-3 fill-current" />
+                      <span>Tee Off (Start Live Round)</span>
+                    </button>
+                  </div>
+                ) : null}
               </div>
             );
           })}

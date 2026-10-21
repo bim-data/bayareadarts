@@ -1,108 +1,161 @@
-# Implementation Plan: Course Directory Scorecard, Admin Layout Editor & Map View
+# Implementation Plan: Authentication Access Walls, Public "Roster & Teams" Directory & Future Round Edit Restoration
 
-Expand the Course Directory with an expandable-style scorecard (hole number, par, yardage, and handicap index), an inline Admin Course Editor for updating hole layouts and course metadata directly from the UI into Firestore, and an interactive List/Map toggle mode.
+Put key interactive club features behind an authentication access wall while maintaining clean visual tiles for visitors, restore the missing **Edit** button for logged-in users on future round cards, and upgrade the top header button into a unified, read-only "Roster & Teams" directory modal with three tabs (Registered Players, Squads, and Guest Members).
 
----
+## User Review & Critical Decisions
 
-## 1. User Requirements & Confirmed Specifications
-
-1. **Course Scorecard View**:
-   - In course detail view (when a course is selected from the directory), display a hole-by-hole scorecard in the exact visual style of the app's expandable scorecard (`ExpandableRoundCard`).
-   - Include rows:
-     - **Hole**: 1 to 9 (OUT), 10 to 18 (IN), and TOTAL (for 18-hole courses) or 1 to 9 (OUT) for 9-hole courses.
-     - **Par**: Hole pars, plus OUT, IN, and TOTAL par summaries.
-     - **Yardage**: Per-hole yardages, plus OUT, IN, and TOTAL yardage calculations.
-     - **Handicap (HCP)**: Per-hole stroke index difficulty (1–18).
-   - Match existing dark/light theme, border radius, crisp typography, and tabular figures.
-
-2. **Admin Course & Layout Editor**:
-   - Available to admins (checked via `useAuth().isAdmin`).
-   - Admin action button ("Edit Course" / "Edit Layout") on the course detail card.
-   - When in Edit Mode:
-     - Inline text inputs for **City**, **Area / Region** (Peninsula, East Bay, SF, South Bay, North Bay, Other), and **Address** (wired up for future dataset additions).
-     - Scorecard inputs for **Par** (quick increment/decrement or number entry), **Yardage** (editable text field as confirmed by user), and **Handicap** (stroke index difficulty).
-     - Dynamic auto-calculation of OUT, IN, and TOTAL pars and yardages as the admin types.
-     - **Save Changes** button that writes directly to Firestore via `updateRecord('courses', course.id, ...)` with feedback toast/notification.
-     - **Cancel** button to revert unsaved draft edits.
-
-3. **List & Map Mode in Course Directory**:
-   - Clean segmented toggle switch at the top of the Course Directory modal: `List` and `Map`.
-   - **List Mode**: The existing scannable course cards, search filter, and tee summary.
-   - **Map Mode**:
-     - Interactive map centered on Northern California / Bay Area courses.
-     - Geocoded course pins mapped by address (or accurate city coordinates fallback for Bay Area cities: Palo Alto, Walnut Creek, Pleasanton, San Ramon, San Jose, San Francisco, Oakland, Berkeley, Sunnyvale, etc.).
-     - Course pin markers display course names on hover/click with an info card popup (name, city, area badge, tee count, and "View Scorecard" action).
-     - Live synchronization with search filter (filtering text updates pins dynamically).
-     - Clicking a course pin opens the course detail & scorecard view.
+> [!IMPORTANT]
+> **Summary of Confirmed Decisions & User Feedback:**
+> 1. **Edit Button Restoration on Future Rounds**: The edit button will be restored for all authenticated users between the trash icon (left) and the "Tee Off" button (right). The prop interface will be made mandatory across `ClubhouseDashboard` and `FutureRoundsSection` so it cannot be inadvertently omitted or suppressed.
+> 2. **Tile Action Access Gate**: Dashboard tiles (Start Live Round, Log Past Round, Scan Scorecard, New Placeholder) will remain visible to logged-out visitors to maintain the UI design, but clicking any member-only tile immediately triggers the Sign-In modal (`onOpenLogin`).
+> 3. **Future Round Card Gating**: For unauthenticated visitors, the 7-day notification reminder countdown box (with `.ics`, SMS copy, bell, and email alert), empty `+ Claim Spot` dashed slots, and `Tee Off` button are completely hidden. Cards display only occupied player slots as a clean public schedule.
+> 4. **Header Navigation & 3-Tab Directory**: The header button is renamed to **"Roster & Teams"** and opens a public read-only directory with three tabs: **Registered Players** (`!isGuest`), **Squads** (scramble teams), and **Guest Members** (`isGuest`). Clicking a player opens their stats/round history; clicking a squad opens their team history.
 
 ---
 
-## 2. Architecture & Design Specifications
+## 1. Overview & Core Concept
 
-- **Design System**: Strictly adhere to the Universal Frontend Design Constitution and SaaS/Dashboard guidelines:
-  - Tabular numerals (`font-mono` / `tabular-nums`) for all numbers, yards, and pars.
-  - Quiet, unboxed metadata separators (`·`) for city, state, and region.
-  - Clean segmented control for List/Map toggle (functional `<button>` tabs with subtle active backgrounds, zero AI-slop pill badges).
-  - High-contrast, dark-mode-native scorecard grid matching `ExpandableRoundCard` exactly (subtle 1px border lines, distinct OUT/IN/TOTAL summary headers).
-- **Data Flow & Persistence**:
-  - `src/types.ts`: Update `Course` interface with optional `address?: string`, `state?: string`, `latitude?: number`, `longitude?: number`.
-  - `src/services/db.ts`: Leverage existing `updateRecord('courses', courseId, cleanCourseData)` for real-time Firestore synchronization.
-  - `src/components/CourseLibraryModal.tsx`:
-    - Add `isAdmin` from `useAuth` (or prop).
-    - Add `viewMode`: `'list' | 'map'`.
-    - Add scorecard renderer with Front 9 / Back 9 / Out / In / Total.
-    - Add admin editing state and save handler `onUpdateCourse(course)`.
-    - Render interactive map component with responsive container and geocoding dictionary.
+- **What It Does**: 
+  - Restores full editing capabilities (`date`, `course`, `teeTimeWindow`, `format`, `teeBox`) for authenticated members on future round cards.
+  - Implements a seamless access wall: unauthenticated visitors can browse the clubhouse schedule, recent scores, rankings, courses, and the public roster/squads directory, but cannot trigger member actions (claiming spots, setting email alerts, starting live rounds, scanning scorecards) without signing in.
+  - Consolidates player and team browsing into a clean 3-tab modal accessible from anywhere in the application.
+- **Target Audience / Persona**:
+  - **Club Members**: Log in to manage placeholders, edit round parameters, claim spots, log past rounds, and tee off.
+  - **Club Visitors & Recruits**: Browse club activity, course schedules, player rosters, and team scramble halls of fame, with intuitive prompts to sign in or join.
+- **Key Value**: Eliminates broken state transitions, ensures data integrity, and provides a professional member-club experience.
 
 ---
 
-## 3. Step-by-Step Implementation Steps
+## 2. User Experience & Visual Design
 
-### Step 1: Type Definitions (`src/types.ts`)
-- Update `Course` interface to include:
-  - `address?: string`
-  - `state?: string`
-  - `latitude?: number`
-  - `longitude?: number`
+### A. Future Round Card Layout Matrix
 
-### Step 2: Course Scorecard Table Component (`src/components/CourseScorecardTable.tsx`)
-- Build a dedicated, reusable scorecard component modeled after `ExpandableRoundCard.tsx`:
-  - Front 9 table (Holes 1–9 + OUT).
-  - Back 9 table (Holes 10–18 + IN, if 18 holes).
-  - Combined TOTAL summary column.
-  - Rows:
-    - **Hole**: 1..9 | OUT | 10..18 | IN | TOTAL
-    - **Par**: Hole pars + OUT / IN / TOTAL totals
-    - **Yardage**: Per-hole yardage + OUT / IN / TOTAL totals
-    - **Handicap (HCP)**: Per-hole difficulty index (1–18)
-  - Supports both **Read-Only** view and **Admin Edit** mode:
-    - In Edit Mode: Par controls, text input for Yardage (`type="text" pattern="[0-9]*"`), and Handicap input.
-    - Live recalculation of OUT, IN, and TOTAL yardage and par sums.
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ 📅 Sun, Nov 1                                           Opens in 3d 21h│
+│ Monarch Bay Golf Club — Tony Lema Course                              │
+│ 9:00 AM - 9:30 AM · Stroke · White Tees                                │
+├────────────────────────────────────────────────────────────────────────┤
+│ [LOGGED-IN ONLY] 7-Day Window Reminder Box                             │
+│ 🕒 Opens Sun, Oct 25 at 6:00 AM                                        │
+│ [✉️ Email Alert]  [📅 Calendar .ics]  [📋 Copy Alert]  [🔔 Web Push]   │
+├────────────────────────────────────────────────────────────────────────┤
+│ Foursome (3/4)                                          Leave Foursome │
+│ [ 🚀 Daniel "Iron Man" ]      [ ⛳ Matthew ]                           │
+│ [ ⛳ Michael           ]      [ ➕ Claim Spot ] <-- Hidden if logged out│
+├────────────────────────────────────────────────────────────────────────┤
+│ Bottom Action Bar:                                                     │
+│                                                                        │
+│ • Logged-In User View:                                                 │
+│   [ 🗑️ Trash ]  [ ✏️ Edit ]  [ ▶️ Tee Off (Start Live Round) ]          │
+│   (Delete Left)  (Edit Mid)    (Start Live Round Right)                │
+│                                                                        │
+│ • Logged-Out Visitor View:                                             │
+│   (All bottom action buttons hidden — clean schedule display only)     │
+└────────────────────────────────────────────────────────────────────────┘
+```
 
-### Step 3: Interactive Course Map (`src/components/CourseDirectoryMap.tsx`)
-- Implement a responsive interactive map with Leaflet or lightweight Canvas/SVG interactive map with CartoDB/OpenStreetMap tiles:
-  - Preloaded coordinates for Bay Area / Northern California golf regions and cities (Palo Alto, San Jose, Sunnyvale, Walnut Creek, Pleasanton, San Ramon, San Francisco, Oakland, Berkeley, Half Moon Bay, Napa, Sonoma, Monterey, etc.).
-  - Geocode handler that falls back from `address` to `city, CA`.
-  - Custom pin markers styled to match the dark emerald brand aesthetic.
-  - Clickable markers with course card preview and quick "View Details & Scorecard" button.
-  - Smooth zoom/pan controls and auto-fit bounds based on visible/filtered courses.
+### B. Public Read-Only "Roster & Teams" Modal Design
+- **Top Header**: Single text title `"Clubhouse Roster & Teams"` with quiet subtitle *"Directory of official members, scramble squads, and guest players"*.
+- **Search Bar**: Minimal search input with magnifying glass icon filtering by name, nickname, or squad handle.
+- **Segmented Filter Tabs**:
+  1. `Registered Players (N)`: Official club members (`!m.isGuest`), showing avatar, nickname, handicap index (`tabular-nums`), and total rounds logged.
+  2. `Squads (N)`: Scramble squads (`teams`), showing team emoji, squad badge, member avatars, and rounds played.
+  3. `Guest Members (N)`: Temporary/guest players (`m.isGuest`), with guest badge and rounds count.
+- **Interaction**: Clicking any player card invokes `onSelectMemberForHistory(member)`. Clicking any squad card invokes `onSelectTeamForHistory(team)`. No delete, edit, or add controls are rendered.
 
-### Step 4: Integrate Scorecard, Admin Editor, and Map Toggle in `CourseLibraryModal.tsx`
-- Add List / Map segmented toggle at the top next to the search input.
-- In Course Detail view:
-  - Render the Course Scorecard Table directly beneath the Available Tees.
-  - If user is admin (`isAdmin`), render "Edit Course Layout" button.
-  - When editing:
-    - Allow updating City, Region/Area, and Address.
-    - Allow modifying hole Pars, Yardages, and Handicap Indices in the scorecard table.
-    - "Save to Firebase" button that calls `onUpdateCourse(updatedCourse)` and displays save status toast.
-    - "Cancel" button to discard changes.
-- In `App.tsx`:
-  - Pass `onUpdateCourse` handler that calls `updateRecord('courses', updatedCourse.id, cleanData)` and updates local state.
-  - Provide `isAdmin` to `CourseLibraryModal`.
+### C. Dashboard Tile Access Walls
+- **Start Live Round** & **Log Past Round**: If logged out, opens `setIsAuthModalOpen(true)` directly.
+- **Scan Scorecard**: If logged out, opens `setIsAuthModalOpen(true)` directly.
+- **New Placeholder**: If logged out, opens `setIsAuthModalOpen(true)` directly.
+- **Team Manager**: If logged out, opens the read-only Roster & Teams modal or prompts login.
 
-### Step 5: Verification & Testing
-- Test viewing course scorecards for 9-hole and 18-hole courses.
-- Test Admin edit mode: modify yardage, par, handicap, city, and region, then save and verify persistent Firestore update.
-- Test Map mode toggle: search filter synchronization, pin selection, and detail navigation.
-- Verify production build with `compile_applet` and test responsiveness across mobile and desktop.
+---
+
+## 3. Key Product Decisions & Trade-Offs
+
+- **Decision 1: Restoring the Edit Button via Strict Prop Typing**
+  - *Chosen Approach*: Ensure `onEditFutureRound` is a required prop in `FutureRoundsSectionProps` and `ClubhouseDashboardProps`, and render the Edit button unconditionally whenever `activeUser` is present.
+  - *Why*: In `image_d2f3e8c4.png`, the delete button appeared because it only depended on `{confirmDeleteId === fr.id}`, whereas Edit was wrapped in `{onEditFutureRound && ( ... )}` which was either not passed through or swallowed in an intermediate prop branch.
+  - *Alternatives Considered*: Leaving the prop optional with a fallback to `onOpenCreateFutureRound()`. Making the prop contract required in TypeScript guarantees compile-time enforcement that it is passed from `App.tsx` through `ClubhouseDashboard` down to `FutureRoundsSection`.
+
+- **Decision 2: Hiding Claim Buttons vs. Showing Login Prompt on Click**
+  - *Chosen Approach*: Per user explicit choice in Phase 1, completely hide empty `+ Claim Spot` dashed slots and `+ Sign Me Up` buttons for visitors, rendering only occupied golfer badges.
+  - *Why*: Provides an immaculate, uncluttered public schedule for prospective golfers while reserving interactive sign-up for authorized members.
+
+- **Decision 3: Retaining Dashboard Tiles with Sign-In Redirects**
+  - *Chosen Approach*: Keep the dashboard action tiles visible to visitors rather than removing them from the grid, but route their click handler to `onOpenLogin()`.
+  - *Why*: Preserves the visual balance and discovery of clubhouse features (handicap tracking, AI scorecard scanning, scramble competitions) while preventing unauthorized state mutations.
+
+---
+
+## 4. Technical Architecture & Data Strategy
+
+### System & Event Flow Diagram
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                                App.tsx                                 │
+│  State: currentUser, activeUser, futureRounds, members, teams          │
+└───────────────────┬────────────────────────────────┬───────────────────┘
+                    │                                │
+                    ▼                                ▼
+       ┌────────────────────────┐       ┌────────────────────────┐
+       │       Header.tsx       │       │ ClubhouseDashboard.tsx │
+       │ Nav: "Roster & Teams"  │       │ Gated Tiles (onLogin)  │
+       └────────────┬───────────┘       └────────────┬───────────┘
+                    │                                │
+                    ▼                                ▼
+       ┌────────────────────────┐       ┌────────────────────────┐
+       │   PlayerListModal.tsx  │       │ FutureRoundsSection.tsx│
+       │  3 Tabs:               │       │ - Gated Alert Box      │
+       │  1. Registered Players │       │ - Gated Claim Slots    │
+       │  2. Squads             │       │ - Gated Tee Off        │
+       │  3. Guest Members      │       │ - [Delete] [Edit] [Tee]│
+       │ (Read-Only Click-thru) │       │   (when activeUser)    │
+       └────────────────────────┘       └────────────────────────┘
+```
+
+### Component Updates
+1. `src/components/FutureRoundsSection.tsx`:
+   - Fix Edit button visibility: render `<button ... onClick={() => onEditFutureRound(fr)}>Edit</button>` between Delete and Tee Off whenever `activeUser` is present.
+   - Wrap 7-day reminder countdown box in `{activeUser && ( ... )}`.
+   - For foursome slots: if `!activeUser`, do not render empty dashed `+ Claim Spot` slots or `+ Sign Me Up`; display only occupied golfer chips.
+   - Wrap `Tee Off (Start Live Round)` button in `{activeUser && ( ... )}`.
+   - For section header "+ New Placeholder": if `!activeUser`, call `onOpenProfile ? onOpenProfile() : onOpenCreateFutureRound()`.
+2. `src/components/ClubhouseDashboard.tsx`:
+   - Ensure `onOpenLogin` or `onOpenProfile` is invoked on click for: Scan Scorecard, Start Live Round, Log Past Round, New Placeholder.
+   - Pass `onEditFutureRound` strictly through to `FutureRoundsSection`.
+3. `src/components/Header.tsx`:
+   - Rename navigation button from "Player List" to "Roster & Teams".
+4. `src/components/PlayerListModal.tsx`:
+   - Re-title to "Clubhouse Roster & Teams".
+   - Accept `teams: TeamGroup[]` prop.
+   - Add segmented 3-tab bar: `Registered Players`, `Squads`, `Guest Members`.
+   - Wire search filter across all 3 tabs.
+   - Wire card clicks to `onSelectMemberForHistory` (players) and `onSelectTeamForHistory` (squads).
+   - Ensure no edit/delete buttons exist inside.
+5. `src/App.tsx`:
+   - Pass `teams` and handlers to `PlayerListModal`.
+   - Ensure `futureRoundToEdit` state is cleanly populated on edit and reset on modal close.
+
+---
+
+## 5. Verification Plan
+
+### Automated Build & Syntax Checks
+- Run `npm run lint` (`lint_applet`) to ensure TypeScript interface conformity and zero type regressions.
+- Run `npm run build` (`compile_applet`) to ensure clean bundle compilation.
+
+### Manual Verification Scenarios
+1. **Logged-In User State (Fix Verification)**:
+   - Verify future round card shows **Delete** on the left, **Edit** in the middle, and **Tee Off** on the right.
+   - Click **Edit**: Verify `CreateFutureRoundModal` opens pre-populated with the round's existing date, course, tee time window (using 30-min interval dropdown), format, and tee box.
+   - Submit changes: Verify the round updates immediately on the card.
+   - Verify 7-day alert box, `.ics` download, SMS copy, bell, and email alert are fully interactive.
+   - Verify `+ Claim Spot` and `Leave Foursome` operate normally.
+2. **Logged-Out Visitor State**:
+   - Verify future round card shows NO reminder alert box, NO "+ Claim Spot", NO "+ Sign Me Up", NO "Tee Off", and NO Delete/Edit buttons.
+   - Click "Scan Scorecard", "Start Live Round", or "New Placeholder" tiles: Verify the Auth/Sign-in modal pops up immediately.
+   - Click "Roster & Teams" in the header: Verify 3 tabs appear (Registered Players, Squads, Guest Members) with working search.
+   - Click any player or squad: Verify their respective performance history and scorecards open seamlessly.

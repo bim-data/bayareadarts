@@ -35,13 +35,14 @@ interface ClubhouseDashboardProps {
   onResumeLiveRound: () => void;
   onOpenBadgeCustomizer: () => void;
   onOpenCreateFutureRound: () => void;
-  onEditFutureRound?: (futureRound: FutureRound) => void;
+  onEditFutureRound: (futureRound: FutureRound) => void;
   onRsvpPlayer: (futureRoundId: string, memberId: string, action: 'join' | 'leave') => void;
   onStartFutureRound: (futureRoundId: string) => void;
   onDeleteFutureRound: (futureRoundId: string) => void;
   onOpenEditNickname: () => void;
   onSelectMemberForHistory: (member: MemberProfile, roundId?: string) => void;
   onSelectTeamForHistory: (event: TeamEventRecord, teamName?: string) => void;
+  onOpenLogin?: () => void;
 }
 
 export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
@@ -71,6 +72,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
   onOpenEditNickname,
   onSelectMemberForHistory,
   onSelectTeamForHistory,
+  onOpenLogin,
 }) => {
   // FILTER OUT GUESTS FOR OFFICIAL LEADERBOARDS
   const officialMembers = members.filter(m => !m.isGuest);
@@ -623,6 +625,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             onRsvpPlayer={onRsvpPlayer}
             onStartFutureRound={onStartFutureRound}
             onDeleteFutureRound={onDeleteFutureRound}
+            onOpenLogin={onOpenLogin}
           />
 
           {/* B. Recent Individual Rounds (Grouped by Date/Course) */}

@@ -669,7 +669,10 @@ export default function App() {
           if (!currentUser) return setIsAuthModalOpen(true);
           setIsNewRoundOpen(true);
         }}
-        onOpenOcr={() => setIsOcrOpen(true)}
+        onOpenOcr={() => {
+          if (!currentUser) return setIsAuthModalOpen(true);
+          setIsOcrOpen(true);
+        }}
         onOpenEditNickname={() => setIsEditNicknameOpen(true)}
         onOpenProfile={() => {
           if (!currentUser) return setIsAuthModalOpen(true);
@@ -705,14 +708,24 @@ export default function App() {
               if (!currentUser) return setIsAuthModalOpen(true);
               setIsNewRoundOpen(true);
             }}
-            onOpenTeamManager={() => handleOpenClubhouseHub('teams')}
-            onJoinRoom={() => setIsNewRoundOpen(true)}
-            onScanScorecard={() => setIsOcrOpen(true)}
+            onOpenTeamManager={() => {
+              if (!currentUser) return setIsAuthModalOpen(true);
+              handleOpenClubhouseHub('teams');
+            }}
+            onJoinRoom={() => {
+              if (!currentUser) return setIsAuthModalOpen(true);
+              setIsNewRoundOpen(true);
+            }}
+            onScanScorecard={() => {
+              if (!currentUser) return setIsAuthModalOpen(true);
+              setIsOcrOpen(true);
+            }}
             onViewRankings={() => setIsHandicapOpen(true)}
             onViewCourses={() => setIsCourseLibraryOpen(true)}
             onResumeLiveRound={() => setCurrentTab('live')}
             onOpenBadgeCustomizer={() => setIsBadgeCustomizerOpen(true)}
             onOpenCreateFutureRound={() => {
+              if (!currentUser) return setIsAuthModalOpen(true);
               setFutureRoundToEdit(null);
               setIsCreateFutureRoundOpen(true);
             }}
@@ -726,6 +739,7 @@ export default function App() {
             onOpenEditNickname={() => setIsEditNicknameOpen(true)}
             onSelectMemberForHistory={handleOpenMemberHistory}
             onSelectTeamForHistory={handleOpenTeamHistory}
+            onOpenLogin={() => setIsAuthModalOpen(true)}
           />
         )}
 
@@ -746,9 +760,22 @@ export default function App() {
         isOpen={isPlayerListOpen}
         onClose={() => setIsPlayerListOpen(false)}
         members={members}
+        teams={teams}
         onSelectMember={(m) => {
           setIsPlayerListOpen(false);
           handleOpenMemberHistory(m);
+        }}
+        onSelectTeam={(team) => {
+          setIsPlayerListOpen(false);
+          const matchingEvent = teamEvents.find(e => 
+            e.teamLeaderboard.some(t => t.teamName?.toLowerCase() === team.name.toLowerCase()) ||
+            e.winningTeamName?.toLowerCase() === team.name.toLowerCase()
+          );
+          if (matchingEvent) {
+            handleOpenTeamHistory(matchingEvent, team.name);
+          } else {
+            setIsTeamEventsOpen(true);
+          }
         }}
       />
 
