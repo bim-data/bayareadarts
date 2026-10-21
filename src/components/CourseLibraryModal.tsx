@@ -39,6 +39,44 @@ const STANDARD_REGIONS = [
   'Monterey',
 ];
 
+export function normalizeRegionName(raw?: string): string {
+  if (!raw) return 'Other';
+  const trimmed = raw.trim();
+  const lower = trimmed.toLowerCase();
+
+  // Canonical alias and typo mapping (e.g. Penninsula -> Peninsula, South bay -> South Bay, Easy Bay -> East Bay)
+  if (lower === 'penninsula' || lower === 'peninsula' || lower === 'the peninsula') {
+    return 'Peninsula';
+  }
+  if (lower === 'east bay' || lower === 'easy bay' || lower === 'eastbay') {
+    return 'East Bay';
+  }
+  if (lower === 'south bay' || lower === 'southbay') {
+    return 'South Bay';
+  }
+  if (lower === 'north bay' || lower === 'northbay') {
+    return 'North Bay';
+  }
+  if (lower === 'sf' || lower === 'san francisco' || lower === 'san francisco bay') {
+    return 'SF';
+  }
+  if (lower === 'santa cruz' || lower === 'santacruz') {
+    return 'Santa Cruz';
+  }
+  if (lower === 'monterey' || lower === 'monterey bay' || lower === 'monterey peninsula') {
+    return 'Monterey';
+  }
+  if (lower === 'other' || lower === 'none' || lower === '') {
+    return 'Other';
+  }
+
+  // Title-case custom region words
+  return trimmed
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
 export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
   isOpen,
   onClose,
@@ -54,12 +92,20 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
-  // Compute dynamic list of regions from defaults + any regions currently in courses
-  const availableRegions = Array.from(
-    new Set([
-      ...STANDARD_REGIONS,
-      ...courses.map((c) => c.region).filter((r): r is string => Boolean(r && r !== 'Other')),
-    ])
+  // Compute canonical deduplicated and alphabetized list of regions
+  const normalizedRegionSet = new Set<string>();
+  STANDARD_REGIONS.forEach((r) => normalizedRegionSet.add(normalizeRegionName(r)));
+  courses.forEach((c) => {
+    if (c.region) {
+      const norm = normalizeRegionName(c.region);
+      if (norm && norm !== 'Other') {
+        normalizedRegionSet.add(norm);
+      }
+    }
+  });
+
+  const availableRegions = Array.from(normalizedRegionSet).sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: 'base' })
   );
 
   // Admin edit mode state
@@ -85,12 +131,12 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
       setEditState(selectedCourse.state || 'CA');
       setEditAddress(selectedCourse.address || '');
 
-      const courseReg = selectedCourse.region || 'Other';
+      const courseReg = normalizeRegionName(selectedCourse.region);
       setEditRegion(courseReg);
       if (courseReg === 'Other') {
         setIsCreatingCustomRegion(false);
         setCustomRegionInput('');
-      } else if (!STANDARD_REGIONS.includes(courseReg)) {
+      } else if (!availableRegions.includes(courseReg)) {
         setIsCreatingCustomRegion(false);
         setCustomRegionInput(courseReg);
       } else {
@@ -165,10 +211,11 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
         }
       }
 
-      const finalRegion =
+      const rawFinalRegion =
         isCreatingCustomRegion || editRegion === 'Other'
           ? (customRegionInput.trim() || 'Other')
           : editRegion;
+      const finalRegion = normalizeRegionName(rawFinalRegion);
 
       const updatedCourse: Course = {
         ...selectedCourse,
@@ -204,7 +251,7 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
       setEditCity(selectedCourse.city || '');
       setEditState(selectedCourse.state || 'CA');
       setEditAddress(selectedCourse.address || '');
-      const courseReg = selectedCourse.region || 'Other';
+      const courseReg = normalizeRegionName(selectedCourse.region);
       setEditRegion(courseReg);
       setIsCreatingCustomRegion(false);
       setCustomRegionInput(courseReg !== 'Other' ? courseReg : '');
@@ -451,7 +498,7 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
                         </span>
                         <span>&middot;</span>
                         <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-semibold text-[10px]">
-                          {selectedCourse.region}
+                          {normalizeRegionName(selectedCourse.region)}
                         </span>
                         {selectedCourse.address && (
                           <>
@@ -650,7 +697,7 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
                             </span>
                             <span>&middot;</span>
                             <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-semibold text-[10px]">
-                              {c.region}
+                              {normalizeRegionName(c.region)}
                             </span>
                             {c.address && (
                               <>

@@ -2,8 +2,34 @@ import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, Plus, Check, Users, Mail, Bell, ShieldCheck } from 'lucide-react';
 import { Course, GameFormat, MemberProfile, FutureRound } from '../types';
 import { SearchableCourseSelect } from './SearchableCourseSelect';
-import { AddCourseModal } from './AddCourseModal';
 import { findWhiteOrEquivalentTee } from '../utils/teeUtils';
+
+export const TEE_TIME_WINDOWS = [
+  '6:00 AM – 6:30 AM',
+  '6:30 AM – 7:00 AM',
+  '7:00 AM – 7:30 AM',
+  '7:30 AM – 8:00 AM',
+  '8:00 AM – 8:30 AM',
+  '8:30 AM – 9:00 AM',
+  '9:00 AM – 9:30 AM',
+  '9:30 AM – 10:00 AM',
+  '10:00 AM – 10:30 AM',
+  '10:30 AM – 11:00 AM',
+  '11:00 AM – 11:30 AM',
+  '11:30 AM – 12:00 PM',
+  '12:00 PM – 12:30 PM',
+  '12:30 PM – 1:00 PM',
+  '1:00 PM – 1:30 PM',
+  '1:30 PM – 2:00 PM',
+  '2:00 PM – 2:30 PM',
+  '2:30 PM – 3:00 PM',
+  '3:00 PM – 3:30 PM',
+  '3:30 PM – 4:00 PM',
+  '4:00 PM – 4:30 PM',
+  '4:30 PM – 5:00 PM',
+  '5:00 PM – 5:30 PM',
+  '5:30 PM – 6:00 PM',
+];
 
 interface CreateFutureRoundModalProps {
   isOpen: boolean;
@@ -12,8 +38,10 @@ interface CreateFutureRoundModalProps {
   members: MemberProfile[];
   activeUserId?: string;
   initialSelectedCourseId?: string;
+  roundToEdit?: FutureRound | null;
   onCourseAdded?: (course: Course) => void;
   onCreateFutureRound: (roundData: Partial<FutureRound>) => void;
+  onUpdateFutureRound?: (futureRoundId: string, roundData: Partial<FutureRound>) => void;
 }
 
 export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
@@ -23,8 +51,10 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
   members,
   activeUserId,
   initialSelectedCourseId,
+  roundToEdit,
   onCourseAdded,
   onCreateFutureRound,
+  onUpdateFutureRound,
 }) => {
   const [courseId, setCourseId] = useState(courses[0]?.id || '');
   const selectedCourse = courses.find((c) => c.id === courseId) || courses[0];
@@ -32,8 +62,6 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
   // Default White Tee
   const [selectedTeeId, setSelectedTeeId] = useState(() => findWhiteOrEquivalentTee(selectedCourse));
   const selectedTee = selectedCourse?.tees.find((t) => t.id === selectedTeeId) || selectedCourse?.tees[0];
-
-  const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
 
   // Active user default
   const activeUser = members.find((m) => m.id === activeUserId) || members[0];
@@ -46,45 +74,69 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
   };
 
   const [targetDate, setTargetDate] = useState(getNextSaturday());
-  const [timeWindow, setTimeWindow] = useState('8:00 AM – 9:30 AM');
+  const [timeWindow, setTimeWindow] = useState('8:00 AM – 8:30 AM');
   const [format, setFormat] = useState<GameFormat>('stroke');
   const [status, setStatus] = useState<'placeholder' | 'confirmed'>('placeholder');
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [emailAlertEnabled, setEmailAlertEnabled] = useState(true);
   const [notes, setNotes] = useState('');
 
-  // Update tee when course changes, ensuring White is picked!
+  // Update tee when course changes, or sync with roundToEdit
   useEffect(() => {
     if (selectedCourse) {
+      if (roundToEdit?.teeName) {
+        const matchingTee = selectedCourse.tees.find((t) => t.name === roundToEdit.teeName);
+        if (matchingTee) {
+          setSelectedTeeId(matchingTee.id);
+          return;
+        }
+      }
       setSelectedTeeId(findWhiteOrEquivalentTee(selectedCourse));
     }
-  }, [courseId, selectedCourse]);
+  }, [courseId, selectedCourse, roundToEdit]);
 
-  // Memory Wipe - Reset everything perfectly when the modal opens!
+  // Memory Wipe or Edit Pre-fill when modal opens
   useEffect(() => {
     if (isOpen) {
-      setTargetDate(getNextSaturday());
-      setTimeWindow('8:00 AM – 9:30 AM');
-      setFormat('stroke');
-      setStatus('placeholder');
-      setEmailAlertEnabled(true);
-      setNotes('');
-      
-      if (activeUserId) {
-        setSelectedPlayerIds([activeUserId]);
-      } else if (members.length > 0) {
-        setSelectedPlayerIds([members[0].id]);
-      } else {
-        setSelectedPlayerIds([]);
-      }
+      if (roundToEdit) {
+        setCourseId(roundToEdit.courseId);
+        setTargetDate(roundToEdit.targetDate);
+        setTimeWindow(roundToEdit.targetTimeWindow || '8:00 AM – 8:30 AM');
+        setFormat(roundToEdit.format || 'stroke');
+        setStatus(roundToEdit.status === 'confirmed' ? 'confirmed' : 'placeholder');
+        setSelectedPlayerIds(roundToEdit.registeredPlayerIds || []);
+        setEmailAlertEnabled(false);
+        setNotes(roundToEdit.notes || '');
 
-      if (initialSelectedCourseId) {
-        setCourseId(initialSelectedCourseId);
-      } else if (courses.length > 0) {
-        setCourseId(courses[0].id);
+        const targetCourse = courses.find((c) => c.id === roundToEdit.courseId);
+        if (targetCourse && roundToEdit.teeName) {
+          const matchingTee = targetCourse.tees.find((t) => t.name === roundToEdit.teeName);
+          if (matchingTee) setSelectedTeeId(matchingTee.id);
+        }
+      } else {
+        setTargetDate(getNextSaturday());
+        setTimeWindow('8:00 AM – 8:30 AM');
+        setFormat('stroke');
+        setStatus('placeholder');
+        setEmailAlertEnabled(true);
+        setNotes('');
+        
+        if (activeUserId) {
+          setSelectedPlayerIds([activeUserId]);
+        } else if (members.length > 0) {
+          setSelectedPlayerIds([members[0].id]);
+        } else {
+          setSelectedPlayerIds([]);
+        }
+
+        if (initialSelectedCourseId) {
+          setCourseId(initialSelectedCourseId);
+        } else if (courses.length > 0) {
+          setCourseId(courses[0].id);
+        }
       }
     }
-  }, [isOpen, initialSelectedCourseId, activeUserId, members, courses]);
+  }, [isOpen, initialSelectedCourseId, activeUserId, members, courses, roundToEdit]);
 
   if (!isOpen) return null;
 
@@ -110,48 +162,44 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
     }
   };
 
-  const handleCourseAdded = (newCourse: Course) => {
-    if (onCourseAdded) {
-      onCourseAdded(newCourse);
-    }
-    setCourseId(newCourse.id);
-    setSelectedTeeId(findWhiteOrEquivalentTee(newCourse));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const windowText = `Booking opens ${calculateWindowOpensText(targetDate)}`;
 
-    const newFutureRound: Partial<FutureRound> = {
+    const roundPayload: Partial<FutureRound> = {
       courseId: selectedCourse.id,
       courseName: selectedCourse.name,
       targetDate,
       targetTimeWindow: timeWindow,
       status,
-      bookingOpenDaysAhead: 7,
+      bookingOpenDaysAhead: roundToEdit?.bookingOpenDaysAhead || 7,
       bookingOpensAt: windowText,
-      teeName: selectedTee?.name || 'White Tees',
+      teeName: selectedTee?.name || roundToEdit?.teeName || 'White Tees',
       format,
       registeredPlayerIds: selectedPlayerIds,
       maxPlayers: 4,
       notes: notes.trim() || undefined,
     };
 
-    onCreateFutureRound(newFutureRound);
+    if (roundToEdit && onUpdateFutureRound) {
+      onUpdateFutureRound(roundToEdit.id, roundPayload);
+    } else {
+      onCreateFutureRound(roundPayload);
 
-    // If email alerts enabled and user has email, trigger alert dispatch
-    if (emailAlertEnabled && activeUser?.email) {
-      try {
-        fetch(`/api/future-rounds/${newFutureRound.id || 'new'}/notify`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: activeUser.email,
-            recipientName: activeUser.name,
-            roundId: newFutureRound.id,
-          }),
-        }).catch(() => {});
-      } catch {}
+      // If email alerts enabled and user has email, trigger alert dispatch
+      if (emailAlertEnabled && activeUser?.email) {
+        try {
+          fetch(`/api/future-rounds/${roundPayload.id || 'new'}/notify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: activeUser.email,
+              recipientName: activeUser.name,
+              roundId: roundPayload.id,
+            }),
+          }).catch(() => {});
+        } catch {}
+      }
     }
 
     onClose();
@@ -169,10 +217,12 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
               </div>
               <div className="min-w-0">
                 <h3 className="font-heading font-extrabold text-lg sm:text-xl text-slate-900 dark:text-slate-100 truncate">
-                  Schedule Future Round
+                  {roundToEdit ? 'Edit Future Round' : 'Schedule Future Round'}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 flex-wrap">
-                  Set placeholder or confirmed tee time · Logged in as <strong>{activeUser?.name}</strong>
+                  {roundToEdit
+                    ? `Update course, date, tee, or golfers for this round`
+                    : 'Set placeholder or confirmed tee time'} · Logged in as <strong>{activeUser?.name}</strong>
                   {activeUser?.nickname && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">"{activeUser.nickname}"</span>}
                 </p>
               </div>
@@ -196,8 +246,7 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
                 setCourseId(c.id);
                 setSelectedTeeId(findWhiteOrEquivalentTee(c));
               }}
-              onOpenAddCourse={() => setIsAddCourseModalOpen(true)}
-              label="Select Course (Search or Add New)"
+              label="Select Course (Search by name or city)"
             />
 
             {/* 2. Target Date & Time Window */}
@@ -216,15 +265,23 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
-                  Tee Time Window
+                  Tee Time Window *
                 </label>
-                <input
-                  type="text"
-                  placeholder="e.g. 8:30 AM – 9:15 AM"
+                <select
                   value={timeWindow}
                   onChange={(e) => setTimeWindow(e.target.value)}
                   className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-slate-100"
-                />
+                >
+                  {/* If existing round had custom timeWindow not in standard list, show it */}
+                  {timeWindow && !TEE_TIME_WINDOWS.includes(timeWindow) && (
+                    <option value={timeWindow}>{timeWindow} (Custom)</option>
+                  )}
+                  {TEE_TIME_WINDOWS.map((tw) => (
+                    <option key={tw} value={tw}>
+                      {tw}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -257,8 +314,29 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
               </label>
             </div>
 
-            {/* 4. Format & Status */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* 4. Format, Status & Tee Box */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                  Tee Box
+                </label>
+                <select
+                  value={selectedTeeId}
+                  onChange={(e) => setSelectedTeeId(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-slate-100"
+                >
+                  {selectedCourse?.tees && selectedCourse.tees.length > 0 ? (
+                    selectedCourse.tees.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.totalYardage ? `${t.totalYardage}y · ` : ''}{t.rating}/{t.slope})
+                      </option>
+                    ))
+                  ) : (
+                    <option value="white">White Tees</option>
+                  )}
+                </select>
+              </div>
+
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
                   Game Format
@@ -373,19 +451,12 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
               className="btn-modern px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer"
             >
               <Check className="w-4 h-4" />
-              <span>Save Future Round</span>
+              <span>{roundToEdit ? 'Save Changes' : 'Save Future Round'}</span>
             </button>
           </div>
           </form>
         </div>
       </div>
-
-      {/* Add Custom Course Modal */}
-      <AddCourseModal
-        isOpen={isAddCourseModalOpen}
-        onClose={() => setIsAddCourseModalOpen(false)}
-        onCourseAdded={handleCourseAdded}
-      />
     </>
   );
 };

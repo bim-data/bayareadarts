@@ -7,16 +7,40 @@ interface SearchableCourseSelectProps {
   courses: Course[];
   selectedCourseId: string;
   onSelectCourse: (course: Course) => void;
-  onOpenAddCourse: () => void;
+  onOpenAddCourse?: () => void;
   label?: string;
   compact?: boolean;
 }
+
+export function normalizeRegionName(raw?: string): string {
+  if (!raw) return 'Other';
+  const trimmed = raw.trim();
+  const lower = trimmed.toLowerCase();
+  if (lower === 'penninsula' || lower === 'peninsula' || lower === 'the peninsula') return 'Peninsula';
+  if (lower === 'east bay' || lower === 'easy bay' || lower === 'eastbay') return 'East Bay';
+  if (lower === 'south bay' || lower === 'southbay') return 'South Bay';
+  if (lower === 'north bay' || lower === 'northbay') return 'North Bay';
+  if (lower === 'sf' || lower === 'san francisco' || lower === 'san francisco bay') return 'SF';
+  if (lower === 'santa cruz' || lower === 'santacruz') return 'Santa Cruz';
+  if (lower === 'monterey' || lower === 'monterey bay' || lower === 'monterey peninsula') return 'Monterey';
+  if (lower === 'other' || lower === 'none' || lower === '') return 'Other';
+  return trimmed.split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
+const STANDARD_REGIONS = [
+  'East Bay',
+  'Monterey',
+  'North Bay',
+  'Peninsula',
+  'SF',
+  'Santa Cruz',
+  'South Bay',
+];
 
 export const SearchableCourseSelect: React.FC<SearchableCourseSelectProps> = ({
   courses,
   selectedCourseId,
   onSelectCourse,
-  onOpenAddCourse,
   label = '1. Select Course',
   compact = false,
 }) => {
@@ -28,6 +52,20 @@ export const SearchableCourseSelect: React.FC<SearchableCourseSelectProps> = ({
   const selectedCourse = useMemo(() => {
     return courses.find((c) => c.id === selectedCourseId) || courses[0];
   }, [courses, selectedCourseId]);
+
+  // Compute canonical deduplicated and alphabetized regions aligned with Course Directory
+  const availableRegionChips = useMemo(() => {
+    const set = new Set<string>(STANDARD_REGIONS);
+    courses.forEach((c) => {
+      const norm = normalizeRegionName(c.region);
+      if (norm && norm !== 'Other') set.add(norm);
+    });
+    const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    return [
+      { id: 'all', label: 'All Regions' },
+      ...sorted.map((r) => ({ id: r, label: r })),
+    ];
+  }, [courses]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -48,12 +86,13 @@ export const SearchableCourseSelect: React.FC<SearchableCourseSelectProps> = ({
         !term ||
         c.name.toLowerCase().includes(term) ||
         c.city.toLowerCase().includes(term) ||
-        c.region.toLowerCase().includes(term) ||
+        (c.region && c.region.toLowerCase().includes(term)) ||
         (c.notes && c.notes.toLowerCase().includes(term));
 
+      const courseNormRegion = normalizeRegionName(c.region);
       const matchRegion =
         regionFilter === 'all' ||
-        (regionFilter === 'other' ? c.region === 'Other' || c.region === 'North Bay' : c.region === regionFilter);
+        courseNormRegion === regionFilter;
 
       return matchSearch && matchRegion;
     });
@@ -73,14 +112,6 @@ export const SearchableCourseSelect: React.FC<SearchableCourseSelectProps> = ({
           <span>{label}</span>
           <span className="text-[10px] font-normal text-slate-400">({courses.length} in library)</span>
         </label>
-        <button
-          type="button"
-          onClick={onOpenAddCourse}
-          className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center gap-1 cursor-pointer transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>Add Custom Course</span>
-        </button>
       </div>
 
       {/* Trigger Button */}
@@ -139,23 +170,16 @@ export const SearchableCourseSelect: React.FC<SearchableCourseSelectProps> = ({
             </div>
 
             {/* Region Filter Chips */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-[11px]">
-              {[
-                { id: 'all', label: 'All Regions' },
-                { id: 'SF', label: 'San Francisco' },
-                { id: 'East Bay', label: 'East Bay' },
-                { id: 'Peninsula', label: 'Peninsula' },
-                { id: 'South Bay', label: 'South Bay' },
-                { id: 'other', label: 'NorCal / Monterey' },
-              ].map((rf) => (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-[11px] no-scrollbar">
+              {availableRegionChips.map((rf) => (
                 <button
                   key={rf.id}
                   type="button"
                   onClick={() => setRegionFilter(rf.id)}
                   className={`px-2 py-0.5 rounded-lg font-medium whitespace-nowrap cursor-pointer transition-colors ${
                     regionFilter === rf.id
-                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-semibold shadow-2xs'
+                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60'
                   }`}
                 >
                   {rf.label}
@@ -167,21 +191,13 @@ export const SearchableCourseSelect: React.FC<SearchableCourseSelectProps> = ({
           {/* Results List */}
           <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
             {filteredCourses.length === 0 ? (
-              <div className="p-6 text-center space-y-2">
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+              <div className="p-6 text-center space-y-1">
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                   No courses found matching "{searchTerm}".
                 </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsOpen(false);
-                    onOpenAddCourse();
-                  }}
-                  className="btn-modern px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold inline-flex items-center gap-1 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add "{searchTerm}" Now</span>
-                </button>
+                <p className="text-[11px] text-slate-400">
+                  Try searching by course name, city, or clearing the region filter.
+                </p>
               </div>
             ) : (
               filteredCourses.map((c) => {
@@ -205,7 +221,7 @@ export const SearchableCourseSelect: React.FC<SearchableCourseSelectProps> = ({
                           {c.name}
                         </span>
                         <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                          {c.region}
+                          {normalizeRegionName(c.region)}
                         </span>
                       </div>
                       <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-0.5">
@@ -229,24 +245,6 @@ export const SearchableCourseSelect: React.FC<SearchableCourseSelectProps> = ({
                 );
               })
             )}
-          </div>
-
-          {/* Bottom Action Footer */}
-          <div className="p-2.5 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">
-              Can't find your golf course?
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                setIsOpen(false);
-                onOpenAddCourse();
-              }}
-              className="px-2.5 py-1 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Custom Course</span>
-            </button>
           </div>
         </div>
       )}

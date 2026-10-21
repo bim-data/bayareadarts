@@ -3,6 +3,7 @@ import { Course } from '../types';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapPin, Navigation, RefreshCw } from 'lucide-react';
+import { normalizeRegionName } from './CourseLibraryModal';
 
 // Exact known coordinates for Northern California / Bay Area golf courses and addresses
 const KNOWN_COURSE_COORDINATES: Record<string, [number, number]> = {
@@ -499,7 +500,7 @@ export const CourseDirectoryMap: React.FC<CourseDirectoryMapProps> = ({
             ${course.name}
           </div>
           <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">
-            ${cityDisplay} · <b>${course.region}</b>
+            ${cityDisplay} · <b>${normalizeRegionName(course.region)}</b>
           </div>
           ${
             course.address

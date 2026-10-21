@@ -115,6 +115,7 @@ export default function App() {
   const [isTeamEventsOpen, setIsTeamEventsOpen] = useState(false);
   const [isBadgeCustomizerOpen, setIsBadgeCustomizerOpen] = useState(false);
   const [isCreateFutureRoundOpen, setIsCreateFutureRoundOpen] = useState(false);
+  const [futureRoundToEdit, setFutureRoundToEdit] = useState<FutureRound | null>(null);
   const [preselectedCourseId, setPreselectedCourseId] = useState<string | undefined>(undefined);
   const [isEditNicknameOpen, setIsEditNicknameOpen] = useState(false);
 
@@ -191,23 +192,86 @@ export default function App() {
   };
 
   const handleCreateFutureRound = async (futureRoundData: Partial<FutureRound>) => {
-    const newRound = {
-      ...futureRoundData,
-      id: `future-${Date.now()}`,
+    const newRound: FutureRound = {
+      courseId: futureRoundData.courseId || '',
+      courseName: futureRoundData.courseName || '',
+      targetDate: futureRoundData.targetDate || new Date().toISOString().split('T')[0],
+      targetTimeWindow: futureRoundData.targetTimeWindow || 'Morning',
+      teeName: futureRoundData.teeName,
+      format: futureRoundData.format || 'stroke',
       status: futureRoundData.status || 'placeholder',
+      bookingOpenDaysAhead: futureRoundData.bookingOpenDaysAhead || 7,
+      bookingOpensAt: futureRoundData.bookingOpensAt || '',
       registeredPlayerIds: futureRoundData.registeredPlayerIds || [],
+      maxPlayers: 4,
+      notes: futureRoundData.notes,
+      ...futureRoundData,
+      id: futureRoundData.id || `future-${Date.now()}`,
     };
     
     // Strip out undefined values
     const cleanRound = Object.fromEntries(
       Object.entries(newRound).filter(([_, v]) => v !== undefined)
-    );
+    ) as FutureRound;
     
-    await addRecord('future_rounds', cleanRound);
+    // 1. Optimistic update
+    setFutureRounds((prev) => [cleanRound, ...prev]);
+
+    // 2. Add to Firestore
+    try {
+      await addRecord('future_rounds', cleanRound);
+    } catch (err) {
+      console.warn('Firestore add future round failed:', err);
+    }
+
+    // 3. Add to server API
+    try {
+      await fetch('/api/future-rounds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cleanRound),
+      });
+    } catch (err) {
+      console.warn('API add future round failed:', err);
+    }
+  };
+
+  const handleUpdateFutureRound = async (futureRoundId: string, updatedData: Partial<FutureRound>) => {
+    const cleanData = Object.fromEntries(
+      Object.entries(updatedData).filter(([_, v]) => v !== undefined)
+    );
+
+    // 1. Optimistic update
+    setFutureRounds((prev) =>
+      prev.map((r) => {
+        if (r.id === futureRoundId || (r as any)._docId === futureRoundId) {
+          return { ...r, ...cleanData };
+        }
+        return r;
+      })
+    );
+
+    // 2. Update Firestore
+    try {
+      await updateRecord('future_rounds', futureRoundId, cleanData);
+    } catch (err) {
+      console.warn('Firestore update future round failed:', err);
+    }
+
+    // 3. Update server API
+    try {
+      await fetch(`/api/future-rounds/${encodeURIComponent(futureRoundId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cleanData),
+      });
+    } catch (err) {
+      console.warn('API update future round failed:', err);
+    }
   };
 
   const handleRsvpPlayer = async (futureRoundId: string, memberId: string, action: 'join' | 'leave') => {
-    const round = futureRounds.find(r => r.id === futureRoundId);
+    const round = futureRounds.find(r => r.id === futureRoundId || (r as any)._docId === futureRoundId);
     if (!round) return;
 
     let updatedIds = [...round.registeredPlayerIds];
@@ -216,11 +280,56 @@ export default function App() {
     } else if (action === 'leave') {
       updatedIds = updatedIds.filter(id => id !== memberId);
     }
-    await updateRecord('future_rounds', futureRoundId, { registeredPlayerIds: updatedIds });
+
+    // 1. Optimistic update
+    setFutureRounds((prev) =>
+      prev.map((r) =>
+        r.id === futureRoundId || (r as any)._docId === futureRoundId
+          ? { ...r, registeredPlayerIds: updatedIds }
+          : r
+      )
+    );
+
+    // 2. Update Firestore
+    try {
+      await updateRecord('future_rounds', futureRoundId, { registeredPlayerIds: updatedIds });
+    } catch (err) {
+      console.warn('Firestore RSVP update failed:', err);
+    }
+
+    // 3. Update server API
+    try {
+      await fetch(`/api/future-rounds/${encodeURIComponent(futureRoundId)}/rsvp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId, action }),
+      });
+    } catch (err) {
+      console.warn('API RSVP update failed:', err);
+    }
   };
 
   const handleDeleteFutureRound = async (futureRoundId: string) => {
-    await deleteRecord('future_rounds', futureRoundId);
+    // 1. Optimistic delete: immediately remove from local state
+    setFutureRounds((prev) =>
+      prev.filter((r) => r.id !== futureRoundId && (r as any)._docId !== futureRoundId)
+    );
+
+    // 2. Delete from Firestore
+    try {
+      await deleteRecord('future_rounds', futureRoundId);
+    } catch (err) {
+      console.warn('Firestore delete future round failed:', err);
+    }
+
+    // 3. Delete from backend API
+    try {
+      await fetch(`/api/future-rounds/${encodeURIComponent(futureRoundId)}`, {
+        method: 'DELETE',
+      });
+    } catch (err) {
+      console.warn('API delete future round failed:', err);
+    }
   };
 
   // Helper to accurately calculate WHS Index
@@ -603,7 +712,14 @@ export default function App() {
             onViewCourses={() => setIsCourseLibraryOpen(true)}
             onResumeLiveRound={() => setCurrentTab('live')}
             onOpenBadgeCustomizer={() => setIsBadgeCustomizerOpen(true)}
-            onOpenCreateFutureRound={() => setIsCreateFutureRoundOpen(true)}
+            onOpenCreateFutureRound={() => {
+              setFutureRoundToEdit(null);
+              setIsCreateFutureRoundOpen(true);
+            }}
+            onEditFutureRound={(fr) => {
+              setFutureRoundToEdit(fr);
+              setIsCreateFutureRoundOpen(true);
+            }}
             onRsvpPlayer={handleRsvpPlayer}
             onStartFutureRound={handleStartFutureRound}
             onDeleteFutureRound={handleDeleteFutureRound}
@@ -811,14 +927,17 @@ export default function App() {
         isOpen={isCreateFutureRoundOpen}
         onClose={() => {
           setIsCreateFutureRoundOpen(false);
+          setFutureRoundToEdit(null);
           setPreselectedCourseId(undefined); // Clear it when closing
         }}
         courses={courses}
         members={members}
         activeUserId={activeUserId}
-        initialSelectedCourseId={preselectedCourseId} // Pass the course!
+        initialSelectedCourseId={preselectedCourseId}
+        roundToEdit={futureRoundToEdit}
         onCourseAdded={handleAddCourse}
         onCreateFutureRound={handleCreateFutureRound}
+        onUpdateFutureRound={handleUpdateFutureRound}
       />
 
       <EditNicknameModal

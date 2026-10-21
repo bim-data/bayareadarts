@@ -35,6 +35,7 @@ interface ClubhouseDashboardProps {
   onResumeLiveRound: () => void;
   onOpenBadgeCustomizer: () => void;
   onOpenCreateFutureRound: () => void;
+  onEditFutureRound?: (futureRound: FutureRound) => void;
   onRsvpPlayer: (futureRoundId: string, memberId: string, action: 'join' | 'leave') => void;
   onStartFutureRound: (futureRoundId: string) => void;
   onDeleteFutureRound: (futureRoundId: string) => void;
@@ -63,6 +64,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
   onResumeLiveRound,
   onOpenBadgeCustomizer,
   onOpenCreateFutureRound,
+  onEditFutureRound,
   onRsvpPlayer,
   onStartFutureRound,
   onDeleteFutureRound,
@@ -617,6 +619,7 @@ export const ClubhouseDashboard: React.FC<ClubhouseDashboardProps> = ({
             activeUser={activeUser}
             onOpenProfile={onOpenProfile}
             onOpenCreateFutureRound={onOpenCreateFutureRound}
+            onEditFutureRound={onEditFutureRound}
             onRsvpPlayer={onRsvpPlayer}
             onStartFutureRound={onStartFutureRound}
             onDeleteFutureRound={onDeleteFutureRound}

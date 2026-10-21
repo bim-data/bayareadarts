@@ -16,7 +16,8 @@ import {
   UserPlus, 
   AlertCircle,
   Mail,
-  Send
+  Send,
+  Edit3
 } from 'lucide-react';
 import { FutureRound, MemberProfile, Course } from '../types';
 import { 
@@ -33,6 +34,7 @@ interface FutureRoundsSectionProps {
   activeUser?: MemberProfile;
   onOpenProfile?: () => void;
   onOpenCreateFutureRound: () => void;
+  onEditFutureRound?: (futureRound: FutureRound) => void;
   onRsvpPlayer: (futureRoundId: string, memberId: string, action: 'join' | 'leave') => void;
   onStartFutureRound: (futureRoundId: string) => void;
   onDeleteFutureRound: (futureRoundId: string) => void;
@@ -45,6 +47,7 @@ export const FutureRoundsSection: React.FC<FutureRoundsSectionProps> = ({
   activeUser,
   onOpenProfile,
   onOpenCreateFutureRound,
+  onEditFutureRound,
   onRsvpPlayer,
   onStartFutureRound,
   onDeleteFutureRound,
@@ -52,6 +55,7 @@ export const FutureRoundsSection: React.FC<FutureRoundsSectionProps> = ({
   const [selectedRsvpRoundId, setSelectedRsvpRoundId] = useState<string | null>(null);
   const [copiedRoundId, setCopiedRoundId] = useState<string | null>(null);
   const [alertSuccessId, setAlertSuccessId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Email Notification modal state
   const [emailSentData, setEmailSentData] = useState<{
@@ -188,7 +192,7 @@ export const FutureRoundsSection: React.FC<FutureRoundsSectionProps> = ({
               >
                 {/* Top Header: Date & Status Badge */}
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 shrink-0">
                     <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     {formatDateDisplay(fr.targetDate)}
                   </span>
@@ -366,17 +370,61 @@ export const FutureRoundsSection: React.FC<FutureRoundsSectionProps> = ({
                   </p>
                 )}
 
-                {/* Bottom Actions: Start Round Directly */}
+                {/* Bottom Actions: Delete (left), Edit (middle), Start Round (right) */}
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                  <button
-                    onClick={() => onDeleteFutureRound(fr.id)}
-                    className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
-                    title="Delete Placeholder"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {/* Edit and Delete available only when logged in */}
+                  {activeUser && (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {/* 1. Delete on the left */}
+                      {confirmDeleteId === fr.id ? (
+                        <div className="flex items-center gap-1 bg-red-50 dark:bg-red-950/60 p-0.5 rounded-xl border border-red-200 dark:border-red-800">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onDeleteFutureRound(fr.id);
+                              setConfirmDeleteId(null);
+                            }}
+                            className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-2xs"
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="px-2 py-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 text-xs font-medium cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteId(fr.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 border border-transparent hover:border-red-200 dark:hover:border-red-900/50 transition-colors cursor-pointer"
+                          title="Delete Placeholder"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
 
+                      {/* 2. Edit between delete and start round button */}
+                      {onEditFutureRound && (
+                        <button
+                          type="button"
+                          onClick={() => onEditFutureRound(fr)}
+                          className="px-2.5 py-1.5 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+                          title="Edit round (date, course, time, format)"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                          <span>Edit</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 3. Start Round on the right */}
                   <button
+                    type="button"
                     onClick={() => onStartFutureRound(fr.id)}
                     className="btn-modern flex-1 py-1.5 px-3 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                   >
