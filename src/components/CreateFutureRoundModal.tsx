@@ -75,6 +75,7 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
 
   const [targetDate, setTargetDate] = useState(getNextSaturday());
   const [timeWindow, setTimeWindow] = useState('8:00 AM – 8:30 AM');
+  const [confirmedTeeTime, setConfirmedTeeTime] = useState('8:00 AM');
   const [format, setFormat] = useState<GameFormat>('stroke');
   const [status, setStatus] = useState<'placeholder' | 'confirmed'>('placeholder');
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
@@ -101,7 +102,13 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
       if (roundToEdit) {
         setCourseId(roundToEdit.courseId);
         setTargetDate(roundToEdit.targetDate);
-        setTimeWindow(roundToEdit.targetTimeWindow || '8:00 AM – 8:30 AM');
+        const existingWindow = roundToEdit.targetTimeWindow || '8:00 AM – 8:30 AM';
+        setTimeWindow(existingWindow.includes('–') ? existingWindow : '8:00 AM – 8:30 AM');
+        setConfirmedTeeTime(
+          roundToEdit.status === 'confirmed'
+            ? (roundToEdit.targetTimeWindow || '8:00 AM')
+            : (existingWindow.split('–')[0]?.trim() || '8:00 AM')
+        );
         setFormat(roundToEdit.format || 'stroke');
         setStatus(roundToEdit.status === 'confirmed' ? 'confirmed' : 'placeholder');
         setSelectedPlayerIds(roundToEdit.registeredPlayerIds || []);
@@ -116,6 +123,7 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
       } else {
         setTargetDate(getNextSaturday());
         setTimeWindow('8:00 AM – 8:30 AM');
+        setConfirmedTeeTime('8:00 AM');
         setFormat('stroke');
         setStatus('placeholder');
         setEmailAlertEnabled(true);
@@ -165,12 +173,13 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const windowText = `Booking opens ${calculateWindowOpensText(targetDate)}`;
+    const finalTeeTime = status === 'confirmed' ? (confirmedTeeTime.trim() || '8:00 AM') : timeWindow;
 
     const roundPayload: Partial<FutureRound> = {
       courseId: selectedCourse.id,
       courseName: selectedCourse.name,
       targetDate,
-      targetTimeWindow: timeWindow,
+      targetTimeWindow: finalTeeTime,
       status,
       bookingOpenDaysAhead: roundToEdit?.bookingOpenDaysAhead || 7,
       bookingOpensAt: windowText,
@@ -249,7 +258,7 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
               label="Select Course (Search by name or city)"
             />
 
-            {/* 2. Target Date & Time Window */}
+            {/* 2. Target Date & Tee Time */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
@@ -263,56 +272,98 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
                   className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-slate-100"
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
-                  Tee Time Window *
+
+              {status === 'confirmed' ? (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                      Tee Time *
+                    </label>
+                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-200/60 dark:border-emerald-800/60">
+                      Booked Time
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      value={confirmedTeeTime}
+                      onChange={(e) => setConfirmedTeeTime(e.target.value)}
+                      placeholder="e.g. 8:15 AM"
+                      className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                    Tee Time Window *
+                  </label>
+                  <select
+                    value={timeWindow}
+                    onChange={(e) => setTimeWindow(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-slate-100"
+                  >
+                    {/* If existing round had custom timeWindow not in standard list, show it */}
+                    {timeWindow && !TEE_TIME_WINDOWS.includes(timeWindow) && (
+                      <option value={timeWindow}>{timeWindow} (Custom)</option>
+                    )}
+                    {TEE_TIME_WINDOWS.map((tw) => (
+                      <option key={tw} value={tw}>
+                        {tw}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* 3. Status Callout / 7-Day Window Info */}
+            {status === 'confirmed' ? (
+              <div className="p-3.5 bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-emerald-950 dark:text-emerald-200 flex items-center gap-1.5">
+                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>Tee Time Confirmed ({confirmedTeeTime || 'Booked'})</span>
+                  </span>
+                  <span className="text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-300 uppercase">
+                    Ready to Play
+                  </span>
+                </div>
+                <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+                  Tee time is locked in for this round. Pre-registered golfers can view the details and start scoring on round day.
+                </p>
+              </div>
+            ) : (
+              <div className="p-3.5 bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-emerald-950 dark:text-emerald-200 flex items-center gap-1.5">
+                    <Bell className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>7-Day Tee Sheet Booking Rule</span>
+                  </span>
+                  <span className="text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-300">
+                    {calculateWindowOpensText(targetDate)}
+                  </span>
+                </div>
+                <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+                  Tee sheet drops precisely 7 days prior at 6:00 AM. Pre-registering your foursome locks in who is playing.
+                </p>
+
+                {/* Email Alert Checkbox */}
+                <label className="pt-1 border-t border-emerald-200/60 dark:border-emerald-800/40 flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={emailAlertEnabled}
+                    onChange={(e) => setEmailAlertEnabled(e.target.checked)}
+                    className="rounded text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                    Email reminder to {activeUser?.email || 'my registered email'}
+                  </span>
                 </label>
-                <select
-                  value={timeWindow}
-                  onChange={(e) => setTimeWindow(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-slate-100"
-                >
-                  {/* If existing round had custom timeWindow not in standard list, show it */}
-                  {timeWindow && !TEE_TIME_WINDOWS.includes(timeWindow) && (
-                    <option value={timeWindow}>{timeWindow} (Custom)</option>
-                  )}
-                  {TEE_TIME_WINDOWS.map((tw) => (
-                    <option key={tw} value={tw}>
-                      {tw}
-                    </option>
-                  ))}
-                </select>
               </div>
-            </div>
-
-            {/* 3. 7-Day Window Info Callout & Email Toggle */}
-            <div className="p-3.5 bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl text-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-emerald-950 dark:text-emerald-200 flex items-center gap-1.5">
-                  <Bell className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>7-Day Tee Sheet Booking Rule</span>
-                </span>
-                <span className="text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-300">
-                  {calculateWindowOpensText(targetDate)}
-                </span>
-              </div>
-              <p className="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
-                Tee sheet drops precisely 7 days prior at 6:00 AM. Pre-registering your foursome locks in who is playing.
-              </p>
-
-              {/* Email Alert Checkbox */}
-              <label className="pt-1 border-t border-emerald-200/60 dark:border-emerald-800/40 flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={emailAlertEnabled}
-                  onChange={(e) => setEmailAlertEnabled(e.target.checked)}
-                  className="rounded text-emerald-600 focus:ring-emerald-500"
-                />
-                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                  Email reminder to {activeUser?.email || 'my registered email'}
-                </span>
-              </label>
-            </div>
+            )}
 
             {/* 4. Format, Status & Tee Box */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -360,7 +411,14 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
                 </label>
                 <select
                   value={status}
-                  onChange={(e) => setStatus(e.target.value as any)}
+                  onChange={(e) => {
+                    const newStatus = e.target.value as 'placeholder' | 'confirmed';
+                    setStatus(newStatus);
+                    if (newStatus === 'confirmed' && (!confirmedTeeTime || confirmedTeeTime === '8:00 AM')) {
+                      const startTime = timeWindow.split('–')[0]?.trim();
+                      if (startTime) setConfirmedTeeTime(startTime);
+                    }
+                  }}
                   className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-slate-100"
                 >
                   <option value="placeholder">📅 Placeholder (Waiting for 7-day drop)</option>

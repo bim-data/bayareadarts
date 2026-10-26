@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { X, Users, Search, ChevronRight, Trophy, ShieldCheck, UserCheck } from 'lucide-react';
-import { MemberProfile, TeamGroup } from '../types';
+import { MemberProfile, TeamGroup, CompletedRoundRecord, TeamEventRecord } from '../types';
 
 interface PlayerListModalProps {
   isOpen: boolean;
   onClose: () => void;
   members: MemberProfile[];
   teams?: TeamGroup[];
+  completedRounds?: CompletedRoundRecord[];
+  teamEvents?: TeamEventRecord[];
   onSelectMember: (member: MemberProfile) => void;
   onSelectTeam?: (team: TeamGroup) => void;
+  initialTab?: 'players' | 'squads' | 'guests';
+  onTabChange?: (tab: 'players' | 'squads' | 'guests') => void;
 }
 
 export const PlayerListModal: React.FC<PlayerListModalProps> = ({
@@ -16,11 +20,37 @@ export const PlayerListModal: React.FC<PlayerListModalProps> = ({
   onClose,
   members,
   teams = [],
+  completedRounds = [],
+  teamEvents = [],
   onSelectMember,
-  onSelectTeam
+  onSelectTeam,
+  initialTab = 'players',
+  onTabChange,
 }) => {
-  const [activeTab, setActiveTab] = useState<'players' | 'squads' | 'guests'>('players');
+  const [activeTab, setActiveTab] = useState<'players' | 'squads' | 'guests'>(initialTab);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Reset to default state whenever modal is closed
+  React.useEffect(() => {
+    if (!isOpen) {
+      setActiveTab('players');
+      setSearchTerm('');
+    } else if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
+
+  const handleClose = () => {
+    setActiveTab('players');
+    setSearchTerm('');
+    if (onTabChange) onTabChange('players');
+    onClose();
+  };
+
+  const handleTabChange = (tab: 'players' | 'squads' | 'guests') => {
+    setActiveTab(tab);
+    if (onTabChange) onTabChange(tab);
+  };
 
   if (!isOpen) return null;
 
@@ -51,6 +81,99 @@ export const PlayerListModal: React.FC<PlayerListModalProps> = ({
     });
   }).sort((a, b) => a.name.localeCompare(b.name));
 
+  // Dynamic stats calculators for accurate rounds count and best scores
+  const getPlayerStats = (member: MemberProfile) => {
+    const memberRounds = completedRounds.filter(
+      (r) =>
+        (r.playerId === member.id ||
+          (r.playerName && member.name && r.playerName.toLowerCase() === member.name.toLowerCase())) &&
+        !r.isTeamRound &&
+        r.format !== 'scramble' &&
+        r.format !== 'best_ball'
+    );
+
+    const roundsCount = Math.max(
+      memberRounds.length,
+      member.differentials?.length || 0,
+      member.roundsCount || 0
+    );
+
+    const scores: number[] = [];
+    memberRounds.forEach((r) => {
+      const s = Number(r.grossScore);
+      if (s > 0 && (!r.holesPlayed || r.holesPlayed === '18')) {
+        scores.push(s);
+      }
+    });
+    (member.differentials || []).forEach((d) => {
+      if (d.grossScore && d.grossScore > 0) {
+        scores.push(d.grossScore);
+      }
+    });
+    if (member.bestRound && member.bestRound > 0) {
+      scores.push(member.bestRound);
+    }
+
+    const bestScore = scores.length > 0 ? Math.min(...scores) : null;
+    return { roundsCount, bestScore };
+  };
+
+  const getTeamStats = (team: TeamGroup) => {
+    const matchingEvents = teamEvents.filter((ev) => {
+      return (
+        ev.winningTeamName?.toLowerCase() === team.name.toLowerCase() ||
+        ev.teamLeaderboard?.some(
+          (t) =>
+            t.teamName?.toLowerCase() === team.name.toLowerCase() ||
+            (t.playerNames?.length === team.playerIds?.length &&
+              team.playerIds.every((pid) => {
+                const m = members.find((mem) => mem.id === pid);
+                return m && t.playerNames.some((pn) => pn.toLowerCase().includes(m.name.toLowerCase()));
+              }))
+        )
+      );
+    });
+
+    const matchingCompletedTeamRounds = completedRounds.filter((r) => {
+      return (
+        (r.isTeamRound || r.format === 'scramble') &&
+        ((r as any).teamId === team.id ||
+          (r as any).teamName?.toLowerCase() === team.name.toLowerCase() ||
+          (r.playerName && r.playerName.toLowerCase() === team.name.toLowerCase()))
+      );
+    });
+
+    const teamScores: number[] = [];
+
+    matchingEvents.forEach((ev) => {
+      ev.teamLeaderboard?.forEach((t) => {
+        const isThisTeam =
+          t.teamName?.toLowerCase() === team.name.toLowerCase() ||
+          ev.winningTeamName?.toLowerCase() === team.name.toLowerCase();
+        if (isThisTeam && t.grossScore && t.grossScore > 0) {
+          teamScores.push(t.grossScore);
+        }
+      });
+    });
+
+    matchingCompletedTeamRounds.forEach((r) => {
+      const gs = Number(r.grossScore);
+      if (gs > 0) teamScores.push(gs);
+    });
+
+    if (team.stats?.bestScore && team.stats.bestScore > 0) {
+      teamScores.push(team.stats.bestScore);
+    }
+
+    const roundsCount = Math.max(
+      matchingEvents.length + matchingCompletedTeamRounds.length,
+      team.stats?.roundsCount || 0
+    );
+
+    const bestScore = teamScores.length > 0 ? Math.min(...teamScores) : null;
+    return { roundsCount, bestScore };
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
       <div className="w-full sm:max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:rounded-3xl bg-white dark:bg-slate-900 border-0 sm:border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden text-slate-900 dark:text-slate-100 transition-colors">
@@ -71,7 +194,7 @@ export const PlayerListModal: React.FC<PlayerListModalProps> = ({
             </div>
           </div>
           <button 
-            onClick={onClose} 
+            onClick={handleClose} 
             className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors cursor-pointer shrink-0"
             title="Close"
           >
@@ -82,7 +205,7 @@ export const PlayerListModal: React.FC<PlayerListModalProps> = ({
         {/* 3 Tabs Bar */}
         <div className="shrink-0 px-4 pt-3 pb-2 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto">
           <button
-            onClick={() => setActiveTab('players')}
+            onClick={() => handleTabChange('players')}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'players'
                 ? 'bg-emerald-600 text-white shadow-2xs'
@@ -99,7 +222,7 @@ export const PlayerListModal: React.FC<PlayerListModalProps> = ({
           </button>
 
           <button
-            onClick={() => setActiveTab('squads')}
+            onClick={() => handleTabChange('squads')}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'squads'
                 ? 'bg-emerald-600 text-white shadow-2xs'
@@ -116,7 +239,7 @@ export const PlayerListModal: React.FC<PlayerListModalProps> = ({
           </button>
 
           <button
-            onClick={() => setActiveTab('guests')}
+            onClick={() => handleTabChange('guests')}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'guests'
                 ? 'bg-emerald-600 text-white shadow-2xs'
@@ -162,35 +285,38 @@ export const PlayerListModal: React.FC<PlayerListModalProps> = ({
                 No registered players found{searchTerm ? ` matching "${searchTerm}"` : ''}.
               </div>
             ) : (
-              filteredOfficial.map(member => (
-                <div 
-                  key={member.id}
-                  onClick={() => onSelectMember(member)}
-                  className="p-3.5 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition-colors group"
-                >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="w-11 h-11 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-2xl shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-                      {member.avatarEmoji}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                          {member.name}
-                        </span>
-                        {member.nickname && (
-                          <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                            "{member.nickname}"
-                          </span>
-                        )}
+              filteredOfficial.map(member => {
+                const { roundsCount, bestScore } = getPlayerStats(member);
+                return (
+                  <div 
+                    key={member.id}
+                    onClick={() => onSelectMember(member)}
+                    className="p-3.5 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition-colors group"
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="w-11 h-11 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-2xl shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                        {member.avatarEmoji}
                       </div>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 truncate block mt-0.5">
-                        Index: <strong className="font-mono text-slate-700 dark:text-slate-300">{member.handicapIndex.toFixed(1)}</strong> · {member.roundsCount} rounds
-                      </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                            {member.name}
+                          </span>
+                          {member.nickname && (
+                            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                              "{member.nickname}"
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 truncate block mt-0.5">
+                          Index: <strong className="font-mono text-slate-700 dark:text-slate-300">{member.handicapIndex.toFixed(1)}</strong> · {roundsCount} {roundsCount === 1 ? 'round' : 'rounds'}{bestScore ? ` · Best: ${bestScore}` : ''}
+                        </span>
+                      </div>
                     </div>
+                    <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-emerald-500 transition-colors shrink-0" />
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-emerald-500 transition-colors shrink-0" />
-                </div>
-              ))
+                );
+              })
             )
           )}
 
@@ -205,6 +331,7 @@ export const PlayerListModal: React.FC<PlayerListModalProps> = ({
                 const teamMembers = team.playerIds
                   .map(id => members.find(m => m.id === id))
                   .filter(Boolean) as MemberProfile[];
+                const { roundsCount: squadRoundsCount, bestScore: squadBestScore } = getTeamStats(team);
 
                 return (
                   <div 
@@ -244,8 +371,8 @@ export const PlayerListModal: React.FC<PlayerListModalProps> = ({
                         </div>
 
                         <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-1">
-                          {team.stats?.roundsCount || 0} scramble rounds
-                          {team.stats?.bestScore ? ` · Best: ${team.stats.bestScore}` : ''}
+                          {squadRoundsCount} scramble {squadRoundsCount === 1 ? 'round' : 'rounds'}
+                          {squadBestScore ? ` · Best: ${squadBestScore}` : ''}
                         </span>
                       </div>
                     </div>
@@ -263,38 +390,41 @@ export const PlayerListModal: React.FC<PlayerListModalProps> = ({
                 No guest members found{searchTerm ? ` matching "${searchTerm}"` : ''}.
               </div>
             ) : (
-              filteredGuests.map(member => (
-                <div 
-                  key={member.id}
-                  onClick={() => onSelectMember(member)}
-                  className="p-3.5 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition-colors group"
-                >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="w-11 h-11 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-2xl shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-                      {member.avatarEmoji}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                          {member.name}
-                        </span>
-                        {member.nickname && (
-                          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                            "{member.nickname}"
+              filteredGuests.map(member => {
+                const { roundsCount, bestScore } = getPlayerStats(member);
+                return (
+                  <div 
+                    key={member.id}
+                    onClick={() => onSelectMember(member)}
+                    className="p-3.5 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition-colors group"
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="w-11 h-11 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-2xl shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                        {member.avatarEmoji}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                            {member.name}
                           </span>
-                        )}
-                        <span className="px-1.5 py-0.5 rounded text-[8px] bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold uppercase">
-                          Guest Member
+                          {member.nickname && (
+                            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                              "{member.nickname}"
+                            </span>
+                          )}
+                          <span className="px-1.5 py-0.5 rounded text-[8px] bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold uppercase">
+                            Guest Member
+                          </span>
+                        </div>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 truncate block mt-0.5">
+                          Index: <strong className="font-mono text-slate-700 dark:text-slate-300">{member.handicapIndex.toFixed(1)}</strong> · {roundsCount} {roundsCount === 1 ? 'round' : 'rounds'}{bestScore ? ` · Best: ${bestScore}` : ''}
                         </span>
                       </div>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 truncate block mt-0.5">
-                        Index: <strong className="font-mono text-slate-700 dark:text-slate-300">{member.handicapIndex.toFixed(1)}</strong> · {member.roundsCount} rounds
-                      </span>
                     </div>
+                    <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-emerald-500 transition-colors shrink-0" />
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-emerald-500 transition-colors shrink-0" />
-                </div>
-              ))
+                );
+              })
             )
           )}
         </div>

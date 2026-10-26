@@ -152,6 +152,28 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
     }
   }, [selectedCourse]);
 
+  // Reset to default state whenever modal is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedCourse(null);
+      setSearchTerm('');
+      setViewMode('list');
+      setIsEditing(false);
+      setSaveSuccess(false);
+      setSaveError(null);
+    }
+  }, [isOpen]);
+
+  const handleClose = () => {
+    setSelectedCourse(null);
+    setSearchTerm('');
+    setViewMode('list');
+    setIsEditing(false);
+    setSaveSuccess(false);
+    setSaveError(null);
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   // Filter courses by search term
@@ -278,7 +300,7 @@ export const CourseLibraryModal: React.FC<CourseLibraryModalProps> = ({
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Close directory"
             className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >

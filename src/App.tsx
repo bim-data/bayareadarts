@@ -126,6 +126,8 @@ export default function App() {
   const [selectedTeamEventForHistory, setSelectedTeamEventForHistory] = useState<TeamEventRecord | null>(null);
   const [selectedTeamNameForHistory, setSelectedTeamNameForHistory] = useState<string | null>(null);
   const [isTeamHistoryOpen, setIsTeamHistoryOpen] = useState(false);
+  const [openedFromRoster, setOpenedFromRoster] = useState(false);
+  const [rosterTab, setRosterTab] = useState<'players' | 'squads' | 'guests'>('players');
 
   const handleOpenClubhouseHub = (tab: 'profiles' | 'teams' = 'profiles') => {
     setClubhouseHubInitialTab(tab);
@@ -664,7 +666,11 @@ export default function App() {
         activeUser={activeUser}
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode(!darkMode)}
-        onOpenPlayerList={() => setIsPlayerListOpen(true)}
+        onOpenPlayerList={() => {
+          setRosterTab('players');
+          setOpenedFromRoster(false);
+          setIsPlayerListOpen(true);
+        }}
         onOpenNewRound={() => {
           if (!currentUser) return setIsAuthModalOpen(true);
           setIsNewRoundOpen(true);
@@ -758,14 +764,24 @@ export default function App() {
 
       <PlayerListModal 
         isOpen={isPlayerListOpen}
-        onClose={() => setIsPlayerListOpen(false)}
+        onClose={() => {
+          setIsPlayerListOpen(false);
+          setOpenedFromRoster(false);
+          setRosterTab('players');
+        }}
         members={members}
         teams={teams}
+        completedRounds={completedRounds}
+        teamEvents={teamEvents}
+        initialTab={rosterTab}
+        onTabChange={(tab) => setRosterTab(tab)}
         onSelectMember={(m) => {
+          setOpenedFromRoster(true);
           setIsPlayerListOpen(false);
           handleOpenMemberHistory(m);
         }}
         onSelectTeam={(team) => {
+          setOpenedFromRoster(true);
           setIsPlayerListOpen(false);
           const matchingEvent = teamEvents.find(e => 
             e.teamLeaderboard.some(t => t.teamName?.toLowerCase() === team.name.toLowerCase()) ||
@@ -907,7 +923,14 @@ export default function App() {
 
       <TeamEventsModal
         isOpen={isTeamEventsOpen}
-        onClose={() => setIsTeamEventsOpen(false)}
+        onClose={() => {
+          setIsTeamEventsOpen(false);
+          setOpenedFromRoster(false);
+        }}
+        onBack={openedFromRoster ? () => {
+          setIsTeamEventsOpen(false);
+          setIsPlayerListOpen(true);
+        } : undefined}
         events={teamEvents}
         courses={courses}
         onUpdateTeamEvent={handleUpdateTeamEvent}
@@ -920,7 +943,13 @@ export default function App() {
         onClose={() => {
           setIsPlayerHistoryOpen(false);
           setSelectedHistoryRoundId(undefined);
+          setOpenedFromRoster(false);
         }}
+        onBack={openedFromRoster ? () => {
+          setIsPlayerHistoryOpen(false);
+          setSelectedHistoryRoundId(undefined);
+          setIsPlayerListOpen(true);
+        } : undefined}
         member={selectedMemberForHistory}
         rounds={completedRounds}
         teamEvents={teamEvents}
@@ -936,7 +965,14 @@ export default function App() {
 
       <TeamHistoryModal
         isOpen={isTeamHistoryOpen}
-        onClose={() => setIsTeamHistoryOpen(false)}
+        onClose={() => {
+          setIsTeamHistoryOpen(false);
+          setOpenedFromRoster(false);
+        }}
+        onBack={openedFromRoster ? () => {
+          setIsTeamHistoryOpen(false);
+          setIsPlayerListOpen(true);
+        } : undefined}
         event={selectedTeamEventForHistory}
         courses={courses}
         onUpdateTeamEvent={handleUpdateTeamEvent}

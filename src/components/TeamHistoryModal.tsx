@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Trophy, Award, Edit3, Trash2, Check, X } from 'lucide-react';
+import { ChevronDown, Trophy, Award, Edit3, Trash2, Check, X, ArrowLeft } from 'lucide-react';
 import { TeamEventRecord, Course, HoleScore } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -465,7 +465,8 @@ export const TeamHistoryModal: React.FC<{
   courses?: Course[];
   onUpdateTeamEvent?: (eventId: string, data: Partial<TeamEventRecord>) => void;
   onDeleteTeamEvent?: (eventId: string) => void;
-}> = ({ isOpen, onClose, event, courses, onUpdateTeamEvent, onDeleteTeamEvent }) => {
+  onBack?: () => void;
+}> = ({ isOpen, onClose, event, courses, onUpdateTeamEvent, onDeleteTeamEvent, onBack }) => {
   if (!isOpen || !event) return null;
 
   return (
@@ -474,6 +475,17 @@ export const TeamHistoryModal: React.FC<{
         
         <div className="shrink-0 p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="btn-modern px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs shrink-0"
+                title="Back to Squads"
+              >
+                <ArrowLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="font-bold">Back</span>
+              </button>
+            )}
             <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
               <Trophy className="w-5 h-5" />
             </div>
@@ -504,7 +516,17 @@ export const TeamHistoryModal: React.FC<{
           />
         </div>
 
-        <div className="shrink-0 p-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+        <div className="shrink-0 p-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              className="btn-modern px-3.5 py-2 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Back to Squads</span>
+            </button>
+          ) : <div />}
           <button onClick={onClose} className="btn-modern px-5 py-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-semibold cursor-pointer shadow-xs">
             Close
           </button>
