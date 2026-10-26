@@ -362,10 +362,12 @@ export const PlayerListModal: React.FC<PlayerListModalProps> = ({
                           {teamMembers.map(m => (
                             <span 
                               key={m.id}
-                              className="text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-1 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700/60"
+                              className="text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-1 bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700/60"
                             >
                               <span>{m.avatarEmoji}</span>
-                              <span className="font-medium truncate max-w-[80px]">{m.name.split(' ')[0]}</span>
+                              <span className="font-medium truncate max-w-[150px]">
+                                {m.name} {m.nickname ? `"${m.nickname}"` : ''}
+                              </span>
                             </span>
                           ))}
                         </div>

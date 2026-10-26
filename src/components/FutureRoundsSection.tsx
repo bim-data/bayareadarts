@@ -323,7 +323,7 @@ export const FutureRoundsSection: React.FC<FutureRoundsSectionProps> = ({
                           onClick={() => onRsvpPlayer(fr.id, activeUser.id, 'join')}
                           className="text-emerald-600 dark:text-emerald-400 hover:underline text-[11px] font-bold cursor-pointer"
                         >
-                          + Sign Me Up ({activeUser.nickname})
+                          + Sign Me Up ({activeUser.name}{activeUser.nickname ? ` "${activeUser.nickname}"` : ''})
                         </button>
                       ) : null
                     )}
@@ -344,7 +344,7 @@ export const FutureRoundsSection: React.FC<FutureRoundsSectionProps> = ({
                           <div className="flex items-center gap-1.5 min-w-0">
                             <span className="text-xs shrink-0">{m.avatarEmoji}</span>
                             <span className="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">
-                              {m.name.split(' ')[0]} {m.nickname ? `"${m.nickname}"` : ''}
+                              {m.name} {m.nickname ? `"${m.nickname}"` : ''}
                             </span>
                           </div>
                           {activeUser && (

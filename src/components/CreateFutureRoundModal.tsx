@@ -455,14 +455,21 @@ export const CreateFutureRoundModal: React.FC<CreateFutureRoundModalProps> = ({
                           {m.avatarEmoji}
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100 truncate leading-tight">
-                            {m.name} {isMe && '(You)'}
-                          </span>
-                          {m.nickname && (
-                            <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 truncate leading-tight">
-                              "{m.nickname}"
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-heading font-bold text-xs text-slate-900 dark:text-slate-100 truncate leading-tight">
+                              {m.name}
                             </span>
-                          )}
+                            {m.nickname && (
+                              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                                "{m.nickname}"
+                              </span>
+                            )}
+                            {isMe && (
+                              <span className="text-[10px] text-slate-400 font-medium">
+                                (You)
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[10px] text-slate-400 font-stats block mt-0.5">
                             Index: {m.handicapIndex.toFixed(1)}
                           </span>
